@@ -1,12 +1,12 @@
 import type {
-  DatabaseSchema,
+  ColumnSchema,
+  CompletionInsertTextRule,
   CompletionItem,
   CompletionItemKind,
-  CompletionInsertTextRule,
+  DatabaseSchema,
   Position,
   TableSchema,
-  ColumnSchema
-} from '../types/sql'
+} from "../types/sql"
 
 interface CompletionCache {
   [key: string]: CompletionItem[]
@@ -46,13 +46,13 @@ export class SQLAutoCompleter {
    */
   getCompletions(query: string, position: Position): CompletionItem[] {
     const cacheKey = `${query}-${position.line}-${position.column}`
-    
+
     if (this.cache[cacheKey]) {
       return this.cache[cacheKey]
     }
 
     const completions = this.generateCompletions(query, position)
-    
+
     // Cache results (limit cache size for memory management)
     if (Object.keys(this.cache).length > 100) {
       this.cache = {}
@@ -80,7 +80,7 @@ export class SQLAutoCompleter {
       completions.push(...this.getJoinCompletions(context, currentWord))
     } else if (context.inWhere || context.inHaving) {
       completions.push(...this.getWhereCompletions(context, currentWord))
-    } else if (precedingText.trim() === '' || this.isStartOfStatement(precedingText)) {
+    } else if (precedingText.trim() === "" || this.isStartOfStatement(precedingText)) {
       completions.push(...this.getStatementStartCompletions())
     } else {
       completions.push(...this.getGeneralCompletions(context, currentWord))
@@ -89,7 +89,7 @@ export class SQLAutoCompleter {
     // Add keywords, functions, and snippets based on context
     completions.push(...this.getKeywordCompletions(currentWord, context))
     completions.push(...this.getFunctionCompletions(currentWord, context))
-    
+
     if (currentWord.length === 0) {
       completions.push(...this.getSnippetCompletions(context))
     }
@@ -106,7 +106,7 @@ export class SQLAutoCompleter {
 
     // Add columns from available tables
     for (const tableName of context.tables) {
-      const table = this.schema.tables.find(t => t.name === tableName)
+      const table = this.schema.tables.find((t) => t.name === tableName)
       if (table) {
         for (const column of table.columns) {
           completions.push({
@@ -114,7 +114,7 @@ export class SQLAutoCompleter {
             kind: CompletionItemKind.Column,
             detail: `${column.type} - ${table.name}`,
             documentation: column.comment,
-            sortText: `column_${column.name}`
+            sortText: `column_${column.name}`,
           })
         }
       }
@@ -123,7 +123,7 @@ export class SQLAutoCompleter {
     // Add qualified column names if there are multiple tables
     if (context.tables.length > 1) {
       for (const tableName of context.tables) {
-        const table = this.schema.tables.find(t => t.name === tableName)
+        const table = this.schema.tables.find((t) => t.name === tableName)
         if (table) {
           for (const column of table.columns) {
             completions.push({
@@ -131,7 +131,7 @@ export class SQLAutoCompleter {
               kind: CompletionItemKind.Column,
               detail: `${column.type} - ${table.name}`,
               documentation: column.comment,
-              sortText: `qualified_${tableName}_${column.name}`
+              sortText: `qualified_${tableName}_${column.name}`,
             })
           }
         }
@@ -139,15 +139,15 @@ export class SQLAutoCompleter {
     }
 
     // Add aggregate functions
-    const aggregateFunctions = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'GROUP_CONCAT']
+    const aggregateFunctions = ["COUNT", "SUM", "AVG", "MIN", "MAX", "GROUP_CONCAT"]
     for (const func of aggregateFunctions) {
       completions.push({
         label: `${func}()`,
         kind: CompletionItemKind.Function,
-        detail: 'Aggregate function',
+        detail: "Aggregate function",
         insertText: `${func}($1)`,
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: `function_${func}`
+        sortText: `function_${func}`,
       })
     }
 
@@ -167,7 +167,7 @@ export class SQLAutoCompleter {
         kind: CompletionItemKind.Table,
         detail: `Table - ${table.schema}`,
         documentation: table.comment,
-        sortText: `table_${table.name}`
+        sortText: `table_${table.name}`,
       })
     }
 
@@ -178,7 +178,7 @@ export class SQLAutoCompleter {
         kind: CompletionItemKind.Table,
         detail: `View - ${view.schema}`,
         documentation: view.comment,
-        sortText: `view_${view.name}`
+        sortText: `view_${view.name}`,
       })
     }
 
@@ -199,19 +199,19 @@ export class SQLAutoCompleter {
           kind: CompletionItemKind.Table,
           detail: `Table - ${table.schema}`,
           documentation: table.comment,
-          sortText: `table_${table.name}`
+          sortText: `table_${table.name}`,
         })
       }
     }
 
     // Add JOIN keywords
-    const joinTypes = ['INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN', 'CROSS JOIN']
+    const joinTypes = ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL OUTER JOIN", "CROSS JOIN"]
     for (const joinType of joinTypes) {
       completions.push({
         label: joinType,
         kind: CompletionItemKind.Keyword,
-        detail: 'JOIN type',
-        sortText: `join_${joinType}`
+        detail: "JOIN type",
+        sortText: `join_${joinType}`,
       })
     }
 
@@ -226,7 +226,7 @@ export class SQLAutoCompleter {
 
     // Add columns from available tables
     for (const tableName of context.tables) {
-      const table = this.schema.tables.find(t => t.name === tableName)
+      const table = this.schema.tables.find((t) => t.name === tableName)
       if (table) {
         for (const column of table.columns) {
           completions.push({
@@ -234,31 +234,46 @@ export class SQLAutoCompleter {
             kind: CompletionItemKind.Column,
             detail: `${column.type} - ${table.name}`,
             documentation: column.comment,
-            sortText: `column_${column.name}`
+            sortText: `column_${column.name}`,
           })
         }
       }
     }
 
     // Add comparison operators
-    const operators = ['=', '!=', '<>', '<', '>', '<=', '>=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'BETWEEN', 'IS NULL', 'IS NOT NULL']
+    const operators = [
+      "=",
+      "!=",
+      "<>",
+      "<",
+      ">",
+      "<=",
+      ">=",
+      "LIKE",
+      "NOT LIKE",
+      "IN",
+      "NOT IN",
+      "BETWEEN",
+      "IS NULL",
+      "IS NOT NULL",
+    ]
     for (const operator of operators) {
       completions.push({
         label: operator,
         kind: CompletionItemKind.Operator,
-        detail: 'Comparison operator',
-        sortText: `operator_${operator}`
+        detail: "Comparison operator",
+        sortText: `operator_${operator}`,
       })
     }
 
     // Add logical operators
-    const logicalOperators = ['AND', 'OR', 'NOT']
+    const logicalOperators = ["AND", "OR", "NOT"]
     for (const operator of logicalOperators) {
       completions.push({
         label: operator,
         kind: CompletionItemKind.Keyword,
-        detail: 'Logical operator',
-        sortText: `logical_${operator}`
+        detail: "Logical operator",
+        sortText: `logical_${operator}`,
       })
     }
 
@@ -272,14 +287,14 @@ export class SQLAutoCompleter {
     const completions: CompletionItem[] = []
 
     const statements = [
-      { label: 'SELECT', detail: 'Select data from tables' },
-      { label: 'INSERT', detail: 'Insert new data' },
-      { label: 'UPDATE', detail: 'Update existing data' },
-      { label: 'DELETE', detail: 'Delete data' },
-      { label: 'CREATE', detail: 'Create database objects' },
-      { label: 'ALTER', detail: 'Modify database objects' },
-      { label: 'DROP', detail: 'Remove database objects' },
-      { label: 'WITH', detail: 'Common Table Expression' }
+      { label: "SELECT", detail: "Select data from tables" },
+      { label: "INSERT", detail: "Insert new data" },
+      { label: "UPDATE", detail: "Update existing data" },
+      { label: "DELETE", detail: "Delete data" },
+      { label: "CREATE", detail: "Create database objects" },
+      { label: "ALTER", detail: "Modify database objects" },
+      { label: "DROP", detail: "Remove database objects" },
+      { label: "WITH", detail: "Common Table Expression" },
     ]
 
     for (const statement of statements) {
@@ -287,7 +302,7 @@ export class SQLAutoCompleter {
         label: statement.label,
         kind: CompletionItemKind.Keyword,
         detail: statement.detail,
-        sortText: `statement_${statement.label}`
+        sortText: `statement_${statement.label}`,
       })
     }
 
@@ -301,13 +316,13 @@ export class SQLAutoCompleter {
     const completions: CompletionItem[] = []
 
     // Add clause keywords based on context
-    const clauseKeywords = ['WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT', 'OFFSET']
+    const clauseKeywords = ["WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT", "OFFSET"]
     for (const keyword of clauseKeywords) {
       completions.push({
         label: keyword,
         kind: CompletionItemKind.Keyword,
-        detail: 'SQL clause',
-        sortText: `clause_${keyword}`
+        detail: "SQL clause",
+        sortText: `clause_${keyword}`,
       })
     }
 
@@ -325,8 +340,8 @@ export class SQLAutoCompleter {
         completions.push({
           label: keyword,
           kind: CompletionItemKind.Keyword,
-          detail: 'SQL keyword',
-          sortText: `keyword_${keyword}`
+          detail: "SQL keyword",
+          sortText: `keyword_${keyword}`,
         })
       }
     }
@@ -345,10 +360,10 @@ export class SQLAutoCompleter {
         completions.push({
           label: `${func}()`,
           kind: CompletionItemKind.Function,
-          detail: 'SQL function',
+          detail: "SQL function",
           insertText: `${func}($1)`,
           insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-          sortText: `function_${func}`
+          sortText: `function_${func}`,
         })
       }
     }
@@ -360,7 +375,7 @@ export class SQLAutoCompleter {
    * Get snippet completions
    */
   private getSnippetCompletions(context: QueryContext): CompletionItem[] {
-    return this.snippets.filter(snippet => {
+    return this.snippets.filter((snippet) => {
       // Return snippets based on context
       return true // Simplified for now
     })
@@ -379,15 +394,15 @@ export class SQLAutoCompleter {
       inGroupBy: false,
       inHaving: false,
       tables: [],
-      aliases: new Map()
+      aliases: new Map(),
     }
 
     const beforeCursor = query.substring(0, this.getOffsetFromPosition(query, position))
     const upperQuery = beforeCursor.toUpperCase()
 
     // Find current clause
-    const clauses = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'GROUP BY', 'ORDER BY', 'HAVING']
-    let currentClause = ''
+    const clauses = ["SELECT", "FROM", "WHERE", "JOIN", "GROUP BY", "ORDER BY", "HAVING"]
+    let currentClause = ""
     let lastClauseIndex = -1
 
     for (const clause of clauses) {
@@ -399,19 +414,19 @@ export class SQLAutoCompleter {
     }
 
     // Set context flags
-    context.inSelect = currentClause === 'SELECT'
-    context.inFrom = currentClause === 'FROM'
-    context.inWhere = currentClause === 'WHERE'
-    context.inJoin = currentClause.includes('JOIN')
-    context.inOrderBy = currentClause === 'ORDER BY'
-    context.inGroupBy = currentClause === 'GROUP BY'
-    context.inHaving = currentClause === 'HAVING'
+    context.inSelect = currentClause === "SELECT"
+    context.inFrom = currentClause === "FROM"
+    context.inWhere = currentClause === "WHERE"
+    context.inJoin = currentClause.includes("JOIN")
+    context.inOrderBy = currentClause === "ORDER BY"
+    context.inGroupBy = currentClause === "GROUP BY"
+    context.inHaving = currentClause === "HAVING"
 
     // Extract table names
     const fromMatches = beforeCursor.match(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)
     if (fromMatches) {
       for (const match of fromMatches) {
-        const tableName = match.replace(/FROM\s+/i, '').trim()
+        const tableName = match.replace(/FROM\s+/i, "").trim()
         context.tables.push(tableName)
       }
     }
@@ -419,7 +434,7 @@ export class SQLAutoCompleter {
     const joinMatches = beforeCursor.match(/JOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)
     if (joinMatches) {
       for (const match of joinMatches) {
-        const tableName = match.replace(/.*JOIN\s+/i, '').trim()
+        const tableName = match.replace(/.*JOIN\s+/i, "").trim()
         context.tables.push(tableName)
       }
     }
@@ -458,7 +473,7 @@ export class SQLAutoCompleter {
    * Convert position to offset
    */
   private getOffsetFromPosition(query: string, position: Position): number {
-    const lines = query.split('\n')
+    const lines = query.split("\n")
     let offset = 0
 
     for (let i = 0; i < position.line - 1; i++) {
@@ -474,18 +489,21 @@ export class SQLAutoCompleter {
    */
   private isStartOfStatement(precedingText: string): boolean {
     const trimmed = precedingText.trim()
-    return trimmed === '' || trimmed.endsWith(';')
+    return trimmed === "" || trimmed.endsWith(";")
   }
 
   /**
    * Filter and sort completions
    */
-  private filterAndSortCompletions(completions: CompletionItem[], currentWord: string): CompletionItem[] {
+  private filterAndSortCompletions(
+    completions: CompletionItem[],
+    currentWord: string
+  ): CompletionItem[] {
     if (!currentWord) {
       return completions.slice(0, 50) // Limit results
     }
 
-    const filtered = completions.filter(item =>
+    const filtered = completions.filter((item) =>
       item.label.toLowerCase().includes(currentWord.toLowerCase())
     )
 
@@ -511,14 +529,65 @@ export class SQLAutoCompleter {
    */
   private initializeKeywords(): void {
     this.sqlKeywords = [
-      'SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
-      'ON', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION',
-      'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'CREATE',
-      'ALTER', 'DROP', 'TRUNCATE', 'INDEX', 'VIEW', 'TABLE', 'DATABASE',
-      'AND', 'OR', 'NOT', 'IN', 'EXISTS', 'BETWEEN', 'LIKE', 'IS', 'NULL',
-      'AS', 'DISTINCT', 'ALL', 'ANY', 'SOME', 'CASE', 'WHEN', 'THEN',
-      'ELSE', 'END', 'ASC', 'DESC', 'PRIMARY', 'KEY', 'FOREIGN', 'UNIQUE',
-      'DEFAULT', 'CHECK', 'CONSTRAINT', 'AUTO_INCREMENT', 'NOT NULL'
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "JOIN",
+      "LEFT",
+      "RIGHT",
+      "INNER",
+      "OUTER",
+      "ON",
+      "GROUP BY",
+      "ORDER BY",
+      "HAVING",
+      "LIMIT",
+      "OFFSET",
+      "UNION",
+      "INSERT",
+      "INTO",
+      "VALUES",
+      "UPDATE",
+      "SET",
+      "DELETE",
+      "CREATE",
+      "ALTER",
+      "DROP",
+      "TRUNCATE",
+      "INDEX",
+      "VIEW",
+      "TABLE",
+      "DATABASE",
+      "AND",
+      "OR",
+      "NOT",
+      "IN",
+      "EXISTS",
+      "BETWEEN",
+      "LIKE",
+      "IS",
+      "NULL",
+      "AS",
+      "DISTINCT",
+      "ALL",
+      "ANY",
+      "SOME",
+      "CASE",
+      "WHEN",
+      "THEN",
+      "ELSE",
+      "END",
+      "ASC",
+      "DESC",
+      "PRIMARY",
+      "KEY",
+      "FOREIGN",
+      "UNIQUE",
+      "DEFAULT",
+      "CHECK",
+      "CONSTRAINT",
+      "AUTO_INCREMENT",
+      "NOT NULL",
     ]
   }
 
@@ -528,26 +597,75 @@ export class SQLAutoCompleter {
   private initializeFunctions(): void {
     this.sqlFunctions = [
       // Aggregate functions
-      'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'GROUP_CONCAT', 'STRING_AGG',
-      
+      "COUNT",
+      "SUM",
+      "AVG",
+      "MIN",
+      "MAX",
+      "GROUP_CONCAT",
+      "STRING_AGG",
+
       // String functions
-      'CONCAT', 'SUBSTRING', 'LEFT', 'RIGHT', 'LENGTH', 'UPPER', 'LOWER',
-      'TRIM', 'LTRIM', 'RTRIM', 'REPLACE', 'REVERSE', 'CHAR_LENGTH',
-      
+      "CONCAT",
+      "SUBSTRING",
+      "LEFT",
+      "RIGHT",
+      "LENGTH",
+      "UPPER",
+      "LOWER",
+      "TRIM",
+      "LTRIM",
+      "RTRIM",
+      "REPLACE",
+      "REVERSE",
+      "CHAR_LENGTH",
+
       // Date functions
-      'NOW', 'CURDATE', 'CURTIME', 'DATE', 'TIME', 'DATETIME', 'TIMESTAMP',
-      'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND', 'DATE_ADD',
-      'DATE_SUB', 'DATEDIFF', 'DATE_FORMAT',
-      
+      "NOW",
+      "CURDATE",
+      "CURTIME",
+      "DATE",
+      "TIME",
+      "DATETIME",
+      "TIMESTAMP",
+      "YEAR",
+      "MONTH",
+      "DAY",
+      "HOUR",
+      "MINUTE",
+      "SECOND",
+      "DATE_ADD",
+      "DATE_SUB",
+      "DATEDIFF",
+      "DATE_FORMAT",
+
       // Math functions
-      'ABS', 'CEIL', 'FLOOR', 'ROUND', 'SQRT', 'POWER', 'MOD', 'RAND',
-      'SIGN', 'SIN', 'COS', 'TAN', 'PI',
-      
+      "ABS",
+      "CEIL",
+      "FLOOR",
+      "ROUND",
+      "SQRT",
+      "POWER",
+      "MOD",
+      "RAND",
+      "SIGN",
+      "SIN",
+      "COS",
+      "TAN",
+      "PI",
+
       // Conditional functions
-      'IF', 'IFNULL', 'NULLIF', 'COALESCE', 'GREATEST', 'LEAST',
-      
+      "IF",
+      "IFNULL",
+      "NULLIF",
+      "COALESCE",
+      "GREATEST",
+      "LEAST",
+
       // Type conversion functions
-      'CAST', 'CONVERT', 'FORMAT'
+      "CAST",
+      "CONVERT",
+      "FORMAT",
     ]
   }
 
@@ -556,13 +674,37 @@ export class SQLAutoCompleter {
    */
   private initializeDataTypes(): void {
     this.sqlDataTypes = [
-      'INTEGER', 'INT', 'BIGINT', 'SMALLINT', 'TINYINT',
-      'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL',
-      'VARCHAR', 'CHAR', 'TEXT', 'LONGTEXT', 'MEDIUMTEXT',
-      'DATE', 'TIME', 'DATETIME', 'TIMESTAMP', 'YEAR',
-      'BOOLEAN', 'BOOL', 'BIT',
-      'BLOB', 'LONGBLOB', 'MEDIUMBLOB', 'TINYBLOB',
-      'JSON', 'UUID', 'ENUM', 'SET'
+      "INTEGER",
+      "INT",
+      "BIGINT",
+      "SMALLINT",
+      "TINYINT",
+      "DECIMAL",
+      "NUMERIC",
+      "FLOAT",
+      "DOUBLE",
+      "REAL",
+      "VARCHAR",
+      "CHAR",
+      "TEXT",
+      "LONGTEXT",
+      "MEDIUMTEXT",
+      "DATE",
+      "TIME",
+      "DATETIME",
+      "TIMESTAMP",
+      "YEAR",
+      "BOOLEAN",
+      "BOOL",
+      "BIT",
+      "BLOB",
+      "LONGBLOB",
+      "MEDIUMBLOB",
+      "TINYBLOB",
+      "JSON",
+      "UUID",
+      "ENUM",
+      "SET",
     ]
   }
 
@@ -572,53 +714,54 @@ export class SQLAutoCompleter {
   private initializeSnippets(): void {
     this.snippets = [
       {
-        label: 'SELECT Statement',
+        label: "SELECT Statement",
         kind: CompletionItemKind.Snippet,
-        detail: 'Basic SELECT statement',
-        insertText: 'SELECT ${1:columns}\nFROM ${2:table}\nWHERE ${3:condition}',
+        detail: "Basic SELECT statement",
+        insertText: "SELECT ${1:columns}\nFROM ${2:table}\nWHERE ${3:condition}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: 'snippet_select'
+        sortText: "snippet_select",
       },
       {
-        label: 'INSERT Statement',
+        label: "INSERT Statement",
         kind: CompletionItemKind.Snippet,
-        detail: 'Basic INSERT statement',
-        insertText: 'INSERT INTO ${1:table} (${2:columns})\nVALUES (${3:values})',
+        detail: "Basic INSERT statement",
+        insertText: "INSERT INTO ${1:table} (${2:columns})\nVALUES (${3:values})",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: 'snippet_insert'
+        sortText: "snippet_insert",
       },
       {
-        label: 'UPDATE Statement',
+        label: "UPDATE Statement",
         kind: CompletionItemKind.Snippet,
-        detail: 'Basic UPDATE statement',
-        insertText: 'UPDATE ${1:table}\nSET ${2:column} = ${3:value}\nWHERE ${4:condition}',
+        detail: "Basic UPDATE statement",
+        insertText: "UPDATE ${1:table}\nSET ${2:column} = ${3:value}\nWHERE ${4:condition}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: 'snippet_update'
+        sortText: "snippet_update",
       },
       {
-        label: 'DELETE Statement',
+        label: "DELETE Statement",
         kind: CompletionItemKind.Snippet,
-        detail: 'Basic DELETE statement',
-        insertText: 'DELETE FROM ${1:table}\nWHERE ${2:condition}',
+        detail: "Basic DELETE statement",
+        insertText: "DELETE FROM ${1:table}\nWHERE ${2:condition}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: 'snippet_delete'
+        sortText: "snippet_delete",
       },
       {
-        label: 'JOIN Query',
+        label: "JOIN Query",
         kind: CompletionItemKind.Snippet,
-        detail: 'SELECT with JOIN',
-        insertText: 'SELECT ${1:t1.column}, ${2:t2.column}\nFROM ${3:table1} t1\nJOIN ${4:table2} t2 ON t1.${5:id} = t2.${6:foreign_id}',
+        detail: "SELECT with JOIN",
+        insertText:
+          "SELECT ${1:t1.column}, ${2:t2.column}\nFROM ${3:table1} t1\nJOIN ${4:table2} t2 ON t1.${5:id} = t2.${6:foreign_id}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: 'snippet_join'
+        sortText: "snippet_join",
       },
       {
-        label: 'CTE (Common Table Expression)',
+        label: "CTE (Common Table Expression)",
         kind: CompletionItemKind.Snippet,
-        detail: 'WITH clause for CTE',
-        insertText: 'WITH ${1:cte_name} AS (\n  ${2:SELECT query}\n)\nSELECT *\nFROM ${1:cte_name}',
+        detail: "WITH clause for CTE",
+        insertText: "WITH ${1:cte_name} AS (\n  ${2:SELECT query}\n)\nSELECT *\nFROM ${1:cte_name}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
-        sortText: 'snippet_cte'
-      }
+        sortText: "snippet_cte",
+      },
     ]
   }
 

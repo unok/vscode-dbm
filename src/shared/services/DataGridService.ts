@@ -1,17 +1,17 @@
 import type {
-  TableData,
+  AddedRow,
+  CellType,
+  CellValue,
   ColumnDefinition,
   DataGridColumn,
-  CellValue,
-  EditableCell,
-  RowOperation,
-  AddedRow,
-  DeletedRow,
   DataGridFilter,
   DataGridSort,
+  DeletedRow,
+  EditableCell,
   PaginationOptions,
-  CellType
-} from '../types/datagrid'
+  RowOperation,
+  TableData,
+} from "../types/datagrid"
 
 export class DataGridService {
   private tableData: TableData | null = null
@@ -25,18 +25,18 @@ export class DataGridService {
    */
   async loadTableData(tableName: string, pagination: PaginationOptions): Promise<TableData> {
     // Mock implementation - in real app, this would call the database
-    if (tableName === 'non_existent') {
+    if (tableName === "non_existent") {
       throw new Error(`Table "${tableName}" not found`)
     }
 
-    if (tableName === 'empty_table') {
+    if (tableName === "empty_table") {
       return {
         tableName,
         columns: [],
         rows: [],
         totalRows: 0,
         offset: pagination.offset,
-        limit: pagination.limit
+        limit: pagination.limit,
       }
     }
 
@@ -45,46 +45,51 @@ export class DataGridService {
       tableName,
       columns: [
         {
-          id: 'id',
-          name: 'id',
-          type: 'integer',
+          id: "id",
+          name: "id",
+          type: "integer",
           nullable: false,
           isPrimaryKey: true,
-          isAutoIncrement: true
+          isAutoIncrement: true,
         },
         {
-          id: 'email',
-          name: 'email',
-          type: 'varchar(255)',
+          id: "email",
+          name: "email",
+          type: "varchar(255)",
           nullable: false,
           isPrimaryKey: false,
-          isAutoIncrement: false
+          isAutoIncrement: false,
         },
         {
-          id: 'name',
-          name: 'name',
-          type: 'varchar(100)',
+          id: "name",
+          name: "name",
+          type: "varchar(100)",
           nullable: true,
           isPrimaryKey: false,
-          isAutoIncrement: false
+          isAutoIncrement: false,
         },
         {
-          id: 'created_at',
-          name: 'created_at',
-          type: 'timestamp',
+          id: "created_at",
+          name: "created_at",
+          type: "timestamp",
           nullable: false,
           isPrimaryKey: false,
-          isAutoIncrement: false
-        }
+          isAutoIncrement: false,
+        },
       ],
       rows: [
-        { id: 1, email: 'john@example.com', name: 'John Doe', created_at: '2023-01-01T10:00:00Z' },
-        { id: 2, email: 'jane@example.com', name: 'Jane Smith', created_at: '2023-01-02T11:00:00Z' },
-        { id: 3, email: 'bob@example.com', name: null, created_at: '2023-01-03T12:00:00Z' }
+        { id: 1, email: "john@example.com", name: "John Doe", created_at: "2023-01-01T10:00:00Z" },
+        {
+          id: 2,
+          email: "jane@example.com",
+          name: "Jane Smith",
+          created_at: "2023-01-02T11:00:00Z",
+        },
+        { id: 3, email: "bob@example.com", name: null, created_at: "2023-01-03T12:00:00Z" },
       ],
       totalRows: 3,
       offset: pagination.offset,
-      limit: pagination.limit
+      limit: pagination.limit,
     }
 
     this.tableData = mockData
@@ -103,7 +108,7 @@ export class DataGridService {
    * Process column definitions for TanStack Table
    */
   processColumnDefinitions(columns: ColumnDefinition[]): DataGridColumn[] {
-    return columns.map(col => ({
+    return columns.map((col) => ({
       id: col.id,
       accessorKey: col.id,
       header: col.name,
@@ -114,8 +119,8 @@ export class DataGridService {
         sortable: true,
         filterable: true,
         isPrimaryKey: col.isPrimaryKey,
-        nullable: col.nullable
-      }
+        nullable: col.nullable,
+      },
     }))
   }
 
@@ -124,36 +129,36 @@ export class DataGridService {
    */
   private getCellType(sqlType: string): CellType {
     const type = sqlType.toLowerCase()
-    
-    if (type.includes('int') || type.includes('numeric') || type.includes('decimal')) {
-      return 'number'
+
+    if (type.includes("int") || type.includes("numeric") || type.includes("decimal")) {
+      return "number"
     }
-    if (type.includes('bool')) {
-      return 'boolean'
+    if (type.includes("bool")) {
+      return "boolean"
     }
-    if (type.includes('date') && type.includes('time')) {
-      return 'datetime'
+    if (type.includes("date") && type.includes("time")) {
+      return "datetime"
     }
-    if (type.includes('date')) {
-      return 'date'
+    if (type.includes("date")) {
+      return "date"
     }
-    if (type.includes('time')) {
-      return 'time'
+    if (type.includes("time")) {
+      return "time"
     }
-    if (type.includes('uuid')) {
-      return 'uuid'
+    if (type.includes("uuid")) {
+      return "uuid"
     }
-    if (type.includes('json')) {
-      return 'json'
+    if (type.includes("json")) {
+      return "json"
     }
-    if (type.includes('email')) {
-      return 'email'
+    if (type.includes("email")) {
+      return "email"
     }
-    if (type.includes('url')) {
-      return 'url'
+    if (type.includes("url")) {
+      return "url"
     }
-    
-    return 'text'
+
+    return "text"
   }
 
   /**
@@ -161,22 +166,31 @@ export class DataGridService {
    */
   validateCellValue(value: CellValue, column: ColumnDefinition): boolean {
     // Handle null/empty values
-    if (value === null || value === undefined || value === '') {
+    if (value === null || value === undefined || value === "") {
       return column.nullable
     }
 
     // Type-specific validation
     switch (this.getCellType(column.type)) {
-      case 'number':
+      case "number":
         return !isNaN(Number(value))
-      case 'boolean':
-        return typeof value === 'boolean' || value === 'true' || value === 'false' || value === '1' || value === '0'
-      case 'email':
-        return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-      case 'uuid':
-        return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-      case 'date':
-      case 'datetime':
+      case "boolean":
+        return (
+          typeof value === "boolean" ||
+          value === "true" ||
+          value === "false" ||
+          value === "1" ||
+          value === "0"
+        )
+      case "email":
+        return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+      case "uuid":
+        return (
+          typeof value === "string" &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+        )
+      case "date":
+      case "datetime":
         return !isNaN(Date.parse(String(value)))
       default:
         return true
@@ -193,7 +207,7 @@ export class DataGridService {
       originalValue,
       editedValue: originalValue,
       isDirty: false,
-      isValid: true
+      isValid: true,
     }
   }
 
@@ -202,10 +216,10 @@ export class DataGridService {
    */
   updateCellValue(rowIndex: number, columnId: string, newValue: CellValue): void {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
-    const column = this.tableData.columns.find(col => col.id === columnId)
+    const column = this.tableData.columns.find((col) => col.id === columnId)
     if (!column) {
       throw new Error(`Column "${columnId}" not found`)
     }
@@ -224,7 +238,7 @@ export class DataGridService {
       originalValue,
       editedValue: newValue,
       isDirty: newValue !== originalValue,
-      isValid: this.validateCellValue(newValue, column)
+      isValid: this.validateCellValue(newValue, column),
     }
 
     if (editableCell.isDirty) {
@@ -238,7 +252,7 @@ export class DataGridService {
    * Get all dirty cells
    */
   getDirtyCells(): EditableCell[] {
-    return Array.from(this.editableCells.values()).filter(cell => cell.isDirty)
+    return Array.from(this.editableCells.values()).filter((cell) => cell.isDirty)
   }
 
   /**
@@ -246,11 +260,11 @@ export class DataGridService {
    */
   addNewRow(): Record<string, CellValue> {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
     const newRow: Record<string, CellValue> = {}
-    
+
     for (const column of this.tableData.columns) {
       if (column.isAutoIncrement || column.isPrimaryKey) {
         newRow[column.id] = undefined
@@ -264,7 +278,7 @@ export class DataGridService {
     const addedRow: AddedRow = {
       tempId: `temp_${this.nextTempId++}`,
       data: newRow,
-      index: this.tableData.rows.length + this.addedRows.length
+      index: this.tableData.rows.length + this.addedRows.length,
     }
 
     this.addedRows.push(addedRow)
@@ -276,21 +290,21 @@ export class DataGridService {
    */
   deleteRow(rowIndex: number): void {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
     const row = this.tableData.rows[rowIndex]
     if (!row) {
-      throw new Error('Row not found')
+      throw new Error("Row not found")
     }
 
-    const primaryKeyColumn = this.tableData.columns.find(col => col.isPrimaryKey)
+    const primaryKeyColumn = this.tableData.columns.find((col) => col.isPrimaryKey)
     const primaryKeyValue = primaryKeyColumn ? row[primaryKeyColumn.id] : rowIndex
 
     const deletedRow: DeletedRow = {
       originalIndex: rowIndex,
       data: row,
-      primaryKeyValue
+      primaryKeyValue,
     }
 
     this.deletedRows.push(deletedRow)
@@ -301,16 +315,16 @@ export class DataGridService {
    */
   duplicateRow(rowIndex: number): Record<string, CellValue> {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
     const originalRow = this.tableData.rows[rowIndex]
     if (!originalRow) {
-      throw new Error('Row not found')
+      throw new Error("Row not found")
     }
 
     const duplicatedRow: Record<string, CellValue> = { ...originalRow }
-    
+
     // Clear primary key and auto-increment fields
     for (const column of this.tableData.columns) {
       if (column.isPrimaryKey || column.isAutoIncrement) {
@@ -321,7 +335,7 @@ export class DataGridService {
     const addedRow: AddedRow = {
       tempId: `temp_${this.nextTempId++}`,
       data: duplicatedRow,
-      index: this.tableData.rows.length + this.addedRows.length
+      index: this.tableData.rows.length + this.addedRows.length,
     }
 
     this.addedRows.push(addedRow)
@@ -350,7 +364,7 @@ export class DataGridService {
       return []
     }
 
-    let sortedData = [...this.tableData.rows]
+    const sortedData = [...this.tableData.rows]
 
     for (const sort of sorting.reverse()) {
       sortedData.sort((a, b) => {
@@ -382,10 +396,10 @@ export class DataGridService {
     let filteredData = [...this.tableData.rows]
 
     for (const filter of filters) {
-      filteredData = filteredData.filter(row => {
-        const cellValue = String(row[filter.id] || '').toLowerCase()
-        const filterValue = String(filter.value || '').toLowerCase()
-        
+      filteredData = filteredData.filter((row) => {
+        const cellValue = String(row[filter.id] || "").toLowerCase()
+        const filterValue = String(filter.value || "").toLowerCase()
+
         return cellValue.includes(filterValue)
       })
     }
@@ -403,9 +417,11 @@ export class DataGridService {
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return this.tableData.rows.filter(row => {
-      return Object.values(row).some(value => 
-        String(value || '').toLowerCase().includes(lowerSearchTerm)
+    return this.tableData.rows.filter((row) => {
+      return Object.values(row).some((value) =>
+        String(value || "")
+          .toLowerCase()
+          .includes(lowerSearchTerm)
       )
     })
   }
@@ -422,7 +438,7 @@ export class DataGridService {
 
     // UPDATE statements for dirty cells
     const rowUpdates = new Map<number, Record<string, CellValue>>()
-    
+
     for (const cell of this.getDirtyCells()) {
       if (!rowUpdates.has(cell.rowIndex)) {
         rowUpdates.set(cell.rowIndex, {})
@@ -432,13 +448,13 @@ export class DataGridService {
 
     for (const [rowIndex, updates] of rowUpdates) {
       const row = this.tableData.rows[rowIndex]
-      const primaryKeyColumn = this.tableData.columns.find(col => col.isPrimaryKey)
-      
+      const primaryKeyColumn = this.tableData.columns.find((col) => col.isPrimaryKey)
+
       if (primaryKeyColumn && row[primaryKeyColumn.id] !== undefined) {
         const setPairs = Object.entries(updates)
           .map(([col, val]) => `${col} = ${this.formatSQLValue(val)}`)
-          .join(', ')
-        
+          .join(", ")
+
         const whereClause = `${primaryKeyColumn.id} = ${this.formatSQLValue(row[primaryKeyColumn.id])}`
         statements.push(`UPDATE ${this.tableData.tableName} SET ${setPairs} WHERE ${whereClause}`)
       }
@@ -446,8 +462,8 @@ export class DataGridService {
 
     // DELETE statements
     for (const deletedRow of this.deletedRows) {
-      const primaryKeyColumn = this.tableData.columns.find(col => col.isPrimaryKey)
-      
+      const primaryKeyColumn = this.tableData.columns.find((col) => col.isPrimaryKey)
+
       if (primaryKeyColumn) {
         const whereClause = `${primaryKeyColumn.id} = ${this.formatSQLValue(deletedRow.primaryKeyValue)}`
         statements.push(`DELETE FROM ${this.tableData.tableName} WHERE ${whereClause}`)
@@ -457,14 +473,14 @@ export class DataGridService {
     // INSERT statements
     for (const addedRow of this.addedRows) {
       const columns = this.tableData.columns
-        .filter(col => !col.isAutoIncrement && addedRow.data[col.id] !== undefined)
-        .map(col => col.id)
-      
-      const values = columns
-        .map(col => this.formatSQLValue(addedRow.data[col]))
-        .join(', ')
-      
-      statements.push(`INSERT INTO ${this.tableData.tableName} (${columns.join(', ')}) VALUES (${values})`)
+        .filter((col) => !col.isAutoIncrement && addedRow.data[col.id] !== undefined)
+        .map((col) => col.id)
+
+      const values = columns.map((col) => this.formatSQLValue(addedRow.data[col])).join(", ")
+
+      statements.push(
+        `INSERT INTO ${this.tableData.tableName} (${columns.join(", ")}) VALUES (${values})`
+      )
     }
 
     return statements
@@ -484,10 +500,10 @@ export class DataGridService {
    */
   async commitChanges(): Promise<void> {
     const statements = this.generateSQLStatements()
-    
+
     // In real implementation, execute SQL statements
-    console.log('Executing SQL statements:', statements)
-    
+    console.log("Executing SQL statements:", statements)
+
     // Clear changes after successful commit
     this.clearChanges()
   }
@@ -511,19 +527,19 @@ export class DataGridService {
     }
 
     const cellType = this.getCellType(column.type)
-    
+
     switch (cellType) {
-      case 'number':
+      case "number":
         return 0
-      case 'boolean':
+      case "boolean":
         return false
-      case 'date':
-      case 'datetime':
+      case "date":
+      case "datetime":
         return new Date().toISOString()
-      case 'time':
-        return new Date().toTimeString().split(' ')[0]
+      case "time":
+        return new Date().toTimeString().split(" ")[0]
       default:
-        return ''
+        return ""
     }
   }
 
@@ -532,17 +548,17 @@ export class DataGridService {
    */
   private formatSQLValue(value: CellValue): string {
     if (value === null || value === undefined) {
-      return 'NULL'
+      return "NULL"
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       return `'${value.replace(/'/g, "''")}'`
     }
-    
-    if (typeof value === 'boolean') {
-      return value ? 'TRUE' : 'FALSE'
+
+    if (typeof value === "boolean") {
+      return value ? "TRUE" : "FALSE"
     }
-    
+
     return String(value)
   }
 

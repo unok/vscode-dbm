@@ -1,35 +1,36 @@
-import React, { useState, useCallback, useEffect, useMemo, useTransition, startTransition } from 'react'
 import {
-  useReactTable,
+  type CellContext,
+  type ColumnDef,
+  type RowData,
+  flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  ColumnDef,
-  flexRender,
-  CellContext,
-  RowData
-} from '@tanstack/react-table'
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import type React from "react"
+import { startTransition, useCallback, useEffect, useMemo, useState, useTransition } from "react"
+import { AdvancedDataGridService } from "../../../shared/services/AdvancedDataGridService"
 import type {
-  TableData,
-  ColumnDefinition,
-  CellValue,
-  EditableCell,
-  CellState,
-  RowState,
   BulkEditOperation,
+  CellState,
+  CellValue,
+  ColumnDefinition,
   CopyPasteData,
+  CursorAIDefaultOptions,
+  EditableCell,
   PasteOptions,
-  CursorAIDefaultOptions
-} from '../../../shared/types/datagrid'
-import { AdvancedDataGridService } from '../../../shared/services/AdvancedDataGridService'
-import { AdvancedCellEditor } from './AdvancedCellEditor'
-import { BulkEditPanel } from './BulkEditPanel'
-import { ChangeTrackingPanel } from './ChangeTrackingPanel'
-import { VirtualScrollContainer } from './VirtualScrollContainer'
-import { CursorAIPanel } from './CursorAIPanel'
+  RowState,
+  TableData,
+} from "../../../shared/types/datagrid"
+import { AdvancedCellEditor } from "./AdvancedCellEditor"
+import { BulkEditPanel } from "./BulkEditPanel"
+import { ChangeTrackingPanel } from "./ChangeTrackingPanel"
+import { CursorAIPanel } from "./CursorAIPanel"
+import { VirtualScrollContainer } from "./VirtualScrollContainer"
 
-declare module '@tanstack/react-table' {
+declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
     updateData: (rowIndex: number, columnId: string, value: CellValue) => void
     getCellState: (rowIndex: number, columnId: string) => CellState
@@ -59,11 +60,13 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
   enableCopyPaste = true,
   enableAIIntegration = true,
   containerHeight = 600,
-  readOnly = false
+  readOnly = false,
 }) => {
   const [service] = useState(() => new AdvancedDataGridService(data))
   const [tableData, setTableData] = useState<TableData>(data)
-  const [selectedCells, setSelectedCells] = useState<Array<{ rowIndex: number; columnId: string }>>([])
+  const [selectedCells, setSelectedCells] = useState<Array<{ rowIndex: number; columnId: string }>>(
+    []
+  )
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [activeCellEdits, setActiveCellEdits] = useState<EditableCell[]>([])
   const [showBulkPanel, setShowBulkPanel] = useState(false)
@@ -97,81 +100,102 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
         containerHeight,
         itemHeight: 35, // Standard row height
         bufferSize: 10,
-        overscan: 5
+        overscan: 5,
       })
     }
   }, [enableVirtualScrolling, containerHeight, service])
 
   // Cell state management
-  const getCellState = useCallback((rowIndex: number, columnId: string): CellState => {
-    return service.getCellState(rowIndex, columnId)
-  }, [service])
+  const getCellState = useCallback(
+    (rowIndex: number, columnId: string): CellState => {
+      return service.getCellState(rowIndex, columnId)
+    },
+    [service]
+  )
 
-  const getRowState = useCallback((rowIndex: number): RowState => {
-    return service.getRowState(rowIndex)
-  }, [service])
+  const getRowState = useCallback(
+    (rowIndex: number): RowState => {
+      return service.getRowState(rowIndex)
+    },
+    [service]
+  )
 
   // Editing operations
-  const startEdit = useCallback((rowIndex: number, columnId: string) => {
-    if (readOnly) return
+  const startEdit = useCallback(
+    (rowIndex: number, columnId: string) => {
+      if (readOnly) return
 
-    const result = service.startCellEdit(rowIndex, columnId)
-    if (!result.success) {
-      console.error('Failed to start edit:', result.error)
-      return
-    }
-
-    setActiveCellEdits(service.getActiveCellEdits())
-  }, [service, readOnly])
-
-  const commitEdit = useCallback(async (rowIndex: number, columnId: string, value: CellValue) => {
-    const result = await service.commitCellEdit(rowIndex, columnId, value)
-    
-    if (!result.success) {
-      console.error('Failed to commit edit:', result.error)
-      return
-    }
-
-    // Update table data
-    startTransition(() => {
-      const updatedData = service.getTableData()
-      if (updatedData) {
-        setTableData({ ...updatedData })
-        onDataChange?.(updatedData)
+      const result = service.startCellEdit(rowIndex, columnId)
+      if (!result.success) {
+        console.error("Failed to start edit:", result.error)
+        return
       }
+
       setActiveCellEdits(service.getActiveCellEdits())
-    })
-  }, [service, onDataChange])
+    },
+    [service, readOnly]
+  )
 
-  const cancelEdit = useCallback((rowIndex: number, columnId: string) => {
-    const result = service.cancelCellEdit(rowIndex, columnId)
-    if (!result.success) {
-      console.error('Failed to cancel edit:', result.error)
-      return
-    }
+  const commitEdit = useCallback(
+    async (rowIndex: number, columnId: string, value: CellValue) => {
+      const result = await service.commitCellEdit(rowIndex, columnId, value)
 
-    setActiveCellEdits(service.getActiveCellEdits())
-  }, [service])
+      if (!result.success) {
+        console.error("Failed to commit edit:", result.error)
+        return
+      }
 
-  const updateData = useCallback(async (rowIndex: number, columnId: string, value: CellValue) => {
-    await service.updateCellValue(rowIndex, columnId, value)
-    setActiveCellEdits(service.getActiveCellEdits())
-  }, [service])
+      // Update table data
+      startTransition(() => {
+        const updatedData = service.getTableData()
+        if (updatedData) {
+          setTableData({ ...updatedData })
+          onDataChange?.(updatedData)
+        }
+        setActiveCellEdits(service.getActiveCellEdits())
+      })
+    },
+    [service, onDataChange]
+  )
+
+  const cancelEdit = useCallback(
+    (rowIndex: number, columnId: string) => {
+      const result = service.cancelCellEdit(rowIndex, columnId)
+      if (!result.success) {
+        console.error("Failed to cancel edit:", result.error)
+        return
+      }
+
+      setActiveCellEdits(service.getActiveCellEdits())
+    },
+    [service]
+  )
+
+  const updateData = useCallback(
+    async (rowIndex: number, columnId: string, value: CellValue) => {
+      await service.updateCellValue(rowIndex, columnId, value)
+      setActiveCellEdits(service.getActiveCellEdits())
+    },
+    [service]
+  )
 
   // Selection management
-  const handleCellSelect = useCallback((rowIndex: number, columnId: string, addToSelection: boolean = false) => {
-    const cellRef = { rowIndex, columnId }
-    
-    if (addToSelection) {
-      setSelectedCells(prev => [...prev, cellRef])
-    } else {
-      setSelectedCells([cellRef])
-    }
-  }, [])
+  const handleCellSelect = useCallback(
+    (rowIndex: number, columnId: string, addToSelection = false) => {
+      const cellRef = { rowIndex, columnId }
 
-  const handleRowSelect = useCallback((rowIndex: number, addToSelection: boolean = false) => {
+      if (addToSelection) {
+        setSelectedCells((prev) => [...prev, cellRef])
+      } else {
+        setSelectedCells([cellRef])
+      }
+    },
+    []
+  )
+
+  const handleRowSelect = useCallback((rowIndex: number, addToSelection = false) => {
     if (addToSelection) {
-      setSelectedRows(prev => [...prev, rowIndex])
+      setSelectedRows((prev) => [...prev, rowIndex])
     } else {
       setSelectedRows([rowIndex])
     }
@@ -184,7 +208,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
     try {
       await service.copyToClipboard(selectedCells)
     } catch (error) {
-      console.error('Copy failed:', error)
+      console.error("Copy failed:", error)
     }
   }, [service, selectedCells, enableCopyPaste])
 
@@ -193,9 +217,9 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
 
     const startCell = selectedCells[0]
     const result = await service.pasteFromClipboard(startCell)
-    
+
     if (!result.success) {
-      console.error('Paste failed:', result.error)
+      console.error("Paste failed:", result.error)
       return
     }
 
@@ -210,37 +234,43 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
   }, [service, selectedCells, enableCopyPaste, onDataChange])
 
   // Bulk operations
-  const handleBulkEdit = useCallback(async (operation: BulkEditOperation) => {
-    const result = await service.executeBulkOperation(operation)
-    
-    if (!result.success) {
-      console.error('Bulk operation failed:', result.error)
-      return
-    }
+  const handleBulkEdit = useCallback(
+    async (operation: BulkEditOperation) => {
+      const result = await service.executeBulkOperation(operation)
 
-    // Update table data
-    startTransition(() => {
-      const updatedData = service.getTableData()
-      if (updatedData) {
-        setTableData({ ...updatedData })
-        onDataChange?.(updatedData)
+      if (!result.success) {
+        console.error("Bulk operation failed:", result.error)
+        return
       }
-    })
-  }, [service, onDataChange])
+
+      // Update table data
+      startTransition(() => {
+        const updatedData = service.getTableData()
+        if (updatedData) {
+          setTableData({ ...updatedData })
+          onDataChange?.(updatedData)
+        }
+      })
+    },
+    [service, onDataChange]
+  )
 
   // AI Integration
-  const handleGenerateAIDefaults = useCallback(async (options: CursorAIDefaultOptions) => {
-    const defaults = await service.generateAIDefaults(options)
-    
-    // Apply defaults to selected rows or all rows
-    const targetRows = selectedRows.length > 0 ? selectedRows : [tableData.rows.length - 1]
-    
-    for (const rowIndex of targetRows) {
-      for (const [columnId, value] of Object.entries(defaults)) {
-        await commitEdit(rowIndex, columnId, value)
+  const handleGenerateAIDefaults = useCallback(
+    async (options: CursorAIDefaultOptions) => {
+      const defaults = await service.generateAIDefaults(options)
+
+      // Apply defaults to selected rows or all rows
+      const targetRows = selectedRows.length > 0 ? selectedRows : [tableData.rows.length - 1]
+
+      for (const rowIndex of targetRows) {
+        for (const [columnId, value] of Object.entries(defaults)) {
+          await commitEdit(rowIndex, columnId, value)
+        }
       }
-    }
-  }, [service, selectedRows, tableData.rows.length, commitEdit])
+    },
+    [service, selectedRows, tableData.rows.length, commitEdit]
+  )
 
   // Create TanStack Table columns
   const columns = useMemo<ColumnDef<Record<string, CellValue>>[]>(() => {
@@ -248,15 +278,23 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
       id: column.id,
       accessorKey: column.id,
       header: column.name,
-      cell: ({ row, column: tableColumn, getValue }: CellContext<Record<string, CellValue>, unknown>) => {
+      cell: ({
+        row,
+        column: tableColumn,
+        getValue,
+      }: CellContext<Record<string, CellValue>, unknown>) => {
         const rowIndex = row.index
         const columnId = tableColumn.id!
         const value = getValue() as CellValue
         const cellState = getCellState(rowIndex, columnId)
-        const isEditing = activeCellEdits.some(edit => edit.rowIndex === rowIndex && edit.columnId === columnId)
+        const isEditing = activeCellEdits.some(
+          (edit) => edit.rowIndex === rowIndex && edit.columnId === columnId
+        )
 
         if (isEditing) {
-          const editableCell = activeCellEdits.find(edit => edit.rowIndex === rowIndex && edit.columnId === columnId)!
+          const editableCell = activeCellEdits.find(
+            (edit) => edit.rowIndex === rowIndex && edit.columnId === columnId
+          )!
           return (
             <AdvancedCellEditor
               cell={editableCell}
@@ -270,19 +308,19 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
 
         return (
           <div
-            className={`cell ${cellState.isDirty ? 'cell-dirty' : ''} ${cellState.isValid ? '' : 'cell-invalid'}`}
+            className={`cell ${cellState.isDirty ? "cell-dirty" : ""} ${cellState.isValid ? "" : "cell-invalid"}`}
             onClick={() => handleCellSelect(rowIndex, columnId)}
             onDoubleClick={() => startEdit(rowIndex, columnId)}
           >
             {cellState.visualIndicator && (
               <div className={`visual-indicator ${cellState.visualIndicator}`} />
             )}
-            {String(value || '')}
+            {String(value || "")}
           </div>
         )
       },
       enableSorting: !column.isPrimaryKey,
-      enableColumnFilter: true
+      enableColumnFilter: true,
     }))
   }, [
     tableData.columns,
@@ -292,7 +330,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
     cancelEdit,
     updateData,
     handleCellSelect,
-    startEdit
+    startEdit,
   ])
 
   // Table instance
@@ -309,8 +347,8 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
       getRowState,
       startEdit,
       commitEdit,
-      cancelEdit
-    }
+      cancelEdit,
+    },
   })
 
   // Keyboard shortcuts
@@ -318,15 +356,15 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
-          case 'c':
+          case "c":
             e.preventDefault()
             handleCopy()
             break
-          case 'v':
+          case "v":
             e.preventDefault()
             handlePaste()
             break
-          case 'z':
+          case "z":
             if (e.shiftKey) {
               // Redo (Ctrl+Shift+Z)
               // TODO: Implement redo
@@ -341,9 +379,9 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
             }
             break
         }
-      } else if (e.key === 'Delete' && selectedRows.length > 0) {
+      } else if (e.key === "Delete" && selectedRows.length > 0) {
         // Delete selected rows
-        selectedRows.forEach(rowIndex => service.deleteRow(rowIndex))
+        selectedRows.forEach((rowIndex) => service.deleteRow(rowIndex))
         const updatedData = service.getTableData()
         if (updatedData) {
           setTableData({ ...updatedData })
@@ -352,47 +390,47 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
   }, [handleCopy, handlePaste, selectedRows, service, onDataChange])
 
   const TableContent = () => (
-    <div className="advanced-datagrid-container">
+    <div className='advanced-datagrid-container'>
       {/* Toolbar */}
-      <div className="datagrid-toolbar">
-        <div className="toolbar-section">
+      <div className='datagrid-toolbar'>
+        <div className='toolbar-section'>
           <button
-            className="toolbar-button"
+            className='toolbar-button'
             onClick={() => setShowChangeTracking(!showChangeTracking)}
-            title="Show Changes"
+            title='Show Changes'
           >
             📊 Changes ({service.getChangeStatistics().totalChanges})
           </button>
-          
+
           {enableBulkOperations && (
             <button
-              className="toolbar-button"
+              className='toolbar-button'
               onClick={() => setShowBulkPanel(!showBulkPanel)}
               disabled={selectedRows.length === 0}
-              title="Bulk Operations"
+              title='Bulk Operations'
             >
               ⚡ Bulk Edit
             </button>
           )}
-          
+
           {enableAIIntegration && (
             <button
-              className="toolbar-button"
+              className='toolbar-button'
               onClick={() => setShowAIPanel(!showAIPanel)}
-              title="AI Assistance"
+              title='AI Assistance'
             >
               🤖 AI Assistant
             </button>
           )}
         </div>
-        
-        <div className="toolbar-section">
-          <span className="selection-info">
+
+        <div className='toolbar-section'>
+          <span className='selection-info'>
             {selectedCells.length > 0 && `${selectedCells.length} cells selected`}
             {selectedRows.length > 0 && `${selectedRows.length} rows selected`}
           </span>
@@ -405,7 +443,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
           changeTracker={service.getChangeTracker()}
           onClose={() => setShowChangeTracking(false)}
           onRollback={(type, index?) => {
-            if (type === 'all') {
+            if (type === "all") {
               service.rollbackChanges()
             }
             // Handle specific rollbacks
@@ -438,14 +476,14 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
       )}
 
       {/* Table */}
-      <div className={`table-container ${isPending ? 'loading' : ''}`}>
-        <table className="advanced-datagrid-table">
+      <div className={`table-container ${isPending ? "loading" : ""}`}>
+        <table className='advanced-datagrid-table'>
           <thead>
-            {table.getHeaderGroups().map(headerGroup => (
+            {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                <th className="row-selector">
+                <th className='row-selector'>
                   <input
-                    type="checkbox"
+                    type='checkbox'
                     onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedRows(tableData.rows.map((_, index) => index))
@@ -456,18 +494,18 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
                     checked={selectedRows.length === tableData.rows.length}
                   />
                 </th>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} className="column-header">
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} className='column-header'>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {header.column.getCanSort() && (
                       <button
-                        className="sort-button"
+                        className='sort-button'
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         {{
-                          asc: ' 🔼',
-                          desc: ' 🔽',
-                        }[header.column.getIsSorted() as string] ?? ' ↕️'}
+                          asc: " 🔼",
+                          desc: " 🔽",
+                        }[header.column.getIsSorted() as string] ?? " ↕️"}
                       </button>
                     )}
                   </th>
@@ -476,34 +514,34 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map(row => {
+            {table.getRowModel().rows.map((row) => {
               const rowState = getRowState(row.index)
               return (
                 <tr
                   key={row.id}
                   className={`
                     table-row
-                    ${rowState.isNew ? 'row-new' : ''}
-                    ${rowState.isDeleted ? 'row-deleted' : ''}
-                    ${rowState.hasChanges ? 'row-modified' : ''}
-                    ${selectedRows.includes(row.index) ? 'row-selected' : ''}
+                    ${rowState.isNew ? "row-new" : ""}
+                    ${rowState.isDeleted ? "row-deleted" : ""}
+                    ${rowState.hasChanges ? "row-modified" : ""}
+                    ${selectedRows.includes(row.index) ? "row-selected" : ""}
                   `}
                 >
-                  <td className="row-selector">
+                  <td className='row-selector'>
                     <input
-                      type="checkbox"
+                      type='checkbox'
                       checked={selectedRows.includes(row.index)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedRows(prev => [...prev, row.index])
+                          setSelectedRows((prev) => [...prev, row.index])
                         } else {
-                          setSelectedRows(prev => prev.filter(i => i !== row.index))
+                          setSelectedRows((prev) => prev.filter((i) => i !== row.index))
                         }
                       }}
                     />
                   </td>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="table-cell">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className='table-cell'>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -515,33 +553,24 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
       </div>
 
       {/* Pagination */}
-      <div className="pagination-controls">
-        <button
-          onClick={() => table.setPageIndex(0)}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {'<<'}
+      <div className='pagination-controls'>
+        <button onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+          {"<<"}
         </button>
-        <button
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {'<'}
+        <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          {"<"}
         </button>
         <span>
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </span>
-        <button
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          {'>'}
+        <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          {">"}
         </button>
         <button
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
         >
-          {'>>'}
+          {">>"}
         </button>
       </div>
     </div>

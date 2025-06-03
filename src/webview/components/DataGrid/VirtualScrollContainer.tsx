@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
-import type { VirtualScrollManager } from '../../../shared/utils/VirtualScrollManager'
+import type React from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import type { VirtualScrollManager } from "../../../shared/utils/VirtualScrollManager"
 
 interface VirtualScrollContainerProps {
   manager: VirtualScrollManager
@@ -12,7 +13,7 @@ export const VirtualScrollContainer: React.FC<VirtualScrollContainerProps> = ({
   manager,
   totalItems,
   containerHeight,
-  children
+  children,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
@@ -24,12 +25,15 @@ export const VirtualScrollContainer: React.FC<VirtualScrollContainerProps> = ({
   }, [manager, totalItems])
 
   // Handle scroll events
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const newScrollTop = e.currentTarget.scrollTop
-    setScrollTop(newScrollTop)
-    manager.setScrollTop(newScrollTop)
-    setIsScrolling(true)
-  }, [manager])
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const newScrollTop = e.currentTarget.scrollTop
+      setScrollTop(newScrollTop)
+      manager.setScrollTop(newScrollTop)
+      setIsScrolling(true)
+    },
+    [manager]
+  )
 
   // Set up scroll end detection
   useEffect(() => {
@@ -43,14 +47,14 @@ export const VirtualScrollContainer: React.FC<VirtualScrollContainerProps> = ({
   const totalHeight = manager.getTotalHeight()
 
   return (
-    <div className="virtual-scroll-container">
+    <div className='virtual-scroll-container'>
       <div
         ref={containerRef}
-        className="virtual-scroll-viewport"
+        className='virtual-scroll-viewport'
         style={{
           height: containerHeight,
-          overflow: 'auto',
-          position: 'relative'
+          overflow: "auto",
+          position: "relative",
         }}
         onScroll={handleScroll}
       >
@@ -58,15 +62,15 @@ export const VirtualScrollContainer: React.FC<VirtualScrollContainerProps> = ({
         <div
           style={{
             height: totalHeight,
-            position: 'relative'
+            position: "relative",
           }}
         >
           {/* Visible content */}
           <div
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: visibleItems.length > 0 ? visibleItems[0].offset : 0,
-              width: '100%'
+              width: "100%",
             }}
           >
             {children}
@@ -76,16 +80,16 @@ export const VirtualScrollContainer: React.FC<VirtualScrollContainerProps> = ({
 
       {/* Scroll indicators */}
       {isScrolling && (
-        <div className="scroll-indicators">
-          <div className="scroll-position">
+        <div className='scroll-indicators'>
+          <div className='scroll-position'>
             {visibleRange.visibleStart + 1} - {visibleRange.visibleEnd + 1} of {totalItems}
           </div>
-          <div className="scroll-progress">
+          <div className='scroll-progress'>
             <div
-              className="scroll-progress-bar"
+              className='scroll-progress-bar'
               style={{
                 width: `${((visibleRange.visibleEnd - visibleRange.visibleStart + 1) / totalItems) * 100}%`,
-                left: `${(visibleRange.visibleStart / totalItems) * 100}%`
+                left: `${(visibleRange.visibleStart / totalItems) * 100}%`,
               }}
             />
           </div>
@@ -93,11 +97,18 @@ export const VirtualScrollContainer: React.FC<VirtualScrollContainerProps> = ({
       )}
 
       {/* Performance metrics (debug) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="virtual-scroll-debug">
-          <div>Rendered: {visibleRange.end - visibleRange.start + 1} / {totalItems}</div>
-          <div>Buffer: {visibleRange.start}-{visibleRange.visibleStart}, {visibleRange.visibleEnd}-{visibleRange.end}</div>
-          <div>Scroll: {scrollTop.toFixed(0)}px / {totalHeight.toFixed(0)}px</div>
+      {process.env.NODE_ENV === "development" && (
+        <div className='virtual-scroll-debug'>
+          <div>
+            Rendered: {visibleRange.end - visibleRange.start + 1} / {totalItems}
+          </div>
+          <div>
+            Buffer: {visibleRange.start}-{visibleRange.visibleStart}, {visibleRange.visibleEnd}-
+            {visibleRange.end}
+          </div>
+          <div>
+            Scroll: {scrollTop.toFixed(0)}px / {totalHeight.toFixed(0)}px
+          </div>
         </div>
       )}
     </div>

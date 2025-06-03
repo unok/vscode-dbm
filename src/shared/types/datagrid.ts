@@ -1,4 +1,9 @@
-import type { ColumnDef, SortingState, ColumnFiltersState, PaginationState } from '@tanstack/react-table'
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  PaginationState,
+  SortingState,
+} from "@tanstack/react-table"
 
 // Core data types
 export interface TableData {
@@ -46,18 +51,18 @@ export interface DataGridColumn extends ColumnDef<Record<string, CellValue>, Cel
   }
 }
 
-export type CellType = 
-  | 'text'
-  | 'number'
-  | 'boolean'
-  | 'date'
-  | 'datetime'
-  | 'time'
-  | 'email'
-  | 'url'
-  | 'uuid'
-  | 'json'
-  | 'enum'
+export type CellType =
+  | "text"
+  | "number"
+  | "boolean"
+  | "date"
+  | "datetime"
+  | "time"
+  | "email"
+  | "url"
+  | "uuid"
+  | "json"
+  | "enum"
 
 // Cell editing types
 export interface EditableCell {
@@ -78,7 +83,7 @@ export interface CellEditInfo {
 
 // Row operations
 export interface RowOperation {
-  type: 'insert' | 'update' | 'delete'
+  type: "insert" | "update" | "delete"
   rowIndex: number
   data: Record<string, CellValue>
   originalData?: Record<string, CellValue>
@@ -103,21 +108,21 @@ export interface DataGridFilter {
   operator?: FilterOperator
 }
 
-export type FilterOperator = 
-  | 'equals'
-  | 'notEquals'
-  | 'contains'
-  | 'notContains'
-  | 'startsWith'
-  | 'endsWith'
-  | 'greaterThan'
-  | 'lessThan'
-  | 'greaterThanOrEqual'
-  | 'lessThanOrEqual'
-  | 'isEmpty'
-  | 'isNotEmpty'
-  | 'isNull'
-  | 'isNotNull'
+export type FilterOperator =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "notContains"
+  | "startsWith"
+  | "endsWith"
+  | "greaterThan"
+  | "lessThan"
+  | "greaterThanOrEqual"
+  | "lessThanOrEqual"
+  | "isEmpty"
+  | "isNotEmpty"
+  | "isNull"
+  | "isNotNull"
 
 export interface DataGridSort {
   id: string
@@ -143,7 +148,7 @@ export interface PaginationInfo {
 export interface SelectionState {
   selectedRows: Set<number>
   selectedCells: Set<string> // Format: "rowIndex:columnId"
-  selectionMode: 'row' | 'cell' | 'column'
+  selectionMode: "row" | "cell" | "column"
 }
 
 // Data grid state
@@ -204,7 +209,7 @@ export interface DataCommitEvent {
 
 // Validation
 export interface ValidationRule {
-  type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'custom'
+  type: "required" | "minLength" | "maxLength" | "pattern" | "custom"
   value?: any
   message: string
   validator?: (value: CellValue, row: Record<string, CellValue>) => boolean
@@ -248,7 +253,7 @@ export interface DataGridFeatures {
 
 // Export options
 export interface ExportOptions {
-  format: 'csv' | 'json' | 'xlsx' | 'sql'
+  format: "csv" | "json" | "xlsx" | "sql"
   includeHeaders: boolean
   selectedRowsOnly: boolean
   fileName?: string
@@ -257,7 +262,7 @@ export interface ExportOptions {
 
 // Import options
 export interface ImportOptions {
-  format: 'csv' | 'json' | 'xlsx'
+  format: "csv" | "json" | "xlsx"
   hasHeaders: boolean
   delimiter?: string
   encoding?: string
@@ -287,7 +292,7 @@ export interface ContextMenuAction {
 }
 
 export interface ContextMenuContext {
-  type: 'cell' | 'row' | 'column' | 'header'
+  type: "cell" | "row" | "column" | "header"
   rowIndex?: number
   columnId?: string
   value?: CellValue

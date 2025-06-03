@@ -1,5 +1,5 @@
-import { randomBytes, createCipher, createDecipher, createHash } from "crypto"
-import { DatabaseConfig } from "../types"
+import { createCipher, createDecipher, createHash, randomBytes } from "crypto"
+import type { DatabaseConfig } from "../types"
 
 export class EncryptionService {
   private readonly algorithm = "aes-256-cbc"

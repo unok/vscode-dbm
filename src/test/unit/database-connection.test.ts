@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest"
 import { DatabaseConnection } from "@/shared/database/DatabaseConnection"
-import { DatabaseConfig } from "@/shared/types"
+import type { DatabaseConfig } from "@/shared/types"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // モック設定
 vi.mock("mysql2/promise", () => ({

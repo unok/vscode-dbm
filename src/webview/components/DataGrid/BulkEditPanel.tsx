@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react'
+import type React from 'react'
+import { useCallback, useState } from 'react'
+import type { AdvancedDataGridService } from '../../../shared/services/AdvancedDataGridService'
 import type {
-  ColumnDefinition,
-  CellValue,
   BulkEditOperation,
   BulkOperationPreview,
-  BulkOperationResult
+  BulkOperationResult,
+  CellValue,
+  ColumnDefinition
 } from '../../../shared/types/datagrid'
-import { AdvancedDataGridService } from '../../../shared/services/AdvancedDataGridService'
 
 interface BulkEditPanelProps {
   selectedRows: number[]
@@ -113,12 +114,12 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
 
     try {
       if (type.includes('int')) {
-        const parsed = parseInt(input, 10)
+        const parsed = Number.parseInt(input, 10)
         return isNaN(parsed) ? input : parsed
       }
       
       if (type.includes('decimal') || type.includes('numeric') || type.includes('float') || type.includes('double')) {
-        const parsed = parseFloat(input)
+        const parsed = Number.parseFloat(input)
         return isNaN(parsed) ? input : parsed
       }
       
@@ -278,8 +279,8 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
               >
                 <option value="=">=</option>
                 <option value="!=">!=</option>
-                <option value=">">></option>
-                <option value="<"><</option>
+                <option value=">">&gt;</option>
+                <option value="<">&lt;</option>
                 <option value="contains">contains</option>
                 <option value="starts_with">starts with</option>
               </select>

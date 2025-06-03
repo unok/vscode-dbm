@@ -1,16 +1,16 @@
-import type { DatabaseConnection } from '../database/DatabaseConnection'
-import type { 
-  DatabaseSchema, 
-  TableMetadata, 
-  ColumnMetadata, 
-  ViewMetadata, 
+import type { DatabaseConnection } from "../database/DatabaseConnection"
+import type {
+  ColumnMetadata,
   ConnectionSchema,
+  DatabaseSchema,
   MetadataCache,
   SchemaSearchOptions,
   SchemaSearchResult,
-  SchemaTreeNode
-} from '../types/schema'
-import { MetadataQueryBuilder } from './MetadataQueryBuilder'
+  SchemaTreeNode,
+  TableMetadata,
+  ViewMetadata,
+} from "../types/schema"
+import { MetadataQueryBuilder } from "./MetadataQueryBuilder"
 
 export class DatabaseMetadataService {
   private cache: Map<string, ConnectionSchema> = new Map()
@@ -21,12 +21,12 @@ export class DatabaseMetadataService {
    */
   async getSchema(connection: DatabaseConnection): Promise<DatabaseSchema> {
     if (!connection.isConnected()) {
-      throw new Error('Database connection is not established')
+      throw new Error("Database connection is not established")
     }
 
     const connectionId = this.getConnectionId(connection)
     const cached = this.cache.get(connectionId)
-    
+
     if (cached && !cached.isStale) {
       return cached.schema
     }
@@ -45,26 +45,26 @@ export class DatabaseMetadataService {
 
     // Get views
     const viewsResult = await connection.query(queries.getViews())
-    const views: ViewMetadata[] = viewsResult.rows.map(row => ({
+    const views: ViewMetadata[] = viewsResult.rows.map((row) => ({
       name: row.name,
       schema: row.schema,
-      definition: row.definition || '',
+      definition: row.definition || "",
       columns: [], // Will be populated separately if needed
-      comment: row.comment
+      comment: row.comment,
     }))
 
     const schema: DatabaseSchema = {
       tables,
-      views
+      views,
     }
 
     // Cache the result
     this.cache.set(connectionId, {
       connectionId,
-      databaseName: tableRow?.schema || 'default',
+      databaseName: tableRow?.schema || "default",
       schema,
       lastUpdated: new Date(),
-      isStale: false
+      isStale: false,
     })
 
     return schema
@@ -73,17 +73,21 @@ export class DatabaseMetadataService {
   /**
    * Get detailed table metadata including columns
    */
-  async getTableMetadata(connection: DatabaseConnection, tableName: string, schema?: string): Promise<TableMetadata> {
+  async getTableMetadata(
+    connection: DatabaseConnection,
+    tableName: string,
+    schema?: string
+  ): Promise<TableMetadata> {
     const dbType = connection.getType()
     const queries = this.queryBuilder.getQueries(dbType)
-    
+
     const columnsResult = await connection.query(queries.getColumns(tableName, schema))
-    
+
     if (columnsResult.rows.length === 0) {
       throw new Error(`Table "${tableName}" not found`)
     }
 
-    const columns: ColumnMetadata[] = columnsResult.rows.map(row => ({
+    const columns: ColumnMetadata[] = columnsResult.rows.map((row) => ({
       name: row.name,
       type: row.type,
       nullable: row.nullable !== false,
@@ -96,11 +100,13 @@ export class DatabaseMetadataService {
       precision: row.precision,
       scale: row.scale,
       comment: row.comment,
-      foreignKeyTarget: row.foreign_key_table ? {
-        table: row.foreign_key_table,
-        column: row.foreign_key_column,
-        schema: row.foreign_key_schema
-      } : undefined
+      foreignKeyTarget: row.foreign_key_table
+        ? {
+            table: row.foreign_key_table,
+            column: row.foreign_key_column,
+            schema: row.foreign_key_schema,
+          }
+        : undefined,
     }))
 
     // Get row count
@@ -109,21 +115,25 @@ export class DatabaseMetadataService {
     return {
       name: tableName,
       schema,
-      type: 'table',
+      type: "table",
       columns,
-      rowCount
+      rowCount,
     }
   }
 
   /**
    * Get table row count
    */
-  async getTableRowCount(connection: DatabaseConnection, tableName: string, schema?: string): Promise<number> {
+  async getTableRowCount(
+    connection: DatabaseConnection,
+    tableName: string,
+    schema?: string
+  ): Promise<number> {
     const dbType = connection.getType()
     const queries = this.queryBuilder.getQueries(dbType)
-    
+
     const result = await connection.query(queries.getRowCount(tableName, schema))
-    return parseInt(result.rows[0]?.count || '0', 10)
+    return Number.parseInt(result.rows[0]?.count || "0", 10)
   }
 
   /**
@@ -131,9 +141,7 @@ export class DatabaseMetadataService {
    */
   searchTables(schema: DatabaseSchema, pattern: string): TableMetadata[] {
     const lowerPattern = pattern.toLowerCase()
-    return schema.tables.filter(table => 
-      table.name.toLowerCase().includes(lowerPattern)
-    )
+    return schema.tables.filter((table) => table.name.toLowerCase().includes(lowerPattern))
   }
 
   /**
@@ -144,34 +152,38 @@ export class DatabaseMetadataService {
     const pattern = options.caseSensitive ? options.query : options.query.toLowerCase()
 
     // Search tables
-    if (options.types.includes('table')) {
+    if (options.types.includes("table")) {
       for (const table of schema.tables) {
         const tableName = options.caseSensitive ? table.name : table.name.toLowerCase()
         if (tableName.includes(pattern)) {
           results.push({
             node: this.tableToTreeNode(table),
-            matches: [{
-              field: 'name',
-              value: table.name,
-              start: tableName.indexOf(pattern),
-              end: tableName.indexOf(pattern) + pattern.length
-            }]
+            matches: [
+              {
+                field: "name",
+                value: table.name,
+                start: tableName.indexOf(pattern),
+                end: tableName.indexOf(pattern) + pattern.length,
+              },
+            ],
           })
         }
 
         // Search columns if specified
-        if (options.types.includes('column')) {
+        if (options.types.includes("column")) {
           for (const column of table.columns) {
             const columnName = options.caseSensitive ? column.name : column.name.toLowerCase()
             if (columnName.includes(pattern)) {
               results.push({
                 node: this.columnToTreeNode(column, table.name),
-                matches: [{
-                  field: 'name',
-                  value: column.name,
-                  start: columnName.indexOf(pattern),
-                  end: columnName.indexOf(pattern) + pattern.length
-                }]
+                matches: [
+                  {
+                    field: "name",
+                    value: column.name,
+                    start: columnName.indexOf(pattern),
+                    end: columnName.indexOf(pattern) + pattern.length,
+                  },
+                ],
               })
             }
           }
@@ -180,18 +192,20 @@ export class DatabaseMetadataService {
     }
 
     // Search views
-    if (options.types.includes('view')) {
+    if (options.types.includes("view")) {
       for (const view of schema.views) {
         const viewName = options.caseSensitive ? view.name : view.name.toLowerCase()
         if (viewName.includes(pattern)) {
           results.push({
             node: this.viewToTreeNode(view),
-            matches: [{
-              field: 'name',
-              value: view.name,
-              start: viewName.indexOf(pattern),
-              end: viewName.indexOf(pattern) + pattern.length
-            }]
+            matches: [
+              {
+                field: "name",
+                value: view.name,
+                start: viewName.indexOf(pattern),
+                end: viewName.indexOf(pattern) + pattern.length,
+              },
+            ],
           })
         }
       }
@@ -209,12 +223,12 @@ export class DatabaseMetadataService {
     // Tables folder
     if (schema.tables.length > 0) {
       const tablesNode: SchemaTreeNode = {
-        id: 'tables',
+        id: "tables",
         label: `Tables (${schema.tables.length})`,
-        type: 'tables',
-        icon: 'table',
-        children: schema.tables.map(table => this.tableToTreeNode(table)),
-        isExpanded: true
+        type: "tables",
+        icon: "table",
+        children: schema.tables.map((table) => this.tableToTreeNode(table)),
+        isExpanded: true,
       }
       root.push(tablesNode)
     }
@@ -222,12 +236,12 @@ export class DatabaseMetadataService {
     // Views folder
     if (schema.views.length > 0) {
       const viewsNode: SchemaTreeNode = {
-        id: 'views',
+        id: "views",
         label: `Views (${schema.views.length})`,
-        type: 'views',
-        icon: 'eye',
-        children: schema.views.map(view => this.viewToTreeNode(view)),
-        isExpanded: false
+        type: "views",
+        icon: "eye",
+        children: schema.views.map((view) => this.viewToTreeNode(view)),
+        isExpanded: false,
       }
       root.push(viewsNode)
     }
@@ -263,19 +277,19 @@ export class DatabaseMetadataService {
     return {
       id: `table-${table.name}`,
       label: table.name,
-      type: 'table',
-      icon: 'table',
+      type: "table",
+      icon: "table",
       metadata: table,
       children: [
         {
           id: `table-${table.name}-columns`,
           label: `Columns (${table.columns.length})`,
-          type: 'columns',
-          icon: 'list',
-          children: table.columns.map(column => this.columnToTreeNode(column, table.name)),
-          parentId: `table-${table.name}`
-        }
-      ]
+          type: "columns",
+          icon: "list",
+          children: table.columns.map((column) => this.columnToTreeNode(column, table.name)),
+          parentId: `table-${table.name}`,
+        },
+      ],
     }
   }
 
@@ -283,21 +297,21 @@ export class DatabaseMetadataService {
     return {
       id: `view-${view.name}`,
       label: view.name,
-      type: 'view',
-      icon: 'eye',
-      metadata: view
+      type: "view",
+      icon: "eye",
+      metadata: view,
     }
   }
 
   private columnToTreeNode(column: ColumnMetadata, tableName: string): SchemaTreeNode {
-    const typeInfo = column.isPrimaryKey ? ' (PK)' : column.isForeignKey ? ' (FK)' : ''
+    const typeInfo = column.isPrimaryKey ? " (PK)" : column.isForeignKey ? " (FK)" : ""
     return {
       id: `column-${tableName}-${column.name}`,
       label: `${column.name}: ${column.type}${typeInfo}`,
-      type: 'column',
-      icon: column.isPrimaryKey ? 'key' : column.isForeignKey ? 'link' : 'field',
+      type: "column",
+      icon: column.isPrimaryKey ? "key" : column.isForeignKey ? "link" : "field",
       metadata: column,
-      parentId: `table-${tableName}-columns`
+      parentId: `table-${tableName}-columns`,
     }
   }
 }

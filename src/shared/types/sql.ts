@@ -24,7 +24,7 @@ export interface QueryExecutionOptions {
   timeout?: number
   explain?: boolean
   dryRun?: boolean
-  format?: 'table' | 'json' | 'csv'
+  format?: "table" | "json" | "csv"
 }
 
 // Database Schema Types
@@ -75,7 +75,7 @@ export interface IndexSchema {
 
 export interface ConstraintSchema {
   name: string
-  type: 'PRIMARY KEY' | 'FOREIGN KEY' | 'UNIQUE' | 'CHECK'
+  type: "PRIMARY KEY" | "FOREIGN KEY" | "UNIQUE" | "CHECK"
   columns: string[]
   referencedTable?: string
   referencedColumns?: string[]
@@ -102,7 +102,7 @@ export interface ProcedureSchema {
 export interface ParameterSchema {
   name: string
   type: string
-  mode: 'IN' | 'OUT' | 'INOUT'
+  mode: "IN" | "OUT" | "INOUT"
   defaultValue?: any
 }
 
@@ -121,41 +121,41 @@ export interface CompletionItem {
 }
 
 export enum CompletionItemKind {
-  Text = 'text',
-  Method = 'method',
-  Function = 'function',
-  Constructor = 'constructor',
-  Field = 'field',
-  Variable = 'variable',
-  Class = 'class',
-  Interface = 'interface',
-  Module = 'module',
-  Property = 'property',
-  Unit = 'unit',
-  Value = 'value',
-  Enum = 'enum',
-  Keyword = 'keyword',
-  Snippet = 'snippet',
-  Color = 'color',
-  File = 'file',
-  Reference = 'reference',
-  Folder = 'folder',
-  EnumMember = 'enumMember',
-  Constant = 'constant',
-  Struct = 'struct',
-  Event = 'event',
-  Operator = 'operator',
-  TypeParameter = 'typeParameter',
-  Table = 'table',
-  Column = 'column',
-  Database = 'database',
-  Schema = 'schema'
+  Text = "text",
+  Method = "method",
+  Function = "function",
+  Constructor = "constructor",
+  Field = "field",
+  Variable = "variable",
+  Class = "class",
+  Interface = "interface",
+  Module = "module",
+  Property = "property",
+  Unit = "unit",
+  Value = "value",
+  Enum = "enum",
+  Keyword = "keyword",
+  Snippet = "snippet",
+  Color = "color",
+  File = "file",
+  Reference = "reference",
+  Folder = "folder",
+  EnumMember = "enumMember",
+  Constant = "constant",
+  Struct = "struct",
+  Event = "event",
+  Operator = "operator",
+  TypeParameter = "typeParameter",
+  Table = "table",
+  Column = "column",
+  Database = "database",
+  Schema = "schema",
 }
 
 export enum CompletionInsertTextRule {
-  None = 'none',
-  KeepWhitespace = 'keepWhitespace',
-  InsertAsSnippet = 'insertAsSnippet'
+  None = "none",
+  KeepWhitespace = "keepWhitespace",
+  InsertAsSnippet = "insertAsSnippet",
 }
 
 export interface CompletionRange {
@@ -177,12 +177,12 @@ export interface Position {
 
 // Validation Types
 export interface ValidationError {
-  type: 'syntax' | 'schema' | 'security' | 'performance'
+  type: "syntax" | "schema" | "security" | "performance"
   message: string
   line?: number
   column?: number
   length?: number
-  severity: 'error' | 'warning' | 'info'
+  severity: "error" | "warning" | "info"
   code?: string
   quickFix?: QuickFix
 }
@@ -247,12 +247,12 @@ export interface ExecutionPlanNode {
 
 // SQL Formatting Types
 export interface SQLFormatOptions {
-  keywordCase: 'upper' | 'lower' | 'capitalize'
-  identifierCase: 'upper' | 'lower' | 'preserve'
+  keywordCase: "upper" | "lower" | "capitalize"
+  identifierCase: "upper" | "lower" | "preserve"
   indentSize: number
-  indentType: 'spaces' | 'tabs'
+  indentType: "spaces" | "tabs"
   lineLength: number
-  commaPosition: 'before' | 'after'
+  commaPosition: "before" | "after"
   insertSpaces: boolean
   preserveComments: boolean
   alignColumnDefinitions: boolean
@@ -314,7 +314,7 @@ export interface DocumentSymbol {
 
 // Export and Import Types
 export interface ExportOptions {
-  format: 'csv' | 'json' | 'xlsx' | 'sql' | 'xml'
+  format: "csv" | "json" | "xlsx" | "sql" | "xml"
   includeHeaders: boolean
   delimiter?: string
   quote?: string
@@ -325,7 +325,7 @@ export interface ExportOptions {
 }
 
 export interface ImportOptions {
-  format: 'csv' | 'json' | 'xlsx' | 'sql'
+  format: "csv" | "json" | "xlsx" | "sql"
   hasHeaders: boolean
   delimiter?: string
   quote?: string
@@ -334,14 +334,14 @@ export interface ImportOptions {
   tableName?: string
   schema?: string
   truncateFirst?: boolean
-  onConflict?: 'ignore' | 'replace' | 'update'
+  onConflict?: "ignore" | "replace" | "update"
 }
 
 // Connection Types
 export interface DatabaseConnection {
   id: string
   name: string
-  type: 'mysql' | 'postgresql' | 'sqlite' | 'mssql' | 'oracle'
+  type: "mysql" | "postgresql" | "sqlite" | "mssql" | "oracle"
   host?: string
   port?: number
   database: string
@@ -359,7 +359,7 @@ export interface QueryExecutionContext {
   schema?: string
   transaction?: boolean
   autoCommit?: boolean
-  isolation?: 'READ_UNCOMMITTED' | 'READ_COMMITTED' | 'REPEATABLE_READ' | 'SERIALIZABLE'
+  isolation?: "READ_UNCOMMITTED" | "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE"
 }
 
 // SQL Dialect Types
@@ -419,21 +419,21 @@ export interface SQLEditorState {
 
 // SQL Editor Configuration
 export interface SQLEditorConfig {
-  theme: 'vs' | 'vs-dark' | 'hc-black'
+  theme: "vs" | "vs-dark" | "hc-black"
   fontSize: number
   fontFamily: string
   tabSize: number
   insertSpaces: boolean
-  wordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded'
+  wordWrap: "on" | "off" | "wordWrapColumn" | "bounded"
   wordWrapColumn: number
-  lineNumbers: 'on' | 'off' | 'relative' | 'interval'
+  lineNumbers: "on" | "off" | "relative" | "interval"
   minimap: boolean
   folding: boolean
-  autoClosingBrackets: 'always' | 'languageDefined' | 'beforeWhitespace' | 'never'
-  autoClosingQuotes: 'always' | 'languageDefined' | 'beforeWhitespace' | 'never'
+  autoClosingBrackets: "always" | "languageDefined" | "beforeWhitespace" | "never"
+  autoClosingQuotes: "always" | "languageDefined" | "beforeWhitespace" | "never"
   formatOnSave: boolean
   formatOnType: boolean
-  autoSave: 'off' | 'afterDelay' | 'onFocusChange' | 'onWindowChange'
+  autoSave: "off" | "afterDelay" | "onFocusChange" | "onWindowChange"
   autoSaveDelay: number
   quickSuggestions: boolean
   quickSuggestionsDelay: number

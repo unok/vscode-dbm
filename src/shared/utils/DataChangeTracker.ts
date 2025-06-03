@@ -1,12 +1,12 @@
 import type {
-  TableData,
+  CellChange,
   CellValue,
   ChangeRecord,
   ChangeStatistics,
-  CellChange,
   RowAddition,
-  RowDeletion
-} from '../types/datagrid'
+  RowDeletion,
+  TableData,
+} from "../types/datagrid"
 
 export interface CellChangeRecord {
   rowIndex: number
@@ -42,9 +42,14 @@ export class DataChangeTracker {
     this.clearAll()
   }
 
-  recordCellChange(rowIndex: number, columnId: string, originalValue: CellValue, newValue: CellValue): void {
+  recordCellChange(
+    rowIndex: number,
+    columnId: string,
+    originalValue: CellValue,
+    newValue: CellValue
+  ): void {
     const cellKey = `${rowIndex}:${columnId}`
-    
+
     // If reverting to original value, remove the change record
     const original = this.getOriginalCellValue(rowIndex, columnId)
     if (newValue === original) {
@@ -61,7 +66,7 @@ export class DataChangeTracker {
       columnId,
       originalValue: actualOriginal,
       newValue,
-      timestamp: new Date()
+      timestamp: new Date(),
     })
   }
 
@@ -70,20 +75,20 @@ export class DataChangeTracker {
       rowIndex,
       tempId: `temp_${this.nextTempId++}`,
       data: JSON.parse(JSON.stringify(data)), // Deep clone
-      timestamp: new Date()
+      timestamp: new Date(),
     })
   }
 
   recordRowDeletion(rowIndex: number, data: Record<string, CellValue>): void {
     // Get primary key value for tracking
-    const primaryKeyColumn = this.originalData?.columns.find(col => col.isPrimaryKey)
+    const primaryKeyColumn = this.originalData?.columns.find((col) => col.isPrimaryKey)
     const primaryKeyValue = primaryKeyColumn ? data[primaryKeyColumn.id] : rowIndex
 
     this.rowDeletions.set(rowIndex, {
       originalIndex: rowIndex,
       data: JSON.parse(JSON.stringify(data)), // Deep clone
       primaryKeyValue,
-      timestamp: new Date()
+      timestamp: new Date(),
     })
   }
 
@@ -91,11 +96,11 @@ export class DataChangeTracker {
     const modifiedCells = Array.from(this.cellChanges.values())
     const addedRows = Array.from(this.rowAdditions.values())
     const deletedRows = Array.from(this.rowDeletions.values())
-    
+
     const affectedRows = new Set([
-      ...modifiedCells.map(change => change.rowIndex),
-      ...addedRows.map(addition => addition.rowIndex),
-      ...deletedRows.map(deletion => deletion.originalIndex)
+      ...modifiedCells.map((change) => change.rowIndex),
+      ...addedRows.map((addition) => addition.rowIndex),
+      ...deletedRows.map((deletion) => deletion.originalIndex),
     ])
 
     return {
@@ -104,7 +109,7 @@ export class DataChangeTracker {
       deletedRows,
       affectedRows,
       totalChanges: modifiedCells.length + addedRows.length + deletedRows.length,
-      lastModified: this.getLastModifiedTime()
+      lastModified: this.getLastModifiedTime(),
     }
   }
 
@@ -113,11 +118,11 @@ export class DataChangeTracker {
     const addedRows = this.rowAdditions.size
     const deletedRows = this.rowDeletions.size
     const totalChanges = modifiedCells + addedRows + deletedRows
-    
+
     const affectedRows = new Set([
-      ...Array.from(this.cellChanges.values()).map(change => change.rowIndex),
+      ...Array.from(this.cellChanges.values()).map((change) => change.rowIndex),
       ...Array.from(this.rowAdditions.keys()),
-      ...Array.from(this.rowDeletions.keys())
+      ...Array.from(this.rowDeletions.keys()),
     ]).size
 
     return {
@@ -125,7 +130,7 @@ export class DataChangeTracker {
       addedRows,
       deletedRows,
       totalChanges,
-      affectedRows
+      affectedRows,
     }
   }
 
@@ -152,8 +157,8 @@ export class DataChangeTracker {
   hasRowChanges(rowIndex: number): boolean {
     // Check if any cell in this row has been modified
     for (const [cellKey] of this.cellChanges) {
-      const [rowIdx] = cellKey.split(':')
-      if (parseInt(rowIdx) === rowIndex) {
+      const [rowIdx] = cellKey.split(":")
+      if (Number.parseInt(rowIdx) === rowIndex) {
         return true
       }
     }
@@ -179,7 +184,7 @@ export class DataChangeTracker {
 
   getOriginalData(): TableData {
     if (!this.originalData) {
-      throw new Error('No original data available')
+      throw new Error("No original data available")
     }
     return JSON.parse(JSON.stringify(this.originalData)) // Deep clone
   }
@@ -189,10 +194,10 @@ export class DataChangeTracker {
    */
   getOptimizedChanges(): ChangeRecord {
     const changeRecord = this.getChangeRecord()
-    
+
     // The cell changes are already optimized since we only keep the latest change per cell
     // Additional optimizations could be added here if needed
-    
+
     return changeRecord
   }
 
@@ -205,7 +210,7 @@ export class DataChangeTracker {
 
     // UPDATE statements for modified cells
     const rowUpdates = new Map<number, Record<string, CellValue>>()
-    
+
     for (const cellChange of changeRecord.modifiedCells) {
       if (!rowUpdates.has(cellChange.rowIndex)) {
         rowUpdates.set(cellChange.rowIndex, {})
@@ -220,9 +225,9 @@ export class DataChangeTracker {
 
       const setPairs = Object.entries(updates)
         .map(([col, val]) => `${col} = ${this.formatSQLValue(val)}`)
-        .join(', ')
-      
-      const primaryKeyColumn = this.originalData?.columns.find(col => col.isPrimaryKey)
+        .join(", ")
+
+      const primaryKeyColumn = this.originalData?.columns.find((col) => col.isPrimaryKey)
       if (primaryKeyColumn) {
         const originalRow = this.originalData?.rows[rowIndex]
         if (originalRow && originalRow[primaryKeyColumn.id] !== undefined) {
@@ -234,7 +239,7 @@ export class DataChangeTracker {
 
     // DELETE statements
     for (const deletedRow of changeRecord.deletedRows) {
-      const primaryKeyColumn = this.originalData?.columns.find(col => col.isPrimaryKey)
+      const primaryKeyColumn = this.originalData?.columns.find((col) => col.isPrimaryKey)
       if (primaryKeyColumn) {
         const whereClause = `${primaryKeyColumn.id} = ${this.formatSQLValue(deletedRow.primaryKeyValue)}`
         statements.push(`DELETE FROM ${tableName} WHERE ${whereClause}`)
@@ -243,16 +248,15 @@ export class DataChangeTracker {
 
     // INSERT statements
     for (const addedRow of changeRecord.addedRows) {
-      const columns = this.originalData?.columns
-        .filter(col => !col.isAutoIncrement && addedRow.data[col.id] !== undefined)
-        .map(col => col.id) || []
-      
+      const columns =
+        this.originalData?.columns
+          .filter((col) => !col.isAutoIncrement && addedRow.data[col.id] !== undefined)
+          .map((col) => col.id) || []
+
       if (columns.length > 0) {
-        const values = columns
-          .map(col => this.formatSQLValue(addedRow.data[col]))
-          .join(', ')
-        
-        statements.push(`INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${values})`)
+        const values = columns.map((col) => this.formatSQLValue(addedRow.data[col])).join(", ")
+
+        statements.push(`INSERT INTO ${tableName} (${columns.join(", ")}) VALUES (${values})`)
       }
     }
 
@@ -277,18 +281,18 @@ export class DataChangeTracker {
   } {
     const stats = this.getStatistics()
     const warnings: string[] = []
-    
+
     if (stats.deletedRows > 0) {
       warnings.push(`${stats.deletedRows} row(s) will be permanently deleted`)
     }
 
-    let description = 'No changes'
+    let description = "No changes"
     if (stats.totalChanges > 0) {
       const parts = []
       if (stats.modifiedCells > 0) parts.push(`${stats.modifiedCells} cell(s) modified`)
       if (stats.addedRows > 0) parts.push(`${stats.addedRows} row(s) added`)
       if (stats.deletedRows > 0) parts.push(`${stats.deletedRows} row(s) deleted`)
-      description = parts.join(', ')
+      description = parts.join(", ")
     }
 
     const details = []
@@ -306,7 +310,7 @@ export class DataChangeTracker {
       description,
       details,
       canCommit: stats.totalChanges > 0,
-      warnings
+      warnings,
     }
   }
 
@@ -319,35 +323,35 @@ export class DataChangeTracker {
 
   private getLastModifiedTime(): Date | null {
     const allTimestamps = [
-      ...Array.from(this.cellChanges.values()).map(change => change.timestamp),
-      ...Array.from(this.rowAdditions.values()).map(addition => addition.timestamp),
-      ...Array.from(this.rowDeletions.values()).map(deletion => deletion.timestamp)
+      ...Array.from(this.cellChanges.values()).map((change) => change.timestamp),
+      ...Array.from(this.rowAdditions.values()).map((addition) => addition.timestamp),
+      ...Array.from(this.rowDeletions.values()).map((deletion) => deletion.timestamp),
     ]
 
     if (allTimestamps.length === 0) {
       return null
     }
 
-    return new Date(Math.max(...allTimestamps.map(date => date.getTime())))
+    return new Date(Math.max(...allTimestamps.map((date) => date.getTime())))
   }
 
   private formatSQLValue(value: CellValue): string {
     if (value === null || value === undefined) {
-      return 'NULL'
+      return "NULL"
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       return `'${value.replace(/'/g, "''")}'`
     }
-    
-    if (typeof value === 'boolean') {
-      return value ? 'TRUE' : 'FALSE'
+
+    if (typeof value === "boolean") {
+      return value ? "TRUE" : "FALSE"
     }
-    
+
     if (value instanceof Date) {
       return `'${value.toISOString()}'`
     }
-    
+
     return String(value)
   }
 }

@@ -7,7 +7,7 @@ export interface BaseMessage {
 
 // Extension to WebView messages
 export interface ConnectionStatusMessage extends BaseMessage {
-  type: 'connectionStatus'
+  type: "connectionStatus"
   data: {
     connected: boolean
     databases: DatabaseInfo[]
@@ -16,7 +16,7 @@ export interface ConnectionStatusMessage extends BaseMessage {
 }
 
 export interface ConnectionResultMessage extends BaseMessage {
-  type: 'connectionResult'
+  type: "connectionResult"
   data: {
     success: boolean
     message: string
@@ -26,7 +26,7 @@ export interface ConnectionResultMessage extends BaseMessage {
 }
 
 export interface QueryResultMessage extends BaseMessage {
-  type: 'queryResult'
+  type: "queryResult"
   data: {
     success: boolean
     results: QueryResult[]
@@ -36,28 +36,28 @@ export interface QueryResultMessage extends BaseMessage {
 }
 
 export interface ThemeChangedMessage extends BaseMessage {
-  type: 'themeChanged'
+  type: "themeChanged"
   data: {
-    kind: 'light' | 'dark'
+    kind: "light" | "dark"
   }
 }
 
 export interface ChangeViewMessage extends BaseMessage {
-  type: 'changeView'
+  type: "changeView"
   data: {
-    viewType: 'dashboard' | 'explorer' | 'datagrid' | 'sql'
+    viewType: "dashboard" | "explorer" | "datagrid" | "sql"
   }
 }
 
 // WebView to Extension messages
 export interface GetConnectionStatusMessage extends BaseMessage {
-  type: 'getConnectionStatus'
+  type: "getConnectionStatus"
 }
 
 export interface OpenConnectionMessage extends BaseMessage {
-  type: 'openConnection'
+  type: "openConnection"
   data: {
-    type: 'mysql' | 'postgresql' | 'sqlite'
+    type: "mysql" | "postgresql" | "sqlite"
     host: string
     port: number
     database: string
@@ -68,7 +68,7 @@ export interface OpenConnectionMessage extends BaseMessage {
 }
 
 export interface ExecuteQueryMessage extends BaseMessage {
-  type: 'executeQuery'
+  type: "executeQuery"
   data: {
     query: string
     connection?: string
@@ -76,18 +76,18 @@ export interface ExecuteQueryMessage extends BaseMessage {
 }
 
 export interface GetThemeMessage extends BaseMessage {
-  type: 'getTheme'
+  type: "getTheme"
 }
 
 export interface ShowInfoMessage extends BaseMessage {
-  type: 'showInfo'
+  type: "showInfo"
   data: {
     message: string
   }
 }
 
 export interface ShowErrorMessage extends BaseMessage {
-  type: 'showError'
+  type: "showError"
   data: {
     message: string
   }
@@ -96,7 +96,7 @@ export interface ShowErrorMessage extends BaseMessage {
 // Data types
 export interface DatabaseInfo {
   name: string
-  type: 'mysql' | 'postgresql' | 'sqlite'
+  type: "mysql" | "postgresql" | "sqlite"
   tables: TableInfo[]
   views: ViewInfo[]
 }
@@ -130,7 +130,7 @@ export interface ColumnInfo {
 export interface ConnectionInfo {
   id: string
   name: string
-  type: 'mysql' | 'postgresql' | 'sqlite'
+  type: "mysql" | "postgresql" | "sqlite"
   host: string
   port: number
   database: string
@@ -147,7 +147,7 @@ export interface QueryResult {
 }
 
 // Union types for message handling
-export type ExtensionMessage = 
+export type ExtensionMessage =
   | ConnectionStatusMessage
   | ConnectionResultMessage
   | QueryResultMessage

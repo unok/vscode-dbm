@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom"
-import { beforeAll, afterEach, afterAll } from "vitest"
 import { cleanup } from "@testing-library/react"
+import { afterAll, afterEach, beforeAll } from "vitest"
 
 // Jest互換のグローバルAPIをセットアップ
 beforeAll(() => {

@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
 import * as path from "path"
+import * as vscode from "vscode"
 
 export class DatabaseWebViewPanelProvider {
   private static currentPanel: vscode.WebviewPanel | undefined
@@ -12,11 +12,11 @@ export class DatabaseWebViewPanelProvider {
     // If we already have a panel, show it
     if (DatabaseWebViewPanelProvider.currentPanel) {
       DatabaseWebViewPanelProvider.currentPanel.reveal(column)
-      
+
       // Update the panel for the new view type
       DatabaseWebViewPanelProvider.currentPanel.webview.postMessage({
         type: "changeView",
-        data: { viewType }
+        data: { viewType },
       })
       return
     }
@@ -29,20 +29,18 @@ export class DatabaseWebViewPanelProvider {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [extensionUri]
+        localResourceRoots: [extensionUri],
       }
     )
 
     DatabaseWebViewPanelProvider.currentPanel = panel
-    
+
     panel.webview.html = this._getHtmlForWebview(panel.webview, extensionUri, viewType)
 
     // Message handling
-    panel.webview.onDidReceiveMessage(
-      message => {
-        this._handleMessage(message, panel)
-      }
-    )
+    panel.webview.onDidReceiveMessage((message) => {
+      this._handleMessage(message, panel)
+    })
 
     // Reset when the current panel is closed
     panel.onDidDispose(() => {
@@ -50,13 +48,11 @@ export class DatabaseWebViewPanelProvider {
     }, null)
 
     // Handle view type changes
-    panel.onDidChangeViewState(
-      e => {
-        if (e.webviewPanel.visible) {
-          // Panel became visible
-        }
+    panel.onDidChangeViewState((e) => {
+      if (e.webviewPanel.visible) {
+        // Panel became visible
       }
-    )
+    })
   }
 
   private static _getTitleForViewType(viewType: string): string {
@@ -72,9 +68,13 @@ export class DatabaseWebViewPanelProvider {
     }
   }
 
-  private static _getHtmlForWebview(webview: vscode.Webview, extensionUri: vscode.Uri, viewType: string) {
+  private static _getHtmlForWebview(
+    webview: vscode.Webview,
+    extensionUri: vscode.Uri,
+    viewType: string
+  ) {
     const isDevelopment = process.env.NODE_ENV === "development"
-    
+
     if (isDevelopment) {
       // Development mode: use Vite dev server
       return this._getDevHtml(viewType)
@@ -169,30 +169,30 @@ export class DatabaseWebViewPanelProvider {
       case "getConnectionStatus":
         panel.webview.postMessage({
           type: "connectionStatus",
-          data: { connected: false, databases: [] }
+          data: { connected: false, databases: [] },
         })
         break
-      
+
       case "openConnection":
         vscode.window.showInformationMessage(`Opening connection: ${message.data.type}`)
         panel.webview.postMessage({
           type: "connectionResult",
-          data: { success: true, message: "Connection logic integration pending" }
+          data: { success: true, message: "Connection logic integration pending" },
         })
         break
-      
+
       case "executeQuery":
         vscode.window.showInformationMessage(`Executing query: ${message.data.query}`)
         panel.webview.postMessage({
           type: "queryResult",
-          data: { success: true, results: [], message: "Query execution pending" }
+          data: { success: true, results: [], message: "Query execution pending" },
         })
         break
-        
+
       case "showInfo":
         vscode.window.showInformationMessage(message.data.message)
         break
-        
+
       case "showError":
         vscode.window.showErrorMessage(message.data.message)
         break

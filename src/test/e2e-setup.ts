@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, beforeEach, afterEach } from "vitest"
+import { afterAll, afterEach, beforeAll, beforeEach } from "vitest"
 
 // E2Eテスト用のセットアップ
 beforeAll(async () => {

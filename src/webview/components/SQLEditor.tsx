@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, startTransition } from 'react'
-import * as monaco from 'monaco-editor'
-import { SQLEditorService } from '../../shared/services/SQLEditorService'
-import { SQLQueryValidator } from '../../shared/utils/SQLQueryValidator'
-import { SQLAutoCompleter } from '../../shared/utils/SQLAutoCompleter'
-import { useVSCodeAPI } from '../api/vscode'
-import type { 
-  QueryResult, 
-  QueryExecutionOptions, 
+import * as monaco from "monaco-editor"
+import type React from "react"
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { SQLEditorService } from "../../shared/services/SQLEditorService"
+import type {
+  CompletionItem,
   DatabaseSchema,
-  ValidationError,
-  QueryBookmark,
   ExecutionPlan,
-  CompletionItem
-} from '../../shared/types/sql'
+  QueryBookmark,
+  QueryExecutionOptions,
+  QueryResult,
+  ValidationError,
+} from "../../shared/types/sql"
+import { SQLAutoCompleter } from "../../shared/utils/SQLAutoCompleter"
+import { SQLQueryValidator } from "../../shared/utils/SQLQueryValidator"
+import { useVSCodeAPI } from "../api/vscode"
 
 interface SQLEditorProps {
   initialQuery?: string
@@ -24,12 +25,12 @@ interface SQLEditorProps {
 }
 
 const SQLEditor: React.FC<SQLEditorProps> = ({
-  initialQuery = '',
+  initialQuery = "",
   schema,
   onQueryExecute,
   onError,
   readOnly = false,
-  height = 400
+  height = 400,
 }) => {
   // State management
   const [query, setQuery] = useState(initialQuery)
@@ -48,16 +49,16 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
   // Services
-  const sqlEditorService = useMemo(() => 
-    new SQLEditorService(schema || { tables: [], views: [], functions: [], procedures: [] }), 
+  const sqlEditorService = useMemo(
+    () => new SQLEditorService(schema || { tables: [], views: [], functions: [], procedures: [] }),
     [schema]
   )
-  const validator = useMemo(() => 
-    new SQLQueryValidator(schema || { tables: [], views: [], functions: [], procedures: [] }), 
+  const validator = useMemo(
+    () => new SQLQueryValidator(schema || { tables: [], views: [], functions: [], procedures: [] }),
     [schema]
   )
-  const autoCompleter = useMemo(() => 
-    new SQLAutoCompleter(schema || { tables: [], views: [], functions: [], procedures: [] }), 
+  const autoCompleter = useMemo(
+    () => new SQLAutoCompleter(schema || { tables: [], views: [], functions: [], procedures: [] }),
     [schema]
   )
   const vscodeApi = useVSCodeAPI()
@@ -67,177 +68,259 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
     if (!editorRef.current) return
 
     // Configure SQL language
-    monaco.languages.register({ id: 'sql' })
-    
+    monaco.languages.register({ id: "sql" })
+
     // Configure syntax highlighting
-    monaco.languages.setMonarchTokensProvider('sql', {
-      defaultToken: '',
-      tokenPostfix: '.sql',
+    monaco.languages.setMonarchTokensProvider("sql", {
+      defaultToken: "",
+      tokenPostfix: ".sql",
       ignoreCase: true,
       brackets: [
-        { open: '(', close: ')', token: 'delimiter.parenthesis' },
-        { open: '[', close: ']', token: 'delimiter.square' },
-        { open: '{', close: '}', token: 'delimiter.curly' }
+        { open: "(", close: ")", token: "delimiter.parenthesis" },
+        { open: "[", close: "]", token: "delimiter.square" },
+        { open: "{", close: "}", token: "delimiter.curly" },
       ],
       keywords: [
-        'SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
-        'ON', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION',
-        'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'CREATE',
-        'ALTER', 'DROP', 'TRUNCATE', 'INDEX', 'VIEW', 'TABLE', 'DATABASE',
-        'AND', 'OR', 'NOT', 'IN', 'EXISTS', 'BETWEEN', 'LIKE', 'IS', 'NULL',
-        'AS', 'DISTINCT', 'ALL', 'ANY', 'SOME', 'CASE', 'WHEN', 'THEN',
-        'ELSE', 'END', 'ASC', 'DESC', 'PRIMARY', 'KEY', 'FOREIGN', 'UNIQUE'
+        "SELECT",
+        "FROM",
+        "WHERE",
+        "JOIN",
+        "LEFT",
+        "RIGHT",
+        "INNER",
+        "OUTER",
+        "ON",
+        "GROUP BY",
+        "ORDER BY",
+        "HAVING",
+        "LIMIT",
+        "OFFSET",
+        "UNION",
+        "INSERT",
+        "INTO",
+        "VALUES",
+        "UPDATE",
+        "SET",
+        "DELETE",
+        "CREATE",
+        "ALTER",
+        "DROP",
+        "TRUNCATE",
+        "INDEX",
+        "VIEW",
+        "TABLE",
+        "DATABASE",
+        "AND",
+        "OR",
+        "NOT",
+        "IN",
+        "EXISTS",
+        "BETWEEN",
+        "LIKE",
+        "IS",
+        "NULL",
+        "AS",
+        "DISTINCT",
+        "ALL",
+        "ANY",
+        "SOME",
+        "CASE",
+        "WHEN",
+        "THEN",
+        "ELSE",
+        "END",
+        "ASC",
+        "DESC",
+        "PRIMARY",
+        "KEY",
+        "FOREIGN",
+        "UNIQUE",
       ],
       operators: [
-        '=', '>', '<', '!', '~', '?', ':', '==', '<=', '>=', '!=',
-        '<>', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=',
-        '>>=', '<<='
+        "=",
+        ">",
+        "<",
+        "!",
+        "~",
+        "?",
+        ":",
+        "==",
+        "<=",
+        ">=",
+        "!=",
+        "<>",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "%=",
+        "&=",
+        "|=",
+        "^=",
+        ">>=",
+        "<<=",
       ],
       builtinFunctions: [
-        'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CONCAT', 'SUBSTRING',
-        'LENGTH', 'UPPER', 'LOWER', 'TRIM', 'NOW', 'DATE', 'TIME'
+        "COUNT",
+        "SUM",
+        "AVG",
+        "MIN",
+        "MAX",
+        "CONCAT",
+        "SUBSTRING",
+        "LENGTH",
+        "UPPER",
+        "LOWER",
+        "TRIM",
+        "NOW",
+        "DATE",
+        "TIME",
       ],
       tokenizer: {
         root: [
-          { include: '@comments' },
-          { include: '@whitespace' },
-          { include: '@numbers' },
-          { include: '@strings' },
-          { include: '@complexIdentifiers' },
-          [/[;,.]/, 'delimiter'],
-          [/[()]/, '@brackets'],
-          [/[\w@#$]+/, {
-            cases: {
-              '@keywords': 'keyword',
-              '@operators': 'operator',
-              '@builtinFunctions': 'predefined',
-              '@default': 'identifier'
-            }
-          }]
+          { include: "@comments" },
+          { include: "@whitespace" },
+          { include: "@numbers" },
+          { include: "@strings" },
+          { include: "@complexIdentifiers" },
+          [/[;,.]/, "delimiter"],
+          [/[()]/, "@brackets"],
+          [
+            /[\w@#$]+/,
+            {
+              cases: {
+                "@keywords": "keyword",
+                "@operators": "operator",
+                "@builtinFunctions": "predefined",
+                "@default": "identifier",
+              },
+            },
+          ],
         ],
         comments: [
-          [/--+.*/, 'comment'],
-          [/\/\*/, { token: 'comment.quote', next: '@comment' }]
+          [/--+.*/, "comment"],
+          [/\/\*/, { token: "comment.quote", next: "@comment" }],
         ],
         comment: [
-          [/[^*/]+/, 'comment'],
-          [/\*\//, { token: 'comment.quote', next: '@pop' }],
-          [/./, 'comment']
+          [/[^*/]+/, "comment"],
+          [/\*\//, { token: "comment.quote", next: "@pop" }],
+          [/./, "comment"],
         ],
-        whitespace: [
-          [/\s+/, 'white']
-        ],
+        whitespace: [[/\s+/, "white"]],
         numbers: [
-          [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
-          [/\d+/, 'number']
+          [/\d*\.\d+([eE][\-+]?\d+)?/, "number.float"],
+          [/\d+/, "number"],
         ],
         strings: [
-          [/'/, { token: 'string', next: '@string' }],
-          [/"/, { token: 'string.double', next: '@stringDouble' }]
+          [/'/, { token: "string", next: "@string" }],
+          [/"/, { token: "string.double", next: "@stringDouble" }],
         ],
         string: [
-          [/[^']+/, 'string'],
-          [/''/, 'string.escape'],
-          [/'/, { token: 'string', next: '@pop' }]
+          [/[^']+/, "string"],
+          [/''/, "string.escape"],
+          [/'/, { token: "string", next: "@pop" }],
         ],
         stringDouble: [
-          [/[^"]+/, 'string.double'],
-          [/""/, 'string.escape'],
-          [/"/, { token: 'string.double', next: '@pop' }]
+          [/[^"]+/, "string.double"],
+          [/""/, "string.escape"],
+          [/"/, { token: "string.double", next: "@pop" }],
         ],
         complexIdentifiers: [
-          [/\[/, { token: 'identifier.quote', next: '@bracketedIdentifier' }],
-          [/`/, { token: 'identifier.quote', next: '@quotedIdentifier' }]
+          [/\[/, { token: "identifier.quote", next: "@bracketedIdentifier" }],
+          [/`/, { token: "identifier.quote", next: "@quotedIdentifier" }],
         ],
         bracketedIdentifier: [
-          [/[^\]]+/, 'identifier'],
-          [/]]/, 'identifier.escape'],
-          [/\]/, { token: 'identifier.quote', next: '@pop' }]
+          [/[^\]]+/, "identifier"],
+          [/]]/, "identifier.escape"],
+          [/\]/, { token: "identifier.quote", next: "@pop" }],
         ],
         quotedIdentifier: [
-          [/[^`]+/, 'identifier'],
-          [/``/, 'identifier.escape'],
-          [/`/, { token: 'identifier.quote', next: '@pop' }]
-        ]
-      }
+          [/[^`]+/, "identifier"],
+          [/``/, "identifier.escape"],
+          [/`/, { token: "identifier.quote", next: "@pop" }],
+        ],
+      },
     })
 
     // Configure autocompletion
-    monaco.languages.registerCompletionItemProvider('sql', {
+    monaco.languages.registerCompletionItemProvider("sql", {
       provideCompletionItems: (model, position) => {
         const query = model.getValue()
         const completions = autoCompleter.getCompletions(query, {
           line: position.lineNumber,
-          column: position.column
+          column: position.column,
         })
 
         return {
-          suggestions: completions.map(completion => ({
+          suggestions: completions.map((completion) => ({
             label: completion.label,
             kind: mapCompletionKind(completion.kind),
             detail: completion.detail,
             documentation: completion.documentation,
             insertText: completion.insertText || completion.label,
-            insertTextRules: completion.insertTextRules === 'insertAsSnippet' 
-              ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet 
-              : undefined,
+            insertTextRules:
+              completion.insertTextRules === "insertAsSnippet"
+                ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                : undefined,
             range: {
               startLineNumber: position.lineNumber,
               endLineNumber: position.lineNumber,
               startColumn: position.column,
-              endColumn: position.column
-            }
-          }))
+              endColumn: position.column,
+            },
+          })),
         }
-      }
+      },
     })
 
     // Configure validation
-    monaco.languages.registerCodeActionProvider('sql', {
+    monaco.languages.registerCodeActionProvider("sql", {
       provideCodeActions: (model, range, context) => {
         const actions: monaco.languages.CodeAction[] = []
-        
+
         for (const marker of context.markers) {
-          if (marker.source === 'sql-validator') {
+          if (marker.source === "sql-validator") {
             actions.push({
-              title: 'Format Query',
-              kind: 'quickfix',
+              title: "Format Query",
+              kind: "quickfix",
               edit: {
-                edits: [{
-                  resource: model.uri,
-                  edit: {
-                    range: model.getFullModelRange(),
-                    text: sqlEditorService.formatQuery(model.getValue())
-                  }
-                }]
-              }
+                edits: [
+                  {
+                    resource: model.uri,
+                    edit: {
+                      range: model.getFullModelRange(),
+                      text: sqlEditorService.formatQuery(model.getValue()),
+                    },
+                  },
+                ],
+              },
             })
           }
         }
-        
+
         return { actions, dispose: () => {} }
-      }
+      },
     })
 
     // Create editor instance
     const editor = monaco.editor.create(editorRef.current, {
       value: query,
-      language: 'sql',
-      theme: 'vs-dark',
+      language: "sql",
+      theme: "vs-dark",
       automaticLayout: true,
       minimap: { enabled: false },
       fontSize: 14,
-      lineNumbers: 'on',
-      wordWrap: 'on',
+      lineNumbers: "on",
+      wordWrap: "on",
       readOnly,
       contextmenu: true,
       quickSuggestions: true,
       parameterHints: { enabled: true },
       suggestOnTriggerCharacters: true,
-      acceptSuggestionOnEnter: 'on',
-      tabCompletion: 'on',
+      acceptSuggestionOnEnter: "on",
+      tabCompletion: "on",
       formatOnPaste: true,
-      formatOnType: true
+      formatOnType: true,
     })
 
     monacoEditorRef.current = editor
@@ -246,53 +329,53 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
     editor.onDidChangeModelContent(() => {
       const value = editor.getValue()
       setQuery(value)
-      
+
       // Validate query
       startTransition(() => {
         const errors = validator.validateQuery(value)
         setValidationErrors(errors)
-        
+
         // Update editor markers
-        const markers = errors.map(error => ({
+        const markers = errors.map((error) => ({
           severity: mapSeverity(error.severity),
           startLineNumber: error.line || 1,
           startColumn: error.column || 1,
           endLineNumber: error.line || 1,
           endColumn: (error.column || 1) + (error.length || 1),
           message: error.message,
-          source: 'sql-validator'
+          source: "sql-validator",
         }))
-        
-        monaco.editor.setModelMarkers(editor.getModel()!, 'sql-validator', markers)
+
+        monaco.editor.setModelMarkers(editor.getModel()!, "sql-validator", markers)
       })
     })
 
     // Keyboard shortcuts
     editor.addAction({
-      id: 'execute-query',
-      label: 'Execute Query',
+      id: "execute-query",
+      label: "Execute Query",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
       run: () => {
         handleExecuteQuery()
-      }
+      },
     })
 
     editor.addAction({
-      id: 'format-query',
-      label: 'Format Query',
+      id: "format-query",
+      label: "Format Query",
       keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
       run: () => {
         handleFormatQuery()
-      }
+      },
     })
 
     editor.addAction({
-      id: 'save-bookmark',
-      label: 'Save as Bookmark',
+      id: "save-bookmark",
+      label: "Save as Bookmark",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB],
       run: () => {
         handleSaveBookmark()
-      }
+      },
     })
 
     return () => {
@@ -312,23 +395,22 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
     if (!query.trim() || isExecuting) return
 
     setIsExecuting(true)
-    
+
     try {
-      const selectedText = monacoEditorRef.current?.getModel()?.getValueInRange(
-        monacoEditorRef.current.getSelection()!
-      )
+      const selectedText = monacoEditorRef.current
+        ?.getModel()
+        ?.getValueInRange(monacoEditorRef.current.getSelection()!)
       const queryToExecute = selectedText || query
 
       const result = await sqlEditorService.executeQuery(queryToExecute)
-      
-      setQueryResults(prev => [result, ...prev.slice(0, 9)]) // Keep last 10 results
+
+      setQueryResults((prev) => [result, ...prev.slice(0, 9)]) // Keep last 10 results
       setExecutionHistory(sqlEditorService.getQueryHistory().slice(0, 50))
-      
+
       onQueryExecute?.(queryToExecute, result)
       vscodeApi.showInfo(`Query executed successfully in ${result.executionTime}ms`)
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
       onError?.(errorMessage)
       vscodeApi.showError(errorMessage)
     } finally {
@@ -337,22 +419,25 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
   }, [query, isExecuting, sqlEditorService, onQueryExecute, onError, vscodeApi])
 
   // Execute with options
-  const handleExecuteWithOptions = useCallback(async (options: QueryExecutionOptions) => {
-    if (!query.trim() || isExecuting) return
+  const handleExecuteWithOptions = useCallback(
+    async (options: QueryExecutionOptions) => {
+      if (!query.trim() || isExecuting) return
 
-    setIsExecuting(true)
-    
-    try {
-      const result = await sqlEditorService.executeQueryWithOptions(query, options)
-      setQueryResults(prev => [result, ...prev.slice(0, 9)])
-      vscodeApi.showInfo('Query executed with options successfully')
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      vscodeApi.showError(errorMessage)
-    } finally {
-      setIsExecuting(false)
-    }
-  }, [query, isExecuting, sqlEditorService, vscodeApi])
+      setIsExecuting(true)
+
+      try {
+        const result = await sqlEditorService.executeQueryWithOptions(query, options)
+        setQueryResults((prev) => [result, ...prev.slice(0, 9)])
+        vscodeApi.showInfo("Query executed with options successfully")
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        vscodeApi.showError(errorMessage)
+      } finally {
+        setIsExecuting(false)
+      }
+    },
+    [query, isExecuting, sqlEditorService, vscodeApi]
+  )
 
   // Get execution plan
   const handleGetExecutionPlan = useCallback(async () => {
@@ -362,9 +447,9 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
       const plan = await sqlEditorService.getExecutionPlan(query)
       setExecutionPlan(plan)
       setShowExecutionPlan(true)
-      vscodeApi.showInfo('Execution plan generated successfully')
+      vscodeApi.showInfo("Execution plan generated successfully")
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
       vscodeApi.showError(errorMessage)
     }
   }, [query, sqlEditorService, vscodeApi])
@@ -375,28 +460,28 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
 
     const formatted = sqlEditorService.formatQuery(query)
     monacoEditorRef.current.setValue(formatted)
-    vscodeApi.showInfo('Query formatted successfully')
+    vscodeApi.showInfo("Query formatted successfully")
   }, [query, sqlEditorService, vscodeApi])
 
   // Save bookmark
   const handleSaveBookmark = useCallback(() => {
     if (!query.trim()) return
 
-    const name = prompt('Bookmark name:')
+    const name = prompt("Bookmark name:")
     if (!name) return
 
     const bookmark: QueryBookmark = {
       id: `bookmark_${Date.now()}`,
       name,
       query,
-      description: '',
+      description: "",
       tags: [],
-      createdAt: new Date()
+      createdAt: new Date(),
     }
 
     sqlEditorService.saveBookmark(bookmark)
     setBookmarks(sqlEditorService.getBookmarks())
-    vscodeApi.showInfo('Bookmark saved successfully')
+    vscodeApi.showInfo("Bookmark saved successfully")
   }, [query, sqlEditorService, vscodeApi])
 
   // Load bookmark
@@ -410,42 +495,45 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
   // Clear results
   const handleClearResults = useCallback(() => {
     setQueryResults([])
-    vscodeApi.showInfo('Results cleared')
+    vscodeApi.showInfo("Results cleared")
   }, [vscodeApi])
 
   // Export results
-  const handleExportResults = useCallback((result: QueryResult, format: string) => {
-    let exportedData: string
-    let fileName: string
+  const handleExportResults = useCallback(
+    (result: QueryResult, format: string) => {
+      let exportedData: string
+      let fileName: string
 
-    switch (format) {
-      case 'csv':
-        exportedData = sqlEditorService.exportToCSV(result)
-        fileName = 'query_result.csv'
-        break
-      case 'json':
-        exportedData = sqlEditorService.exportToJSON(result)
-        fileName = 'query_result.json'
-        break
-      case 'sql':
-        exportedData = sqlEditorService.exportToSQL(result, 'exported_data')
-        fileName = 'query_result.sql'
-        break
-      default:
-        return
-    }
+      switch (format) {
+        case "csv":
+          exportedData = sqlEditorService.exportToCSV(result)
+          fileName = "query_result.csv"
+          break
+        case "json":
+          exportedData = sqlEditorService.exportToJSON(result)
+          fileName = "query_result.json"
+          break
+        case "sql":
+          exportedData = sqlEditorService.exportToSQL(result, "exported_data")
+          fileName = "query_result.sql"
+          break
+        default:
+          return
+      }
 
-    // Create download link
-    const blob = new Blob([exportedData], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = fileName
-    a.click()
-    URL.revokeObjectURL(url)
+      // Create download link
+      const blob = new Blob([exportedData], { type: "text/plain" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
 
-    vscodeApi.showInfo(`Results exported as ${format.toUpperCase()}`)
-  }, [sqlEditorService, vscodeApi])
+      vscodeApi.showInfo(`Results exported as ${format.toUpperCase()}`)
+    },
+    [sqlEditorService, vscodeApi]
+  )
 
   return (
     <div className='sql-editor h-full flex flex-col bg-gray-900 text-white'>
@@ -465,8 +553,8 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
       />
 
       {/* Editor */}
-      <div 
-        ref={editorRef} 
+      <div
+        ref={editorRef}
         className='flex-1 border border-gray-700'
         style={{ height: `${height}px` }}
       />
@@ -509,10 +597,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
 
       {/* Execution Plan Modal */}
       {showExecutionPlan && executionPlan && (
-        <SQLExecutionPlanModal
-          plan={executionPlan}
-          onClose={() => setShowExecutionPlan(false)}
-        />
+        <SQLExecutionPlanModal plan={executionPlan} onClose={() => setShowExecutionPlan(false)} />
       )}
     </div>
   )
@@ -542,9 +627,9 @@ const SQLEditorToolbar: React.FC<{
   onSaveBookmark,
   onShowHistory,
   onShowBookmarks,
-  onClearResults
+  onClearResults,
 }) => {
-  const hasErrors = validationErrors.some(e => e.severity === 'error')
+  const hasErrors = validationErrors.some((e) => e.severity === "error")
 
   return (
     <div className='sql-editor-toolbar flex items-center justify-between p-3 bg-gray-800 border-b border-gray-700'>
@@ -575,19 +660,11 @@ const SQLEditorToolbar: React.FC<{
           Explain
         </button>
 
-        <button
-          onClick={onFormat}
-          disabled={!hasQuery}
-          className='btn-secondary text-sm'
-        >
+        <button onClick={onFormat} disabled={!hasQuery} className='btn-secondary text-sm'>
           Format
         </button>
 
-        <button
-          onClick={onSaveBookmark}
-          disabled={!hasQuery}
-          className='btn-secondary text-sm'
-        >
+        <button onClick={onSaveBookmark} disabled={!hasQuery} className='btn-secondary text-sm'>
           Bookmark
         </button>
       </div>
@@ -641,10 +718,7 @@ const SQLResultsPanel: React.FC<{
               </option>
             ))}
           </select>
-          <button
-            onClick={() => onExport(selectedResult, 'csv')}
-            className='btn-secondary text-sm'
-          >
+          <button onClick={() => onExport(selectedResult, "csv")} className='btn-secondary text-sm'>
             Export CSV
           </button>
         </div>
@@ -659,7 +733,7 @@ const SQLResultsPanel: React.FC<{
             <table className='w-full text-sm'>
               <thead className='bg-gray-700'>
                 <tr>
-                  {selectedResult.columns.map(col => (
+                  {selectedResult.columns.map((col) => (
                     <th key={col} className='px-3 py-2 text-left font-medium text-gray-300'>
                       {col}
                     </th>
@@ -669,7 +743,7 @@ const SQLResultsPanel: React.FC<{
               <tbody>
                 {selectedResult.rows.slice(0, 100).map((row, index) => (
                   <tr key={index} className='border-b border-gray-800'>
-                    {selectedResult.columns.map(col => (
+                    {selectedResult.columns.map((col) => (
                       <td key={col} className='px-3 py-2 text-gray-300'>
                         {row[col] === null ? (
                           <span className='text-gray-500 italic'>NULL</span>
@@ -692,7 +766,7 @@ const SQLResultsPanel: React.FC<{
 // Simplified modal components (would be fully implemented)
 const SQLHistoryModal: React.FC<any> = ({ history, onSelect, onClose }) => (
   <div className='modal-overlay' onClick={onClose}>
-    <div className='modal-content' onClick={e => e.stopPropagation()}>
+    <div className='modal-content' onClick={(e) => e.stopPropagation()}>
       <h2>Query History</h2>
       <div className='max-h-96 overflow-auto'>
         {history.map((query: string, index: number) => (
@@ -711,7 +785,7 @@ const SQLHistoryModal: React.FC<any> = ({ history, onSelect, onClose }) => (
 
 const SQLBookmarksModal: React.FC<any> = ({ bookmarks, onSelect, onDelete, onClose }) => (
   <div className='modal-overlay' onClick={onClose}>
-    <div className='modal-content' onClick={e => e.stopPropagation()}>
+    <div className='modal-content' onClick={(e) => e.stopPropagation()}>
       <h2>Bookmarks</h2>
       <div className='max-h-96 overflow-auto'>
         {bookmarks.map((bookmark: QueryBookmark) => (
@@ -732,7 +806,7 @@ const SQLBookmarksModal: React.FC<any> = ({ bookmarks, onSelect, onDelete, onClo
 
 const SQLExecutionPlanModal: React.FC<any> = ({ plan, onClose }) => (
   <div className='modal-overlay' onClick={onClose}>
-    <div className='modal-content' onClick={e => e.stopPropagation()}>
+    <div className='modal-content' onClick={(e) => e.stopPropagation()}>
       <h2>Execution Plan</h2>
       <pre className='bg-gray-900 p-4 rounded text-sm overflow-auto max-h-96'>
         {JSON.stringify(plan, null, 2)}
@@ -744,34 +818,52 @@ const SQLExecutionPlanModal: React.FC<any> = ({ plan, onClose }) => (
 // Helper functions
 function mapCompletionKind(kind: string): monaco.languages.CompletionItemKind {
   switch (kind) {
-    case 'keyword': return monaco.languages.CompletionItemKind.Keyword
-    case 'function': return monaco.languages.CompletionItemKind.Function
-    case 'table': return monaco.languages.CompletionItemKind.Struct
-    case 'column': return monaco.languages.CompletionItemKind.Field
-    case 'snippet': return monaco.languages.CompletionItemKind.Snippet
-    default: return monaco.languages.CompletionItemKind.Text
+    case "keyword":
+      return monaco.languages.CompletionItemKind.Keyword
+    case "function":
+      return monaco.languages.CompletionItemKind.Function
+    case "table":
+      return monaco.languages.CompletionItemKind.Struct
+    case "column":
+      return monaco.languages.CompletionItemKind.Field
+    case "snippet":
+      return monaco.languages.CompletionItemKind.Snippet
+    default:
+      return monaco.languages.CompletionItemKind.Text
   }
 }
 
 function mapSeverity(severity: string): monaco.MarkerSeverity {
   switch (severity) {
-    case 'error': return monaco.MarkerSeverity.Error
-    case 'warning': return monaco.MarkerSeverity.Warning
-    case 'info': return monaco.MarkerSeverity.Info
-    default: return monaco.MarkerSeverity.Hint
+    case "error":
+      return monaco.MarkerSeverity.Error
+    case "warning":
+      return monaco.MarkerSeverity.Warning
+    case "info":
+      return monaco.MarkerSeverity.Info
+    default:
+      return monaco.MarkerSeverity.Hint
   }
 }
 
 // Icon components
 const PlayIcon: React.FC = () => (
   <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-    <path fillRule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z'
+      clipRule='evenodd'
+    />
   </svg>
 )
 
 const ErrorIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={`w-4 h-4 ${className}`} fill='currentColor' viewBox='0 0 20 20'>
-    <path fillRule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z'
+      clipRule='evenodd'
+    />
   </svg>
 )
 

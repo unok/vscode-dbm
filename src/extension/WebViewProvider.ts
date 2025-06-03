@@ -1,9 +1,9 @@
-import * as vscode from "vscode"
 import * as path from "path"
+import * as vscode from "vscode"
 
 export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dbManager.webview"
-  
+
   private _view?: vscode.WebviewView
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
@@ -11,36 +11,34 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken,
+    _token: vscode.CancellationToken
   ) {
     this._view = webviewView
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this._extensionUri]
+      localResourceRoots: [this._extensionUri],
     }
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview)
 
     // Message handling between extension and webview
-    webviewView.webview.onDidReceiveMessage(
-      message => {
-        switch (message.type) {
-          case "getConnectionStatus":
-            this._sendConnectionStatus()
-            break
-          case "openConnection":
-            this._handleOpenConnection(message.data)
-            break
-          case "executeQuery":
-            this._handleExecuteQuery(message.data)
-            break
-          case "getTheme":
-            this._sendTheme()
-            break
-        }
+    webviewView.webview.onDidReceiveMessage((message) => {
+      switch (message.type) {
+        case "getConnectionStatus":
+          this._sendConnectionStatus()
+          break
+        case "openConnection":
+          this._handleOpenConnection(message.data)
+          break
+        case "executeQuery":
+          this._handleExecuteQuery(message.data)
+          break
+        case "getTheme":
+          this._sendTheme()
+          break
       }
-    )
+    })
 
     // Listen for theme changes
     vscode.window.onDidChangeActiveColorTheme(() => {
@@ -51,7 +49,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private _getHtmlForWebview(webview: vscode.Webview) {
     // Get URIs for Vite dev server or built assets
     const isDevelopment = process.env.NODE_ENV === "development"
-    
+
     if (isDevelopment) {
       // Development mode: use Vite dev server
       return this._getDevHtml()
@@ -81,7 +79,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     // Production HTML with built assets
     const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
     const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
-    
+
     // For now, return basic HTML structure
     // This will be improved when we have actual built assets
     const styleSrc = webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets", "index.css"))
@@ -124,8 +122,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
       type: "connectionStatus",
       data: {
         connected: false,
-        databases: []
-      }
+        databases: [],
+      },
     })
   }
 
@@ -136,15 +134,15 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     this._view.webview.postMessage({
       type: "themeChanged",
       data: {
-        kind: theme.kind === vscode.ColorThemeKind.Light ? "light" : "dark"
-      }
+        kind: theme.kind === vscode.ColorThemeKind.Light ? "light" : "dark",
+      },
     })
   }
 
   private _handleOpenConnection(data: any) {
     // Handle database connection request
     vscode.window.showInformationMessage(`Opening connection to: ${data.type}`)
-    
+
     // This will integrate with the database connection logic from Phase 2
     // For now, just acknowledge
     if (this._view) {
@@ -152,8 +150,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         type: "connectionResult",
         data: {
           success: true,
-          message: "Connection logic will be integrated in next phase"
-        }
+          message: "Connection logic will be integrated in next phase",
+        },
       })
     }
   }
@@ -161,7 +159,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private _handleExecuteQuery(data: any) {
     // Handle SQL query execution
     vscode.window.showInformationMessage(`Executing query: ${data.query}`)
-    
+
     // This will integrate with the database execution logic
     if (this._view) {
       this._view.webview.postMessage({
@@ -169,8 +167,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         data: {
           success: true,
           results: [],
-          message: "Query execution will be implemented in SQL editor phase"
-        }
+          message: "Query execution will be implemented in SQL editor phase",
+        },
       })
     }
   }

@@ -1,8 +1,8 @@
 import React, { Suspense, startTransition, useState, useEffect } from "react"
+import { useVSCodeAPI } from "./api/vscode"
 import { Layout } from "./components/Layout"
 import { LoadingSpinner } from "./components/LoadingSpinner"
 import { useVSCodeTheme } from "./hooks/useVSCodeTheme"
-import { useVSCodeAPI } from "./api/vscode"
 import { DevHelper } from "./utils/devHelper"
 
 // React 19 lazy loading for main components
@@ -25,7 +25,7 @@ export const App: React.FC = () => {
     }
 
     // Listen for view change messages from extension
-    vscodeApi.onMessage('changeView', (data) => {
+    vscodeApi.onMessage("changeView", (data) => {
       if (data.viewType) {
         startTransition(() => {
           setCurrentView(data.viewType)
@@ -37,7 +37,7 @@ export const App: React.FC = () => {
     vscodeApi.getTheme()
 
     return () => {
-      vscodeApi.removeMessageHandler('changeView')
+      vscodeApi.removeMessageHandler("changeView")
     }
   }, [vscodeApi])
 
@@ -62,9 +62,7 @@ export const App: React.FC = () => {
 
   return (
     <Layout currentView={currentView} onViewChange={handleViewChange} theme={theme}>
-      <Suspense fallback={<LoadingSpinner />}>
-        {renderContent()}
-      </Suspense>
+      <Suspense fallback={<LoadingSpinner />}>{renderContent()}</Suspense>
       <DevHelper.DevelopmentOverlay />
     </Layout>
   )
@@ -85,7 +83,7 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
 
   const handleTestHMR = () => {
     const isWorking = DevHelper.testHMR()
-    vscodeApi.showInfo(`HMR ${isWorking ? 'is working' : 'is not available'}`)
+    vscodeApi.showInfo(`HMR ${isWorking ? "is working" : "is not available"}`)
   }
   return (
     <div className='p-6 space-y-6'>
@@ -101,16 +99,10 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
           <h2 className='text-xl font-semibold text-green-400 mb-3'>データベース接続</h2>
           <p className='text-gray-300 mb-4'>MySQL、PostgreSQL、SQLiteに対応</p>
           <div className='space-x-2'>
-            <button
-              className='btn-primary'
-              onClick={() => onViewChange("explorer")}
-            >
+            <button className='btn-primary' onClick={() => onViewChange("explorer")}>
               接続設定
             </button>
-            <button
-              className='btn-secondary'
-              onClick={handleTestConnection}
-            >
+            <button className='btn-secondary' onClick={handleTestConnection}>
               API Test
             </button>
           </div>
@@ -119,10 +111,7 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
         <div className='card p-6'>
           <h2 className='text-xl font-semibold text-purple-400 mb-3'>DataGrid</h2>
           <p className='text-gray-300 mb-4'>直感的なテーブルデータ編集</p>
-          <button
-            className='btn-primary'
-            onClick={() => onViewChange("datagrid")}
-          >
+          <button className='btn-primary' onClick={() => onViewChange("datagrid")}>
             テーブル表示
           </button>
         </div>
@@ -130,10 +119,7 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
         <div className='card p-6'>
           <h2 className='text-xl font-semibold text-orange-400 mb-3'>SQLエディタ</h2>
           <p className='text-gray-300 mb-4'>シンタックスハイライト対応</p>
-          <button
-            className='btn-primary'
-            onClick={() => onViewChange("sql")}
-          >
+          <button className='btn-primary' onClick={() => onViewChange("sql")}>
             クエリ実行
           </button>
         </div>
@@ -164,10 +150,7 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
               <li>• Cursor AI統合機能</li>
             </ul>
             <div className='mt-4 space-x-2'>
-              <button
-                className='btn-secondary text-xs'
-                onClick={handleTestHMR}
-              >
+              <button className='btn-secondary text-xs' onClick={handleTestHMR}>
                 Test HMR
               </button>
             </div>

@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
-import { DatabaseWebViewProvider } from "./WebViewProvider"
 import { DatabaseWebViewPanelProvider } from "./WebViewPanelProvider"
+import { DatabaseWebViewProvider } from "./WebViewProvider"
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("DB DataGrid Manager extension is now active!")

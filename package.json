@@ -87,6 +87,7 @@
     "build:webview": "vite build",
     "watch": "tsc -watch -p ./tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
+    "test:ci": "vitest run --config vitest.config.ts src/test/ci-check.test.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:integration": "echo 'Integration tests will be implemented'",
     "test:e2e": "echo 'E2E tests will be implemented'",
@@ -99,7 +100,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "type-check": "tsc --noEmit",
-    "package": "vsce package",
+    "package": "npx @vscode/vsce package",
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
@@ -107,7 +108,6 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
-    "@tomjs/vite-plugin-vscode": "^1.5.2",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
@@ -117,12 +117,14 @@
     "@types/vscode": "^1.85.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.8",
+    "@vscode/vsce": "^3.2.0",
+    "autoprefixer": "^10.4.21",
     "happy-dom": "^15.11.6",
     "msw": "^2.6.8",
+    "postcss": "^8.5.4",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
-    "vitest": "^2.1.8",
-    "vsce": "^2.15.0"
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.20.5",

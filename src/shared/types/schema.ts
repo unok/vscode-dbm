@@ -11,7 +11,7 @@ export interface DatabaseSchema {
 export interface TableMetadata {
   name: string
   schema?: string
-  type: 'table' | 'view'
+  type: "table" | "view"
   columns: ColumnMetadata[]
   indexes?: IndexMetadata[]
   constraints?: ConstraintMetadata[]
@@ -57,13 +57,13 @@ export interface IndexMetadata {
   columns: string[]
   isUnique: boolean
   isPrimary: boolean
-  type: 'btree' | 'hash' | 'gist' | 'gin' | 'fulltext' | 'spatial'
+  type: "btree" | "hash" | "gist" | "gin" | "fulltext" | "spatial"
   size?: number
 }
 
 export interface ConstraintMetadata {
   name: string
-  type: 'primary_key' | 'foreign_key' | 'unique' | 'check' | 'not_null'
+  type: "primary_key" | "foreign_key" | "unique" | "check" | "not_null"
   columns: string[]
   referencedTable?: string
   referencedColumns?: string[]
@@ -83,15 +83,15 @@ export interface FunctionMetadata {
 export interface ParameterMetadata {
   name: string
   type: string
-  mode: 'in' | 'out' | 'inout'
+  mode: "in" | "out" | "inout"
   defaultValue?: string
 }
 
 export interface TriggerMetadata {
   name: string
   table: string
-  event: 'insert' | 'update' | 'delete'
-  timing: 'before' | 'after' | 'instead_of'
+  event: "insert" | "update" | "delete"
+  timing: "before" | "after" | "instead_of"
   definition: string
 }
 
@@ -108,23 +108,23 @@ export interface SchemaTreeNode {
   parentId?: string
 }
 
-export type SchemaNodeType = 
-  | 'database'
-  | 'schema'
-  | 'tables'
-  | 'table'
-  | 'views'
-  | 'view'
-  | 'columns'
-  | 'column'
-  | 'indexes'
-  | 'index'
-  | 'constraints'
-  | 'constraint'
-  | 'functions'
-  | 'function'
-  | 'triggers'
-  | 'trigger'
+export type SchemaNodeType =
+  | "database"
+  | "schema"
+  | "tables"
+  | "table"
+  | "views"
+  | "view"
+  | "columns"
+  | "column"
+  | "indexes"
+  | "index"
+  | "constraints"
+  | "constraint"
+  | "functions"
+  | "function"
+  | "triggers"
+  | "trigger"
 
 // Search and filter types
 export interface SchemaSearchOptions {

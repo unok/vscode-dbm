@@ -1,13 +1,18 @@
-import type { MetadataQuery, MySQLMetadataQuery, PostgreSQLMetadataQuery, SQLiteMetadataQuery } from '../types/schema'
+import type {
+  MetadataQuery,
+  MySQLMetadataQuery,
+  PostgreSQLMetadataQuery,
+  SQLiteMetadataQuery,
+} from "../types/schema"
 
 export class MetadataQueryBuilder {
-  getQueries(dbType: 'mysql' | 'postgresql' | 'sqlite'): MetadataQuery {
+  getQueries(dbType: "mysql" | "postgresql" | "sqlite"): MetadataQuery {
     switch (dbType) {
-      case 'mysql':
+      case "mysql":
         return new MySQLQueries()
-      case 'postgresql':
+      case "postgresql":
         return new PostgreSQLQueries()
-      case 'sqlite':
+      case "sqlite":
         return new SQLiteQueries()
       default:
         throw new Error(`Unsupported database type: ${dbType}`)
@@ -17,7 +22,7 @@ export class MetadataQueryBuilder {
 
 class MySQLQueries implements MySQLMetadataQuery {
   getTables(schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         TABLE_NAME as name,
@@ -33,7 +38,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getViews(schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         TABLE_NAME as name,
@@ -47,7 +52,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getColumns(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         c.COLUMN_NAME as name,
@@ -76,7 +81,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getIndexes(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         INDEX_NAME as name,
@@ -91,7 +96,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getConstraints(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         CONSTRAINT_NAME as name,
@@ -109,7 +114,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getFunctions(schema?: string): string {
-    const schemaFilter = schema ? `AND ROUTINE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND ROUTINE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         ROUTINE_NAME as name,
@@ -124,8 +129,8 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getTriggers(table?: string, schema?: string): string {
-    const tableFilter = table ? `AND EVENT_OBJECT_TABLE = '${table}'` : ''
-    const schemaFilter = schema ? `AND TRIGGER_SCHEMA = '${schema}'` : ''
+    const tableFilter = table ? `AND EVENT_OBJECT_TABLE = '${table}'` : ""
+    const schemaFilter = schema ? `AND TRIGGER_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         TRIGGER_NAME as name,
@@ -145,7 +150,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getTableSize(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT 
         DATA_LENGTH + INDEX_LENGTH as size_bytes,
@@ -156,7 +161,7 @@ class MySQLQueries implements MySQLMetadataQuery {
   }
 
   getAutoIncrementInfo(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ''
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
     return `
       SELECT AUTO_INCREMENT as next_value
       FROM INFORMATION_SCHEMA.TABLES 
@@ -166,7 +171,7 @@ class MySQLQueries implements MySQLMetadataQuery {
 }
 
 class PostgreSQLQueries implements PostgreSQLMetadataQuery {
-  getTables(schema = 'public'): string {
+  getTables(schema = "public"): string {
     return `
       SELECT 
         t.table_name as name,
@@ -181,7 +186,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getViews(schema = 'public'): string {
+  getViews(schema = "public"): string {
     return `
       SELECT 
         table_name as name,
@@ -193,7 +198,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getColumns(table: string, schema = 'public'): string {
+  getColumns(table: string, schema = "public"): string {
     return `
       SELECT 
         c.column_name as name,
@@ -251,7 +256,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getIndexes(table: string, schema = 'public'): string {
+  getIndexes(table: string, schema = "public"): string {
     return `
       SELECT 
         i.relname as name,
@@ -272,7 +277,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getConstraints(table: string, schema = 'public'): string {
+  getConstraints(table: string, schema = "public"): string {
     return `
       SELECT 
         tc.constraint_name as name,
@@ -291,7 +296,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getFunctions(schema = 'public'): string {
+  getFunctions(schema = "public"): string {
     return `
       SELECT 
         p.proname as name,
@@ -306,8 +311,8 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getTriggers(table?: string, schema = 'public'): string {
-    const tableFilter = table ? `AND t.relname = '${table}'` : ''
+  getTriggers(table?: string, schema = "public"): string {
+    const tableFilter = table ? `AND t.relname = '${table}'` : ""
     return `
       SELECT 
         trig.tgname as name,
@@ -331,11 +336,11 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getRowCount(table: string, schema = 'public'): string {
+  getRowCount(table: string, schema = "public"): string {
     return `SELECT COUNT(*) as count FROM "${schema}"."${table}"`
   }
 
-  getSequences(schema = 'public'): string {
+  getSequences(schema = "public"): string {
     return `
       SELECT 
         sequence_name as name,
@@ -350,7 +355,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
     `
   }
 
-  getEnums(schema = 'public'): string {
+  getEnums(schema = "public"): string {
     return `
       SELECT 
         t.typname as name,
@@ -419,11 +424,11 @@ class SQLiteQueries implements SQLiteMetadataQuery {
 
   getFunctions(): string {
     // SQLite doesn't have user-defined functions in the same way
-    return 'SELECT NULL as name WHERE 1=0'
+    return "SELECT NULL as name WHERE 1=0"
   }
 
   getTriggers(table?: string): string {
-    const tableFilter = table ? `AND tbl_name = '${table}'` : ''
+    const tableFilter = table ? `AND tbl_name = '${table}'` : ""
     return `
       SELECT 
         name,

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest"
 import { MySQLDriver } from "@/shared/database/drivers/MySQLDriver"
-import { DatabaseConfig } from "@/shared/types"
+import type { DatabaseConfig } from "@/shared/types"
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 
 describe("MySQLDriver統合テスト", () => {
   let driver: MySQLDriver

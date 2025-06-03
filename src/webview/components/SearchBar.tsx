@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
+import type React from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface SearchBarProps {
   value: string
@@ -12,10 +13,10 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChange,
-  placeholder = 'Search...',
+  placeholder = "Search...",
   onFocus,
   onBlur,
-  className = ''
+  className = "",
 }) => {
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -31,12 +32,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   }
 
   const handleClear = () => {
-    onChange('')
+    onChange("")
     inputRef.current?.focus()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       if (value) {
         handleClear()
       } else {
@@ -48,23 +49,23 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   // Auto-focus on Ctrl+F or Cmd+F
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
         e.preventDefault()
         inputRef.current?.focus()
       }
     }
 
-    document.addEventListener('keydown', handleGlobalKeyDown)
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
+    document.addEventListener("keydown", handleGlobalKeyDown)
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown)
   }, [])
 
   return (
     <div className={`search-bar ${className}`}>
-      <div className={`search-input-container ${isFocused ? 'focused' : ''}`}>
+      <div className={`search-input-container ${isFocused ? "focused" : ""}`}>
         <div className='search-icon'>
           <SearchIcon />
         </div>
-        
+
         <input
           ref={inputRef}
           type='text'
@@ -77,17 +78,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           className='search-input'
           spellCheck={false}
         />
-        
+
         {value && (
-          <button
-            onClick={handleClear}
-            className='search-clear-button'
-            title='Clear search (Esc)'
-          >
+          <button onClick={handleClear} className='search-clear-button' title='Clear search (Esc)'>
             <ClearIcon />
           </button>
         )}
-        
+
         {!value && (
           <div className='search-shortcut'>
             <kbd className='search-shortcut-key'>Ctrl</kbd>
@@ -96,7 +93,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </div>
         )}
       </div>
-      
+
       {value && (
         <div className='search-results-indicator'>
           <span className='text-xs text-gray-400'>
@@ -133,7 +130,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
 
   const toggleFilter = (filterId: string) => {
     const newFilters = selectedFilters.includes(filterId)
-      ? selectedFilters.filter(id => id !== filterId)
+      ? selectedFilters.filter((id) => id !== filterId)
       : [...selectedFilters, filterId]
     onFilterChange?.(newFilters)
   }
@@ -141,7 +138,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
   return (
     <div className='advanced-search-bar'>
       <SearchBar {...searchProps} />
-      
+
       {showFilters && filters.length > 0 && (
         <div className='search-filters'>
           <div className='search-filters-header'>
@@ -157,10 +154,10 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
               <ChevronIcon expanded={showFilterDropdown} />
             </button>
           </div>
-          
+
           {showFilterDropdown && (
             <div className='search-filters-dropdown'>
-              {filters.map(filter => (
+              {filters.map((filter) => (
                 <label key={filter.id} className='search-filter-item'>
                   <input
                     type='checkbox'
@@ -169,9 +166,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
                     className='search-filter-checkbox'
                   />
                   <div className='search-filter-content'>
-                    {filter.icon && (
-                      <span className='search-filter-icon'>{filter.icon}</span>
-                    )}
+                    {filter.icon && <span className='search-filter-icon'>{filter.icon}</span>}
                     <span>{filter.label}</span>
                   </div>
                 </label>
@@ -187,28 +182,44 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
 // Icon components
 const SearchIcon: React.FC = () => (
   <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-    <path fillRule='evenodd' d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z'
+      clipRule='evenodd'
+    />
   </svg>
 )
 
 const ClearIcon: React.FC = () => (
   <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
-    <path fillRule='evenodd' d='M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z'
+      clipRule='evenodd'
+    />
   </svg>
 )
 
 const FilterIcon: React.FC = () => (
   <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
-    <path fillRule='evenodd' d='M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z'
+      clipRule='evenodd'
+    />
   </svg>
 )
 
 const ChevronIcon: React.FC<{ expanded: boolean }> = ({ expanded }) => (
   <svg
-    className={`w-3 h-3 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+    className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
     fill='currentColor'
     viewBox='0 0 20 20'
   >
-    <path fillRule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
+      clipRule='evenodd'
+    />
   </svg>
 )

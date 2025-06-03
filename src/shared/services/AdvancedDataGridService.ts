@@ -1,27 +1,27 @@
 import type {
-  TableData,
-  ColumnDefinition,
-  CellValue,
-  EditableCell,
-  ChangeRecord,
   BulkEditOperation,
-  CopyPasteData,
-  VirtualScrollConfig,
-  CursorAIDefaultOptions,
-  CellEditResult,
-  ValidationResult,
-  CellState,
-  RowState,
-  ChangeStatistics,
-  BulkOperationResult,
   BulkOperationPreview,
+  BulkOperationResult,
+  CellEditResult,
+  CellState,
+  CellValue,
+  ChangeRecord,
+  ChangeStatistics,
+  ColumnDefinition,
+  CopyPasteData,
+  CursorAIDefaultOptions,
+  EditableCell,
+  PasteOptions,
   PasteResult,
-  PasteOptions
-} from '../types/datagrid'
-import { DataChangeTracker } from '../utils/DataChangeTracker'
-import { CellValidationEngine } from '../utils/CellValidationEngine'
-import { VirtualScrollManager } from '../utils/VirtualScrollManager'
-import { CursorAIIntegration } from '../utils/CursorAIIntegration'
+  RowState,
+  TableData,
+  ValidationResult,
+  VirtualScrollConfig,
+} from "../types/datagrid"
+import { CellValidationEngine } from "../utils/CellValidationEngine"
+import { CursorAIIntegration } from "../utils/CursorAIIntegration"
+import { DataChangeTracker } from "../utils/DataChangeTracker"
+import { VirtualScrollManager } from "../utils/VirtualScrollManager"
 
 export class AdvancedDataGridService {
   private tableData: TableData | null = null
@@ -40,7 +40,7 @@ export class AdvancedDataGridService {
     this.changeTracker = new DataChangeTracker()
     this.validationEngine = new CellValidationEngine()
     this.aiIntegration = new CursorAIIntegration()
-    
+
     if (initialData) {
       this.changeTracker.setInitialData(initialData)
       this.validationEngine.setSchema(initialData.columns)
@@ -52,25 +52,25 @@ export class AdvancedDataGridService {
    */
   startCellEdit(rowIndex: number, columnId: string): CellEditResult {
     if (!this.tableData) {
-      return { success: false, error: 'No table data loaded' }
+      return { success: false, error: "No table data loaded" }
     }
 
-    const column = this.tableData.columns.find(col => col.id === columnId)
+    const column = this.tableData.columns.find((col) => col.id === columnId)
     if (!column) {
       return { success: false, error: `Column "${columnId}" not found` }
     }
 
     if (column.isPrimaryKey) {
-      return { success: false, error: 'Primary key columns cannot be edited' }
+      return { success: false, error: "Primary key columns cannot be edited" }
     }
 
     if (column.isAutoIncrement) {
-      return { success: false, error: 'Auto-increment columns cannot be edited' }
+      return { success: false, error: "Auto-increment columns cannot be edited" }
     }
 
     const cellKey = `${rowIndex}:${columnId}`
     if (this.activeCellEdits.has(cellKey)) {
-      return { success: false, error: 'Cell is already being edited' }
+      return { success: false, error: "Cell is already being edited" }
     }
 
     const currentValue = this.getCellValue(rowIndex, columnId)
@@ -80,23 +80,23 @@ export class AdvancedDataGridService {
       originalValue: currentValue,
       editedValue: currentValue,
       isDirty: false,
-      isValid: true
+      isValid: true,
     }
 
     this.activeCellEdits.set(cellKey, cellState)
 
     return {
       success: true,
-      cellState
+      cellState,
     }
   }
 
   async updateCellValue(rowIndex: number, columnId: string, newValue: CellValue): Promise<void> {
     const cellKey = `${rowIndex}:${columnId}`
     const cellState = this.activeCellEdits.get(cellKey)
-    
+
     if (!cellState) {
-      throw new Error('Cell is not in edit mode')
+      throw new Error("Cell is not in edit mode")
     }
 
     cellState.editedValue = newValue
@@ -106,37 +106,49 @@ export class AdvancedDataGridService {
     this.debouncedValidation(rowIndex, columnId, newValue)
   }
 
-  async validateCellValue(rowIndex: number, columnId: string, value: CellValue): Promise<ValidationResult> {
+  async validateCellValue(
+    rowIndex: number,
+    columnId: string,
+    value: CellValue
+  ): Promise<ValidationResult> {
     const cacheKey = `${columnId}:${String(value)}`
-    
+
     // Check cache first
     if (this.validationCache.has(cacheKey)) {
       return this.validationCache.get(cacheKey)!
     }
 
     if (!this.tableData) {
-      return { isValid: false, errors: ['No table data loaded'] }
+      return { isValid: false, errors: ["No table data loaded"] }
     }
 
-    const column = this.tableData.columns.find(col => col.id === columnId)
+    const column = this.tableData.columns.find((col) => col.id === columnId)
     if (!column) {
       return { isValid: false, errors: [`Column "${columnId}" not found`] }
     }
 
-    const result = await this.validationEngine.validateValue(value, column, this.tableData.rows[rowIndex])
-    
+    const result = await this.validationEngine.validateValue(
+      value,
+      column,
+      this.tableData.rows[rowIndex]
+    )
+
     // Cache result
     this.validationCache.set(cacheKey, result)
-    
+
     return result
   }
 
-  async commitCellEdit(rowIndex: number, columnId: string, newValue: CellValue): Promise<CellEditResult> {
+  async commitCellEdit(
+    rowIndex: number,
+    columnId: string,
+    newValue: CellValue
+  ): Promise<CellEditResult> {
     const cellKey = `${rowIndex}:${columnId}`
     const cellState = this.activeCellEdits.get(cellKey)
-    
+
     if (!cellState) {
-      return { success: false, error: 'Cell is not in edit mode' }
+      return { success: false, error: "Cell is not in edit mode" }
     }
 
     // Validate before committing
@@ -144,8 +156,8 @@ export class AdvancedDataGridService {
     if (!validation.isValid) {
       return {
         success: false,
-        error: 'Validation failed',
-        validationErrors: validation.errors
+        error: "Validation failed",
+        validationErrors: validation.errors,
       }
     }
 
@@ -165,9 +177,9 @@ export class AdvancedDataGridService {
 
   cancelCellEdit(rowIndex: number, columnId: string): CellEditResult {
     const cellKey = `${rowIndex}:${columnId}`
-    
+
     if (!this.activeCellEdits.has(cellKey)) {
-      return { success: false, error: 'Cell is not in edit mode' }
+      return { success: false, error: "Cell is not in edit mode" }
     }
 
     this.activeCellEdits.delete(cellKey)
@@ -193,7 +205,7 @@ export class AdvancedDataGridService {
     this.changeTracker.rollbackAll()
     this.activeCellEdits.clear()
     this.validationCache.clear()
-    
+
     if (this.tableData) {
       this.tableData = this.changeTracker.getOriginalData()
     }
@@ -201,7 +213,7 @@ export class AdvancedDataGridService {
 
   rollbackCellChange(rowIndex: number, columnId: string): void {
     this.changeTracker.rollbackCellChange(rowIndex, columnId)
-    
+
     // Update current data
     if (this.tableData && this.tableData.rows[rowIndex]) {
       const originalValue = this.changeTracker.getOriginalCellValue(rowIndex, columnId)
@@ -221,10 +233,10 @@ export class AdvancedDataGridService {
       isEditing: !!activeEdit,
       isDirty: !!change,
       isValid: !activeEdit || activeEdit.isValid,
-      changeType: change ? 'modified' : undefined,
-      visualIndicator: change ? 'dirty-cell' : undefined,
+      changeType: change ? "modified" : undefined,
+      visualIndicator: change ? "dirty-cell" : undefined,
       originalValue: change?.originalValue,
-      currentValue: this.getCellValue(rowIndex, columnId)
+      currentValue: this.getCellValue(rowIndex, columnId),
     }
   }
 
@@ -237,11 +249,16 @@ export class AdvancedDataGridService {
       isNew,
       isDeleted,
       hasChanges,
-      visualIndicator: isNew ? 'new-row' : isDeleted ? 'deleted-row' : undefined
+      visualIndicator: isNew ? "new-row" : isDeleted ? "deleted-row" : undefined,
     }
   }
 
-  setCustomIndicator(rowIndex: number, columnId: string, indicator: string, message?: string): void {
+  setCustomIndicator(
+    rowIndex: number,
+    columnId: string,
+    indicator: string,
+    message?: string
+  ): void {
     // Store custom indicators for cells
     const cellKey = `${rowIndex}:${columnId}`
     // Implementation would store custom indicators
@@ -257,41 +274,40 @@ export class AdvancedDataGridService {
 
     try {
       switch (operation.type) {
-        case 'update':
+        case "update":
           affectedRows = await this.executeBulkUpdate(operation)
           break
-        case 'delete':
+        case "delete":
           affectedRows = await this.executeBulkDelete(operation)
           break
         default:
-          return { success: false, error: 'Unknown operation type', affectedRows: 0 }
+          return { success: false, error: "Unknown operation type", affectedRows: 0 }
       }
 
       const endTime = performance.now()
       this.notifyPerformanceMetric({
-        operation: 'bulk_edit',
+        operation: "bulk_edit",
         duration: endTime - startTime,
-        rowsAffected: affectedRows
+        rowsAffected: affectedRows,
       })
 
       return { success: true, affectedRows }
-
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         validationErrors,
-        affectedRows
+        affectedRows,
       }
     }
   }
 
   private async executeBulkUpdate(operation: BulkEditOperation): Promise<number> {
     if (!this.tableData || !operation.columnId) {
-      throw new Error('Invalid operation parameters')
+      throw new Error("Invalid operation parameters")
     }
 
-    const column = this.tableData.columns.find(col => col.id === operation.columnId)
+    const column = this.tableData.columns.find((col) => col.id === operation.columnId)
     if (!column) {
       throw new Error(`Column "${operation.columnId}" not found`)
     }
@@ -318,16 +334,16 @@ export class AdvancedDataGridService {
       // Validate new value
       const validation = await this.validateCellValue(rowIndex, operation.columnId, newValue)
       if (!validation.isValid) {
-        throw new Error(`Validation failed: ${validation.errors.join(', ')}`)
+        throw new Error(`Validation failed: ${validation.errors.join(", ")}`)
       }
 
       // Apply the change
       const originalValue = row[operation.columnId]
       row[operation.columnId] = newValue
-      
+
       // Track the change
       this.changeTracker.recordCellChange(rowIndex, operation.columnId, originalValue, newValue)
-      
+
       affectedRows++
     }
 
@@ -357,7 +373,7 @@ export class AdvancedDataGridService {
         continue
       }
 
-      if (operation.type === 'update' && operation.columnId) {
+      if (operation.type === "update" && operation.columnId) {
         let newValue: CellValue
         if (operation.valueFunction) {
           newValue = operation.valueFunction(row, rowIndex)
@@ -369,7 +385,7 @@ export class AdvancedDataGridService {
           rowIndex,
           columnId: operation.columnId,
           currentValue: row[operation.columnId],
-          newValue
+          newValue,
         })
       }
 
@@ -384,25 +400,25 @@ export class AdvancedDataGridService {
    */
   copyCells(cellRefs: Array<{ rowIndex: number; columnId: string }>): CopyPasteData {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
     if (cellRefs.length === 1) {
       // Single cell
       const { rowIndex, columnId } = cellRefs[0]
       const value = this.getCellValue(rowIndex, columnId)
-      
+
       return {
-        type: 'single-cell',
+        type: "single-cell",
         data: [[value]],
-        metadata: { columns: [columnId], rows: 1 }
+        metadata: { columns: [columnId], rows: 1 },
       }
     }
 
     // Determine if it's a range or scattered cells
     const data = []
-    const columns = [...new Set(cellRefs.map(ref => ref.columnId))]
-    const rows = [...new Set(cellRefs.map(ref => ref.rowIndex))]
+    const columns = [...new Set(cellRefs.map((ref) => ref.columnId))]
+    const rows = [...new Set(cellRefs.map((ref) => ref.rowIndex))]
 
     for (const rowIndex of rows) {
       const rowData = []
@@ -414,53 +430,55 @@ export class AdvancedDataGridService {
     }
 
     return {
-      type: 'range',
+      type: "range",
       data,
-      metadata: { columns, rows: rows.length }
+      metadata: { columns, rows: rows.length },
     }
   }
 
   copyRows(rowIndices: number[]): CopyPasteData {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
-    const data = rowIndices.map(rowIndex => {
+    const data = rowIndices.map((rowIndex) => {
       const row = this.tableData!.rows[rowIndex]
-      return this.tableData!.columns.map(col => row[col.id])
+      return this.tableData!.columns.map((col) => row[col.id])
     })
 
     return {
-      type: 'rows',
+      type: "rows",
       data,
       metadata: {
-        columns: this.tableData.columns.map(col => col.id),
-        rows: rowIndices.length
-      }
+        columns: this.tableData.columns.map((col) => col.id),
+        rows: rowIndices.length,
+      },
     }
   }
 
   async pasteCells(
-    copyData: CopyPasteData, 
+    copyData: CopyPasteData,
     startCell: { rowIndex: number; columnId: string },
     options?: PasteOptions
   ): Promise<PasteResult> {
     if (!this.tableData) {
-      return { success: false, error: 'No table data loaded', affectedCells: 0 }
+      return { success: false, error: "No table data loaded", affectedCells: 0 }
     }
 
     const validationErrors: string[] = []
     let affectedCells = 0
 
     try {
-      const startColumnIndex = this.tableData.columns.findIndex(col => col.id === startCell.columnId)
+      const startColumnIndex = this.tableData.columns.findIndex(
+        (col) => col.id === startCell.columnId
+      )
       if (startColumnIndex === -1) {
-        return { success: false, error: 'Start column not found', affectedCells: 0 }
+        return { success: false, error: "Start column not found", affectedCells: 0 }
       }
 
       for (let dataRowIndex = 0; dataRowIndex < copyData.data.length; dataRowIndex++) {
         const targetRowIndex = startCell.rowIndex + dataRowIndex
-        
+
         // Ensure target row exists
         if (targetRowIndex >= this.tableData.rows.length) {
           if (options?.autoExpandRows) {
@@ -476,7 +494,7 @@ export class AdvancedDataGridService {
         const dataRow = copyData.data[dataRowIndex]
         for (let dataColIndex = 0; dataColIndex < dataRow.length; dataColIndex++) {
           const targetColumnIndex = startColumnIndex + dataColIndex
-          
+
           if (targetColumnIndex >= this.tableData.columns.length) {
             break // Can't expand columns
           }
@@ -491,9 +509,9 @@ export class AdvancedDataGridService {
             if (!options?.skipValidationErrors) {
               return {
                 success: false,
-                error: 'Validation failed',
+                error: "Validation failed",
                 validationErrors,
-                affectedCells
+                affectedCells,
               }
             }
             continue
@@ -502,55 +520,62 @@ export class AdvancedDataGridService {
           // Apply the change
           const originalValue = this.getCellValue(targetRowIndex, targetColumn.id)
           this.tableData.rows[targetRowIndex][targetColumn.id] = newValue
-          
+
           // Track the change
-          this.changeTracker.recordCellChange(targetRowIndex, targetColumn.id, originalValue, newValue)
-          
+          this.changeTracker.recordCellChange(
+            targetRowIndex,
+            targetColumn.id,
+            originalValue,
+            newValue
+          )
+
           affectedCells++
         }
       }
 
       return { success: true, affectedCells, validationErrors }
-
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        affectedCells
+        error: error instanceof Error ? error.message : "Unknown error",
+        affectedCells,
       }
     }
   }
 
   async copyToClipboard(cellRefs: Array<{ rowIndex: number; columnId: string }>): Promise<void> {
     const copyData = this.copyCells(cellRefs)
-    const textData = copyData.data.map(row => row.join('\t')).join('\n')
-    
+    const textData = copyData.data.map((row) => row.join("\t")).join("\n")
+
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(textData)
     }
   }
 
-  async pasteFromClipboard(startCell: { rowIndex: number; columnId: string }): Promise<PasteResult> {
+  async pasteFromClipboard(startCell: {
+    rowIndex: number
+    columnId: string
+  }): Promise<PasteResult> {
     if (!navigator.clipboard) {
-      return { success: false, error: 'Clipboard API not available', affectedCells: 0 }
+      return { success: false, error: "Clipboard API not available", affectedCells: 0 }
     }
 
     try {
       const textData = await navigator.clipboard.readText()
-      const rows = textData.split('\n').map(row => row.split('\t'))
-      
+      const rows = textData.split("\n").map((row) => row.split("\t"))
+
       const copyData: CopyPasteData = {
-        type: rows.length === 1 && rows[0].length === 1 ? 'single-cell' : 'range',
+        type: rows.length === 1 && rows[0].length === 1 ? "single-cell" : "range",
         data: rows,
-        metadata: { columns: [], rows: rows.length }
+        metadata: { columns: [], rows: rows.length },
       }
 
       return this.pasteCells(copyData, startCell)
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to read clipboard',
-        affectedCells: 0
+        error: error instanceof Error ? error.message : "Failed to read clipboard",
+        affectedCells: 0,
       }
     }
   }
@@ -560,11 +585,11 @@ export class AdvancedDataGridService {
    */
   enableVirtualScrolling(config: VirtualScrollConfig): VirtualScrollManager {
     this.virtualScrollManager = new VirtualScrollManager(config)
-    
+
     if (this.tableData) {
       this.virtualScrollManager.setTotalItems(this.tableData.totalRows)
     }
-    
+
     return this.virtualScrollManager
   }
 
@@ -575,19 +600,22 @@ export class AdvancedDataGridService {
   /**
    * Performance Optimization
    */
-  private debouncedValidation = this.debounce(async (rowIndex: number, columnId: string, value: CellValue) => {
-    const validation = await this.validateCellValue(rowIndex, columnId, value)
-    
-    this.validationCallbacks.forEach(callback => {
-      callback({
-        rowIndex,
-        columnId,
-        value,
-        isValid: validation.isValid,
-        errors: validation.errors
+  private debouncedValidation = this.debounce(
+    async (rowIndex: number, columnId: string, value: CellValue) => {
+      const validation = await this.validateCellValue(rowIndex, columnId, value)
+
+      this.validationCallbacks.forEach((callback) => {
+        callback({
+          rowIndex,
+          columnId,
+          value,
+          isValid: validation.isValid,
+          errors: validation.errors,
+        })
       })
-    })
-  }, 250)
+    },
+    250
+  )
 
   private debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
     let timeout: NodeJS.Timeout
@@ -606,7 +634,7 @@ export class AdvancedDataGridService {
   }
 
   private notifyPerformanceMetric(metric: any): void {
-    this.performanceCallbacks.forEach(callback => callback(metric))
+    this.performanceCallbacks.forEach((callback) => callback(metric))
   }
 
   getChangeTracker(): DataChangeTracker {
@@ -622,24 +650,24 @@ export class AdvancedDataGridService {
 
   async loadData(offset: number, limit: number): Promise<void> {
     if (!this.dataLoader) {
-      throw new Error('No data loader configured')
+      throw new Error("No data loader configured")
     }
 
     const data = await this.dataLoader(offset, limit)
-    
-    if (!this.tableData) {
+
+    if (this.tableData) {
+      // Append or update existing data
+      this.tableData.rows = [...this.tableData.rows, ...data.rows]
+      this.tableData.totalRows = data.totalRows
+    } else {
       this.tableData = {
-        tableName: 'loaded_data',
+        tableName: "loaded_data",
         columns: [],
         rows: data.rows,
         totalRows: data.totalRows,
         offset,
-        limit
+        limit,
       }
-    } else {
-      // Append or update existing data
-      this.tableData.rows = [...this.tableData.rows, ...data.rows]
-      this.tableData.totalRows = data.totalRows
     }
   }
 
@@ -670,11 +698,11 @@ export class AdvancedDataGridService {
 
   addNewRow(): Record<string, CellValue> {
     if (!this.tableData) {
-      throw new Error('No table data loaded')
+      throw new Error("No table data loaded")
     }
 
     const newRow: Record<string, CellValue> = {}
-    
+
     for (const column of this.tableData.columns) {
       if (column.isAutoIncrement || column.isPrimaryKey) {
         newRow[column.id] = undefined
@@ -687,13 +715,13 @@ export class AdvancedDataGridService {
 
     this.tableData.rows.push(newRow)
     this.changeTracker.recordRowAddition(this.tableData.rows.length - 1, newRow)
-    
+
     return newRow
   }
 
   deleteRow(rowIndex: number): void {
     if (!this.tableData || !this.tableData.rows[rowIndex]) {
-      throw new Error('Row not found')
+      throw new Error("Row not found")
     }
 
     const row = this.tableData.rows[rowIndex]
@@ -706,17 +734,17 @@ export class AdvancedDataGridService {
     }
 
     const type = column.type.toLowerCase()
-    
-    if (type.includes('int') || type.includes('numeric') || type.includes('decimal')) {
+
+    if (type.includes("int") || type.includes("numeric") || type.includes("decimal")) {
       return 0
     }
-    if (type.includes('bool')) {
+    if (type.includes("bool")) {
       return false
     }
-    if (type.includes('date') || type.includes('time')) {
+    if (type.includes("date") || type.includes("time")) {
       return new Date().toISOString()
     }
-    
-    return ''
+
+    return ""
   }
 }

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest"
 import { PostgreSQLDriver } from "@/shared/database/drivers/PostgreSQLDriver"
-import { DatabaseConfig } from "@/shared/types"
+import type { DatabaseConfig } from "@/shared/types"
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 
 describe("PostgreSQLDriver統合テスト", () => {
   let driver: PostgreSQLDriver
@@ -199,7 +199,7 @@ describe("PostgreSQLDriver統合テスト", () => {
 
       // 削除確認
       const selectResult = await driver.query("SELECT COUNT(*) as count FROM test_table")
-      expect(parseInt(selectResult.rows[0].count)).toBe(0)
+      expect(Number.parseInt(selectResult.rows[0].count)).toBe(0)
     })
   })
 
@@ -410,7 +410,7 @@ describe("PostgreSQLDriver統合テスト", () => {
       expect(executionTime).toBeLessThan(10000)
 
       const countResult = await driver.query("SELECT COUNT(*) as count FROM test_table")
-      expect(parseInt(countResult.rows[0].count)).toBe(1000)
+      expect(Number.parseInt(countResult.rows[0].count)).toBe(1000)
     }, 30000)
 
     it("複雑なJOINクエリが適切な時間で完了する", async () => {

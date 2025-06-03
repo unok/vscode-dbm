@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest"
 import { EncryptionService } from "@/shared/security/EncryptionService"
-import { DatabaseConfig } from "@/shared/types"
+import type { DatabaseConfig } from "@/shared/types"
+import { beforeEach, describe, expect, it } from "vitest"
 
 describe("EncryptionService", () => {
   let encryptionService: EncryptionService

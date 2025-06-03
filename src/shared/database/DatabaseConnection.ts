@@ -1,4 +1,4 @@
-import { DatabaseConfig, QueryResult, ConnectionStatus } from "../types"
+import type { ConnectionStatus, DatabaseConfig, QueryResult } from "../types"
 
 export interface PoolOptions {
   min: number

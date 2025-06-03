@@ -1,6 +1,12 @@
 import mysql from "mysql2/promise"
+import type {
+  ColumnSchema,
+  DatabaseConfig,
+  IndexSchema,
+  QueryResult,
+  TableSchema,
+} from "../../types"
 import { DatabaseConnection } from "../DatabaseConnection"
-import { DatabaseConfig, QueryResult, TableSchema, ColumnSchema, IndexSchema } from "../../types"
 
 export class MySQLDriver extends DatabaseConnection {
   private connection?: mysql.Connection

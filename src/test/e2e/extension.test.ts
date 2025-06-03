@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 // E2Eテストの例（将来のVSCode拡張機能テスト用）
 describe("VSCode拡張機能E2Eテスト", () => {

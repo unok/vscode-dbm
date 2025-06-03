@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 // 統合テストの例（将来のデータベース接続テスト用）
 describe("データベース統合テスト", () => {

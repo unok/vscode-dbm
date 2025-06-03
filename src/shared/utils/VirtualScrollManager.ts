@@ -1,4 +1,4 @@
-import type { VirtualScrollConfig, VirtualScrollRange } from '../types/datagrid'
+import type { VirtualScrollConfig, VirtualScrollRange } from "../types/datagrid"
 
 export interface VirtualScrollState {
   scrollTop: number
@@ -23,7 +23,7 @@ export class VirtualScrollManager {
     this.config = {
       bufferSize: 5,
       overscan: 2,
-      ...config
+      ...config,
     }
 
     this.state = {
@@ -31,10 +31,10 @@ export class VirtualScrollManager {
       containerHeight: config.containerHeight,
       totalItems: 0,
       visibleRange: { start: 0, end: 0, visibleStart: 0, visibleEnd: 0 },
-      isScrolling: false
+      isScrolling: false,
     }
 
-    if (typeof config.itemHeight === 'function') {
+    if (typeof config.itemHeight === "function") {
       // Pre-calculate some heights for dynamic sizing
       this.precalculateHeights()
     }
@@ -79,7 +79,7 @@ export class VirtualScrollManager {
   }
 
   getItemHeight(index: number): number {
-    if (typeof this.config.itemHeight === 'function') {
+    if (typeof this.config.itemHeight === "function") {
       // Check cache first
       if (this.itemHeights.has(index)) {
         return this.itemHeights.get(index)!
@@ -94,7 +94,7 @@ export class VirtualScrollManager {
   }
 
   getTotalHeight(): number {
-    if (typeof this.config.itemHeight === 'function') {
+    if (typeof this.config.itemHeight === "function") {
       // Calculate total height for dynamic heights
       let total = 0
       for (let i = 0; i < this.state.totalItems; i++) {
@@ -107,7 +107,7 @@ export class VirtualScrollManager {
   }
 
   getOffsetForIndex(index: number): number {
-    if (typeof this.config.itemHeight === 'function') {
+    if (typeof this.config.itemHeight === "function") {
       let offset = 0
       for (let i = 0; i < index; i++) {
         offset += this.getItemHeight(i)
@@ -119,7 +119,7 @@ export class VirtualScrollManager {
   }
 
   getIndexForOffset(offset: number): number {
-    if (typeof this.config.itemHeight === 'function') {
+    if (typeof this.config.itemHeight === "function") {
       let currentOffset = 0
       for (let i = 0; i < this.state.totalItems; i++) {
         const itemHeight = this.getItemHeight(i)
@@ -134,18 +134,21 @@ export class VirtualScrollManager {
     return Math.floor(offset / (this.config.itemHeight as number))
   }
 
-  getItemsInRange(start: number, end: number): Array<{
+  getItemsInRange(
+    start: number,
+    end: number
+  ): Array<{
     index: number
     offset: number
     height: number
   }> {
     const items = []
-    
+
     for (let index = start; index <= end && index < this.state.totalItems; index++) {
       items.push({
         index,
         offset: this.getOffsetForIndex(index),
-        height: this.getItemHeight(index)
+        height: this.getItemHeight(index),
       })
     }
 
@@ -170,40 +173,44 @@ export class VirtualScrollManager {
 
   // Performance optimization: estimate visible items without full calculation
   estimateVisibleItems(): { start: number; count: number } {
-    const averageHeight = typeof this.config.itemHeight === 'function' 
-      ? this.calculateAverageHeight()
-      : this.config.itemHeight as number
+    const averageHeight =
+      typeof this.config.itemHeight === "function"
+        ? this.calculateAverageHeight()
+        : (this.config.itemHeight as number)
 
     const start = Math.floor(this.state.scrollTop / averageHeight)
     const count = Math.ceil(this.state.containerHeight / averageHeight) + 1
 
     return {
       start: Math.max(0, start),
-      count: Math.min(count, this.state.totalItems - start)
+      count: Math.min(count, this.state.totalItems - start),
     }
   }
 
   // Smooth scrolling to specific index
-  scrollToIndex(index: number, alignment: 'start' | 'center' | 'end' = 'start'): number {
+  scrollToIndex(index: number, alignment: "start" | "center" | "end" = "start"): number {
     const itemOffset = this.getOffsetForIndex(index)
     const itemHeight = this.getItemHeight(index)
 
     let targetScrollTop: number
 
     switch (alignment) {
-      case 'center':
+      case "center":
         targetScrollTop = itemOffset - (this.state.containerHeight - itemHeight) / 2
         break
-      case 'end':
+      case "end":
         targetScrollTop = itemOffset - this.state.containerHeight + itemHeight
         break
-      case 'start':
+      case "start":
       default:
         targetScrollTop = itemOffset
         break
     }
 
-    return Math.max(0, Math.min(targetScrollTop, this.getTotalHeight() - this.state.containerHeight))
+    return Math.max(
+      0,
+      Math.min(targetScrollTop, this.getTotalHeight() - this.state.containerHeight)
+    )
   }
 
   // Get the currently visible items with their positions
@@ -225,7 +232,7 @@ export class VirtualScrollManager {
         index,
         offset,
         height,
-        isVisible
+        isVisible,
       })
     }
 
@@ -235,15 +242,15 @@ export class VirtualScrollManager {
   // Update configuration
   updateConfig(newConfig: Partial<VirtualScrollConfig>): void {
     this.config = { ...this.config, ...newConfig }
-    
+
     if (newConfig.containerHeight) {
       this.state.containerHeight = newConfig.containerHeight
     }
-    
+
     if (newConfig.itemHeight) {
       this.itemHeights.clear() // Clear cache when item height changes
     }
-    
+
     this.updateVisibleRange()
   }
 
@@ -259,10 +266,7 @@ export class VirtualScrollManager {
 
     // Calculate visible range
     const visibleStart = this.getIndexForOffset(scrollTop)
-    const visibleEnd = Math.min(
-      this.getIndexForOffset(scrollTop + containerHeight),
-      totalItems - 1
-    )
+    const visibleEnd = Math.min(this.getIndexForOffset(scrollTop + containerHeight), totalItems - 1)
 
     // Add buffer and overscan
     const start = Math.max(0, visibleStart - bufferSize - overscan)
@@ -272,7 +276,7 @@ export class VirtualScrollManager {
       start,
       end,
       visibleStart,
-      visibleEnd
+      visibleEnd,
     }
 
     this.callbacks.onScrollChange?.(this.state.visibleRange)
@@ -280,9 +284,9 @@ export class VirtualScrollManager {
 
   private calculateAverageHeight(): number {
     if (this.itemHeights.size === 0) {
-      return typeof this.config.itemHeight === 'function' 
-        ? this.config.itemHeight(0) 
-        : this.config.itemHeight as number
+      return typeof this.config.itemHeight === "function"
+        ? this.config.itemHeight(0)
+        : (this.config.itemHeight as number)
     }
 
     const heights = Array.from(this.itemHeights.values())
@@ -290,11 +294,11 @@ export class VirtualScrollManager {
   }
 
   private precalculateHeights(): void {
-    if (typeof this.config.itemHeight !== 'function') return
+    if (typeof this.config.itemHeight !== "function") return
 
     // Pre-calculate heights for first few items to get better estimates
     const precalculateCount = Math.min(100, this.state.totalItems)
-    
+
     for (let i = 0; i < precalculateCount; i++) {
       this.getItemHeight(i)
     }
@@ -314,13 +318,13 @@ export class VirtualScrollManager {
   } {
     const range = this.state.visibleRange
     const visibleItems = range.visibleEnd - range.visibleStart + 1
-    const bufferItems = (range.end - range.start + 1) - visibleItems
+    const bufferItems = range.end - range.start + 1 - visibleItems
 
     return {
       cachedHeights: this.itemHeights.size,
       totalItems: this.state.totalItems,
       visibleItems,
-      bufferItems
+      bufferItems,
     }
   }
 
@@ -328,7 +332,7 @@ export class VirtualScrollManager {
     if (this.scrollTimeout) {
       clearTimeout(this.scrollTimeout)
     }
-    
+
     this.itemHeights.clear()
     this.callbacks = {}
   }

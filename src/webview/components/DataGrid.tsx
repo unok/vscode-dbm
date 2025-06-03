@@ -1,26 +1,27 @@
-import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react'
 import {
-  useReactTable,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type PaginationState,
+  type SortingState,
+  flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  flexRender,
-  type ColumnDef,
-  type SortingState,
-  type ColumnFiltersState,
-  type PaginationState
-} from '@tanstack/react-table'
-import { DataGridService } from '../../shared/services/DataGridService'
-import { UUIDGenerator } from '../../shared/utils/UUIDGenerator'
-import { useVSCodeAPI } from '../api/vscode'
-import type { 
-  TableData, 
-  DataGridColumn, 
-  CellValue, 
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import type React from "react"
+import { startTransition, useCallback, useEffect, useMemo, useState } from "react"
+import { DataGridService } from "../../shared/services/DataGridService"
+import type {
+  CellValue,
+  DataGridColumn,
+  DataGridConfig,
   EditableCell,
-  DataGridConfig 
-} from '../../shared/types/datagrid'
+  TableData,
+} from "../../shared/types/datagrid"
+import { UUIDGenerator } from "../../shared/utils/UUIDGenerator"
+import { useVSCodeAPI } from "../api/vscode"
 
 interface DataGridProps {
   tableName?: string
@@ -43,7 +44,7 @@ const defaultConfig: DataGridConfig = {
   allowDeleteRows: true,
   allowBulkOperations: true,
   autoSave: false,
-  autoSaveDelay: 1000
+  autoSaveDelay: 1000,
 }
 
 const DataGrid: React.FC<DataGridProps> = ({
@@ -51,19 +52,21 @@ const DataGrid: React.FC<DataGridProps> = ({
   initialData,
   config = {},
   onDataChange,
-  onError
+  onError,
 }) => {
   // State management
   const [tableData, setTableData] = useState<TableData | null>(initialData || null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [editingCell, setEditingCell] = useState<{ rowIndex: number; columnId: string } | null>(null)
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; columnId: string } | null>(
+    null
+  )
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [globalFilter, setGlobalFilter] = useState('')
+  const [globalFilter, setGlobalFilter] = useState("")
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: config.pageSize || defaultConfig.pageSize
+    pageSize: config.pageSize || defaultConfig.pageSize,
   })
 
   // Services
@@ -89,28 +92,36 @@ const DataGrid: React.FC<DataGridProps> = ({
     try {
       const data = await dataGridService.loadTableData(tableName, {
         offset: pagination.pageIndex * pagination.pageSize,
-        limit: pagination.pageSize
+        limit: pagination.pageSize,
       })
-      
+
       startTransition(() => {
         setTableData(data)
         onDataChange?.(data)
       })
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load table data'
+      const errorMessage = err instanceof Error ? err.message : "Failed to load table data"
       setError(errorMessage)
       onError?.(errorMessage)
       vscodeApi.showError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }, [tableName, pagination.pageIndex, pagination.pageSize, dataGridService, onDataChange, onError, vscodeApi])
+  }, [
+    tableName,
+    pagination.pageIndex,
+    pagination.pageSize,
+    dataGridService,
+    onDataChange,
+    onError,
+    vscodeApi,
+  ])
 
   // Process columns for TanStack Table
   const columns = useMemo<DataGridColumn[]>(() => {
     if (!tableData) return []
 
-    return dataGridService.processColumnDefinitions(tableData.columns).map(col => ({
+    return dataGridService.processColumnDefinitions(tableData.columns).map((col) => ({
       ...col,
       cell: ({ getValue, row, column, table }) => (
         <DataGridCell
@@ -132,7 +143,7 @@ const DataGrid: React.FC<DataGridProps> = ({
           onSort={finalConfig.enableSorting ? handleSort : undefined}
           onFilter={finalConfig.enableFiltering ? handleFilter : undefined}
         />
-      )
+      ),
     }))
   }, [tableData, editingCell, sorting, finalConfig])
 
@@ -144,7 +155,7 @@ const DataGrid: React.FC<DataGridProps> = ({
       sorting,
       columnFilters,
       globalFilter,
-      pagination
+      pagination,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -157,54 +168,60 @@ const DataGrid: React.FC<DataGridProps> = ({
     pageCount: tableData ? Math.ceil(tableData.totalRows / pagination.pageSize) : 0,
     manualPagination: true,
     manualSorting: true,
-    manualFiltering: true
+    manualFiltering: true,
   })
 
   // Event handlers
-  const handleCellEdit = useCallback((rowIndex: number, columnId: string) => {
-    if (!finalConfig.enableEditing) return
-    setEditingCell({ rowIndex, columnId })
-  }, [finalConfig.enableEditing])
+  const handleCellEdit = useCallback(
+    (rowIndex: number, columnId: string) => {
+      if (!finalConfig.enableEditing) return
+      setEditingCell({ rowIndex, columnId })
+    },
+    [finalConfig.enableEditing]
+  )
 
-  const handleCellCommit = useCallback((rowIndex: number, columnId: string, newValue: CellValue) => {
-    try {
-      dataGridService.updateCellValue(rowIndex, columnId, newValue)
-      setEditingCell(null)
-      
-      // Trigger re-render
-      setTableData(prev => prev ? { ...prev } : null)
-      
-      if (finalConfig.autoSave) {
-        setTimeout(() => {
-          handleSaveChanges()
-        }, finalConfig.autoSaveDelay)
+  const handleCellCommit = useCallback(
+    (rowIndex: number, columnId: string, newValue: CellValue) => {
+      try {
+        dataGridService.updateCellValue(rowIndex, columnId, newValue)
+        setEditingCell(null)
+
+        // Trigger re-render
+        setTableData((prev) => (prev ? { ...prev } : null))
+
+        if (finalConfig.autoSave) {
+          setTimeout(() => {
+            handleSaveChanges()
+          }, finalConfig.autoSaveDelay)
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to update cell"
+        vscodeApi.showError(errorMessage)
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update cell'
-      vscodeApi.showError(errorMessage)
-    }
-  }, [dataGridService, finalConfig.autoSave, finalConfig.autoSaveDelay, vscodeApi])
+    },
+    [dataGridService, finalConfig.autoSave, finalConfig.autoSaveDelay, vscodeApi]
+  )
 
   const handleCellCancel = useCallback(() => {
     setEditingCell(null)
   }, [])
 
   const handleSort = useCallback((columnId: string) => {
-    setSorting(prev => {
-      const existing = prev.find(s => s.id === columnId)
+    setSorting((prev) => {
+      const existing = prev.find((s) => s.id === columnId)
       if (!existing) {
         return [{ id: columnId, desc: false }]
       }
       if (!existing.desc) {
         return [{ id: columnId, desc: true }]
       }
-      return prev.filter(s => s.id !== columnId)
+      return prev.filter((s) => s.id !== columnId)
     })
   }, [])
 
   const handleFilter = useCallback((columnId: string, value: string) => {
-    setColumnFilters(prev => {
-      const filtered = prev.filter(f => f.id !== columnId)
+    setColumnFilters((prev) => {
+      const filtered = prev.filter((f) => f.id !== columnId)
       if (value) {
         filtered.push({ id: columnId, value })
       }
@@ -217,47 +234,50 @@ const DataGrid: React.FC<DataGridProps> = ({
 
     try {
       const newRow = dataGridService.addNewRow()
-      setTableData(prev => {
+      setTableData((prev) => {
         if (!prev) return null
         return {
           ...prev,
-          rows: [...prev.rows, newRow]
+          rows: [...prev.rows, newRow],
         }
       })
-      vscodeApi.showInfo('New row added')
+      vscodeApi.showInfo("New row added")
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add row'
+      const errorMessage = err instanceof Error ? err.message : "Failed to add row"
       vscodeApi.showError(errorMessage)
     }
   }, [dataGridService, finalConfig.allowAddRows, vscodeApi])
 
-  const handleDeleteRow = useCallback((rowIndex: number) => {
-    if (!finalConfig.allowDeleteRows) return
+  const handleDeleteRow = useCallback(
+    (rowIndex: number) => {
+      if (!finalConfig.allowDeleteRows) return
 
-    try {
-      dataGridService.deleteRow(rowIndex)
-      setTableData(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          rows: prev.rows.filter((_, index) => index !== rowIndex)
-        }
-      })
-      vscodeApi.showInfo('Row marked for deletion')
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete row'
-      vscodeApi.showError(errorMessage)
-    }
-  }, [dataGridService, finalConfig.allowDeleteRows, vscodeApi])
+      try {
+        dataGridService.deleteRow(rowIndex)
+        setTableData((prev) => {
+          if (!prev) return null
+          return {
+            ...prev,
+            rows: prev.rows.filter((_, index) => index !== rowIndex),
+          }
+        })
+        vscodeApi.showInfo("Row marked for deletion")
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to delete row"
+        vscodeApi.showError(errorMessage)
+      }
+    },
+    [dataGridService, finalConfig.allowDeleteRows, vscodeApi]
+  )
 
   const handleSaveChanges = useCallback(async () => {
     try {
       setIsLoading(true)
       await dataGridService.commitChanges()
-      vscodeApi.showInfo('Changes saved successfully')
+      vscodeApi.showInfo("Changes saved successfully")
       await loadTableData() // Reload to get fresh data
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save changes'
+      const errorMessage = err instanceof Error ? err.message : "Failed to save changes"
       vscodeApi.showError(errorMessage)
     } finally {
       setIsLoading(false)
@@ -267,7 +287,7 @@ const DataGrid: React.FC<DataGridProps> = ({
   const handleRollbackChanges = useCallback(() => {
     dataGridService.rollbackChanges()
     setEditingCell(null)
-    vscodeApi.showInfo('Changes rolled back')
+    vscodeApi.showInfo("Changes rolled back")
     loadTableData()
   }, [dataGridService, vscodeApi, loadTableData])
 
@@ -317,9 +337,10 @@ const DataGrid: React.FC<DataGridProps> = ({
     )
   }
 
-  const hasChanges = dataGridService.getDirtyCells().length > 0 || 
-                   dataGridService.getAddedRows().length > 0 || 
-                   dataGridService.getDeletedRows().length > 0
+  const hasChanges =
+    dataGridService.getDirtyCells().length > 0 ||
+    dataGridService.getAddedRows().length > 0 ||
+    dataGridService.getDeletedRows().length > 0
 
   return (
     <div className='data-grid h-full flex flex-col'>
@@ -341,9 +362,9 @@ const DataGrid: React.FC<DataGridProps> = ({
       <div className='data-grid-table-container flex-1 overflow-auto'>
         <table className='data-grid-table w-full'>
           <thead className='data-grid-header'>
-            {table.getHeaderGroups().map(headerGroup => (
+            {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
+                {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     className='data-grid-header-cell'
@@ -351,8 +372,7 @@ const DataGrid: React.FC<DataGridProps> = ({
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())
-                    }
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
                 {finalConfig.allowDeleteRows && (
@@ -362,9 +382,9 @@ const DataGrid: React.FC<DataGridProps> = ({
             ))}
           </thead>
           <tbody className='data-grid-body'>
-            {table.getRowModel().rows.map(row => (
+            {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className='data-grid-row'>
-                {row.getVisibleCells().map(cell => (
+                {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
                     className='data-grid-cell'
@@ -404,7 +424,15 @@ const DataGrid: React.FC<DataGridProps> = ({
 }
 
 // Sub-components will be defined in separate files
-const DataGridCell: React.FC<any> = ({ value, isEditing, onEdit, onCommit, onCancel, rowIndex, column }) => {
+const DataGridCell: React.FC<any> = ({
+  value,
+  isEditing,
+  onEdit,
+  onCommit,
+  onCancel,
+  rowIndex,
+  column,
+}) => {
   const [editValue, setEditValue] = useState(value)
 
   useEffect(() => {
@@ -418,9 +446,9 @@ const DataGridCell: React.FC<any> = ({ value, isEditing, onEdit, onCommit, onCan
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       onCommit(rowIndex, column.id, editValue)
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       onCancel()
     }
   }
@@ -429,7 +457,7 @@ const DataGridCell: React.FC<any> = ({ value, isEditing, onEdit, onCommit, onCan
     return (
       <input
         type='text'
-        value={editValue || ''}
+        value={editValue || ""}
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={() => onCommit(rowIndex, column.id, editValue)}
         onKeyDown={handleKeyDown}
@@ -441,7 +469,7 @@ const DataGridCell: React.FC<any> = ({ value, isEditing, onEdit, onCommit, onCan
 
   return (
     <div
-      className={`data-grid-cell-content ${column.meta?.editable ? 'editable' : ''}`}
+      className={`data-grid-cell-content ${column.meta?.editable ? "editable" : ""}`}
       onDoubleClick={handleDoubleClick}
     >
       {value === null ? <span className='text-gray-400'>NULL</span> : String(value)}
@@ -455,18 +483,16 @@ const DataGridHeader: React.FC<any> = ({ column, sorting, onSort, onFilter }) =>
   return (
     <div className='data-grid-header-content'>
       <div
-        className={`data-grid-header-label ${onSort ? 'sortable' : ''}`}
+        className={`data-grid-header-label ${onSort ? "sortable" : ""}`}
         onClick={() => onSort?.(column.id)}
       >
         {column.header}
-        {sortState && (
-          <span className='ml-1'>
-            {sortState.desc ? '↓' : '↑'}
-          </span>
-        )}
+        {sortState && <span className='ml-1'>{sortState.desc ? "↓" : "↑"}</span>}
       </div>
       {column.meta?.isPrimaryKey && (
-        <span className='data-grid-primary-key-indicator' title='Primary Key'>🔑</span>
+        <span className='data-grid-primary-key-indicator' title='Primary Key'>
+          🔑
+        </span>
       )}
     </div>
   )
@@ -482,7 +508,7 @@ const DataGridToolbar: React.FC<any> = ({
   onRefresh,
   globalFilter,
   onGlobalFilterChange,
-  isLoading
+  isLoading,
 }) => {
   return (
     <div className='data-grid-toolbar flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800'>
@@ -490,9 +516,7 @@ const DataGridToolbar: React.FC<any> = ({
         <h3 className='font-semibold text-white'>
           {tableName} ({rowCount} rows)
         </h3>
-        {hasChanges && (
-          <span className='text-yellow-400 text-sm'>● Unsaved changes</span>
-        )}
+        {hasChanges && <span className='text-yellow-400 text-sm'>● Unsaved changes</span>}
       </div>
 
       <div className='flex items-center gap-2'>
@@ -503,17 +527,17 @@ const DataGridToolbar: React.FC<any> = ({
           onChange={(e) => onGlobalFilterChange(e.target.value)}
           className='input-field text-sm w-48'
         />
-        
+
         {onAddRow && (
           <button onClick={onAddRow} className='btn-primary text-sm' disabled={isLoading}>
             Add Row
           </button>
         )}
-        
+
         <button onClick={onRefresh} className='btn-secondary text-sm' disabled={isLoading}>
           Refresh
         </button>
-        
+
         {hasChanges && (
           <>
             <button onClick={onSave} className='btn-primary text-sm' disabled={isLoading}>
@@ -531,14 +555,14 @@ const DataGridToolbar: React.FC<any> = ({
 
 const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoading }) => {
   const totalPages = Math.ceil(totalRows / pagination.pageSize)
-  
+
   return (
     <div className='data-grid-pagination flex items-center justify-between p-4 border-t border-gray-700 bg-gray-800'>
       <div className='text-sm text-gray-400'>
-        Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
+        Showing {pagination.pageIndex * pagination.pageSize + 1} to{" "}
         {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalRows)} of {totalRows} rows
       </div>
-      
+
       <div className='flex items-center gap-2'>
         <button
           onClick={() => table.setPageIndex(0)}
@@ -554,11 +578,11 @@ const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoa
         >
           Previous
         </button>
-        
+
         <span className='text-sm text-gray-400'>
           Page {pagination.pageIndex + 1} of {totalPages}
         </span>
-        
+
         <button
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage() || isLoading}
@@ -580,7 +604,11 @@ const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoa
 
 const DeleteIcon: React.FC = () => (
   <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-    <path fillRule='evenodd' d='M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z' clipRule='evenodd' />
+    <path
+      fillRule='evenodd'
+      d='M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z'
+      clipRule='evenodd'
+    />
   </svg>
 )
 

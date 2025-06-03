@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { exec } from "child_process"
 import { promisify } from "util"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 const execAsync = promisify(exec)
 

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { AdvancedDataGrid } from './AdvancedDataGrid'
-import type { TableData, ColumnDefinition } from '../../../shared/types/datagrid'
-import '../../../webview/styles/advanced-datagrid.css'
+import type React from "react"
+import { useEffect, useState } from "react"
+import type { ColumnDefinition, TableData } from "../../../shared/types/datagrid"
+import { AdvancedDataGrid } from "./AdvancedDataGrid"
+import "../../../webview/styles/advanced-datagrid.css"
 
 /**
  * Demo component showcasing the Advanced DataGrid with all features enabled
@@ -22,70 +23,70 @@ export const AdvancedDataGridDemo: React.FC = () => {
   useEffect(() => {
     const loadSampleData = async () => {
       // Simulate loading data
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       const columns: ColumnDefinition[] = [
         {
-          id: 'id',
-          name: 'ID',
-          type: 'int',
+          id: "id",
+          name: "ID",
+          type: "int",
           isPrimaryKey: true,
           isAutoIncrement: true,
-          nullable: false
-        },
-        {
-          id: 'email',
-          name: 'Email',
-          type: 'varchar(255)',
           nullable: false,
-          maxLength: 255
         },
         {
-          id: 'first_name',
-          name: 'First Name',
-          type: 'varchar(100)',
+          id: "email",
+          name: "Email",
+          type: "varchar(255)",
           nullable: false,
-          maxLength: 100
+          maxLength: 255,
         },
         {
-          id: 'last_name',
-          name: 'Last Name',
-          type: 'varchar(100)',
+          id: "first_name",
+          name: "First Name",
+          type: "varchar(100)",
           nullable: false,
-          maxLength: 100
+          maxLength: 100,
         },
         {
-          id: 'age',
-          name: 'Age',
-          type: 'int',
-          nullable: true
-        },
-        {
-          id: 'salary',
-          name: 'Salary',
-          type: 'decimal(10,2)',
-          nullable: true
-        },
-        {
-          id: 'is_active',
-          name: 'Active',
-          type: 'boolean',
+          id: "last_name",
+          name: "Last Name",
+          type: "varchar(100)",
           nullable: false,
-          defaultValue: true
+          maxLength: 100,
         },
         {
-          id: 'created_at',
-          name: 'Created At',
-          type: 'datetime',
+          id: "age",
+          name: "Age",
+          type: "int",
+          nullable: true,
+        },
+        {
+          id: "salary",
+          name: "Salary",
+          type: "decimal(10,2)",
+          nullable: true,
+        },
+        {
+          id: "is_active",
+          name: "Active",
+          type: "boolean",
           nullable: false,
-          defaultValue: new Date().toISOString()
+          defaultValue: true,
         },
         {
-          id: 'profile_uuid',
-          name: 'Profile UUID',
-          type: 'uuid',
-          nullable: true
-        }
+          id: "created_at",
+          name: "Created At",
+          type: "datetime",
+          nullable: false,
+          defaultValue: new Date().toISOString(),
+        },
+        {
+          id: "profile_uuid",
+          name: "Profile UUID",
+          type: "uuid",
+          nullable: true,
+        },
       ]
 
       // Generate sample rows
@@ -97,20 +98,23 @@ export const AdvancedDataGridDemo: React.FC = () => {
           first_name: `User${i}`,
           last_name: `Lastname${i}`,
           age: 20 + (i % 50),
-          salary: 30000 + (i * 1000),
+          salary: 30000 + i * 1000,
           is_active: i % 3 !== 0,
           created_at: new Date(Date.now() - i * 86400000).toISOString(),
-          profile_uuid: i % 5 === 0 ? `${i}${i}${i}${i}${i}${i}${i}${i}-${i}${i}${i}${i}-4${i}${i}${i}-${i}${i}${i}${i}-${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}` : null
+          profile_uuid:
+            i % 5 === 0
+              ? `${i}${i}${i}${i}${i}${i}${i}${i}-${i}${i}${i}${i}-4${i}${i}${i}-${i}${i}${i}${i}-${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}`
+              : null,
         })
       }
 
       const data: TableData = {
-        tableName: 'users',
+        tableName: "users",
         columns,
         rows,
         totalRows: rows.length,
         offset: 0,
-        limit: 50
+        limit: 50,
       }
 
       setTableData(data)
@@ -122,34 +126,32 @@ export const AdvancedDataGridDemo: React.FC = () => {
 
   const handleDataChange = (updatedData: TableData) => {
     setTableData(updatedData)
-    console.log('Data changed:', updatedData)
+    console.log("Data changed:", updatedData)
   }
 
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">🔄</div>
-        <div className="loading-text">Loading Advanced DataGrid Demo...</div>
+      <div className='loading-container'>
+        <div className='loading-spinner'>🔄</div>
+        <div className='loading-text'>Loading Advanced DataGrid Demo...</div>
       </div>
     )
   }
 
   if (!tableData) {
     return (
-      <div className="error-container">
-        <div className="error-text">Failed to load sample data</div>
+      <div className='error-container'>
+        <div className='error-text'>Failed to load sample data</div>
       </div>
     )
   }
 
   return (
-    <div className="advanced-datagrid-demo">
-      <div className="demo-header">
+    <div className='advanced-datagrid-demo'>
+      <div className='demo-header'>
         <h1>Advanced DataGrid - Phase 7 Demo</h1>
-        <div className="demo-description">
-          This demo showcases all Phase 7 advanced features:
-        </div>
-        <ul className="feature-list">
+        <div className='demo-description'>This demo showcases all Phase 7 advanced features:</div>
+        <ul className='feature-list'>
           <li>✅ Advanced inline editing with real-time validation</li>
           <li>✅ Data change tracking with visual indicators</li>
           <li>✅ Bulk editing operations with preview</li>
@@ -158,7 +160,7 @@ export const AdvancedDataGridDemo: React.FC = () => {
           <li>✅ Performance optimization with debouncing</li>
           <li>✅ Cursor AI smart default value generation</li>
         </ul>
-        <div className="demo-instructions">
+        <div className='demo-instructions'>
           <strong>Try these features:</strong>
           <ul>
             <li>Double-click any cell to edit (except ID column)</li>
@@ -171,7 +173,7 @@ export const AdvancedDataGridDemo: React.FC = () => {
         </div>
       </div>
 
-      <div className="demo-content">
+      <div className='demo-content'>
         <AdvancedDataGrid
           data={tableData}
           onDataChange={handleDataChange}
@@ -184,19 +186,19 @@ export const AdvancedDataGridDemo: React.FC = () => {
         />
       </div>
 
-      <div className="demo-footer">
-        <div className="performance-stats">
-          <div className="stat">
-            <span className="stat-label">Total Rows:</span>
-            <span className="stat-value">{tableData.totalRows}</span>
+      <div className='demo-footer'>
+        <div className='performance-stats'>
+          <div className='stat'>
+            <span className='stat-label'>Total Rows:</span>
+            <span className='stat-value'>{tableData.totalRows}</span>
           </div>
-          <div className="stat">
-            <span className="stat-label">Columns:</span>
-            <span className="stat-value">{tableData.columns.length}</span>
+          <div className='stat'>
+            <span className='stat-label'>Columns:</span>
+            <span className='stat-value'>{tableData.columns.length}</span>
           </div>
-          <div className="stat">
-            <span className="stat-label">Rendered:</span>
-            <span className="stat-value">~20 rows (virtualized)</span>
+          <div className='stat'>
+            <span className='stat-label'>Rendered:</span>
+            <span className='stat-value'>~20 rows (virtualized)</span>
           </div>
         </div>
       </div>
@@ -341,8 +343,8 @@ const demoStyles = `
 `
 
 // Inject demo styles
-if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style')
+if (typeof document !== "undefined") {
+  const styleElement = document.createElement("style")
   styleElement.textContent = demoStyles
   document.head.appendChild(styleElement)
 }
