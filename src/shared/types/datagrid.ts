@@ -434,6 +434,8 @@ export interface PasteOptions {
   conflictResolution?: 'overwrite' | 'skip' | 'merge'
   validateData?: boolean
   preserveFormatting?: boolean
+  autoExpandRows?: boolean
+  skipValidationErrors?: boolean
 }
 
 export interface PasteResult {
@@ -463,4 +465,70 @@ export interface VirtualScrollConfig {
   containerHeight: number
   bufferSize: number
   overscan: number
+}
+
+// Additional missing types
+export interface CellChange {
+  rowIndex: number
+  columnId: string
+  oldValue: CellValue
+  newValue: CellValue
+  timestamp: Date
+}
+
+export interface RowAddition {
+  rowIndex: number
+  tempId: string
+  data: Record<string, CellValue>
+  timestamp: Date
+  primaryKeyValue?: CellValue
+}
+
+export interface RowDeletion {
+  originalIndex: number
+  data: Record<string, CellValue>
+  timestamp: Date
+  primaryKeyValue?: CellValue
+}
+
+export interface CursorAIPattern {
+  pattern: string
+  confidence: number
+  examples: string[]
+}
+
+export interface CursorAISuggestion {
+  column: string
+  value: CellValue
+  confidence: number
+  reasoning?: string
+}
+
+export interface CursorAITransformation {
+  sourceColumn: string
+  targetColumn: string
+  function: (value: CellValue) => CellValue
+  preview: CellValue[]
+}
+
+export interface CursorAIValidation {
+  issues: string[]
+  confidence: number
+  suggestions?: string[]
+}
+
+export interface EditableCell {
+  rowIndex: number
+  columnId: string
+  originalValue: CellValue
+  editedValue: CellValue
+  isEditing: boolean
+  isDirty: boolean
+}
+
+export interface ValidationContext {
+  row: Record<string, CellValue>
+  rowIndex: number
+  columnId: string
+  value: CellValue
 }

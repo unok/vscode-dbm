@@ -24,7 +24,7 @@ export class MySQLDriver extends DatabaseConnection {
           user: this.config.username,
           password: this.config.password,
           database: this.config.database,
-          ssl: this.config.ssl === true ? {} : this.config.ssl || false,
+          ssl: this.config.ssl === true ? {} : (this.config.ssl as any) || undefined,
         })
 
         this.setConnected(true)
