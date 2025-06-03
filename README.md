@@ -59,6 +59,13 @@ VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGrip�
 - **自動ビルド** - 拡張機能パッケージング
 - **PRチェック** - プルリクエスト時の自動品質確認
 
+### コード品質管理（Husky）
+- **Pre-commit フック** - コミット前の自動チェック
+- **依存関係確認** - package.json妥当性チェック
+- **Lint自動修正** - Biome による自動フォーマット
+- **型チェック** - TypeScript エラー検出（警告表示）
+- **ビルド確認** - 拡張機能の動作確認（警告表示）
+
 ### ✅ フェーズ2: データベース接続基盤（TDD実装）
 
 - **TDD テストケース作成**
@@ -122,6 +129,9 @@ VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGrip�
    
    # リント・フォーマット
    npm run lint
+   
+   # Huskyフック確認
+   git add . && git commit -m "test commit" # pre-commitフックが自動実行
    ```
 
 4. **データベース環境起動**

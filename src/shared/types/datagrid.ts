@@ -341,7 +341,7 @@ export interface DataGridTheme {
 
 // Advanced DataGrid types (missing exports)
 export interface BulkEditOperation {
-  type: 'update' | 'delete'
+  type: "update" | "delete"
   columnId?: string
   value?: CellValue
   valueFunction?: (row: Record<string, CellValue>, index?: number) => CellValue
@@ -380,7 +380,7 @@ export interface CellState {
   originalValue: CellValue
   editedValue?: CellValue
   validationResult?: ValidationResult
-  changeType?: 'none' | 'modified' | 'added'
+  changeType?: "none" | "modified" | "added"
   visualIndicator?: string
   customIndicator?: string
   customMessage?: string
@@ -426,7 +426,7 @@ export interface ChangeStatistics {
 }
 
 export interface CopyPasteData {
-  type: 'single-cell' | 'range' | 'rows'
+  type: "single-cell" | "range" | "rows"
   data: CellValue[][]
   metadata: {
     columns: string[]
@@ -435,7 +435,7 @@ export interface CopyPasteData {
 }
 
 export interface PasteOptions {
-  conflictResolution?: 'overwrite' | 'skip' | 'merge'
+  conflictResolution?: "overwrite" | "skip" | "merge"
   validateData?: boolean
   preserveFormatting?: boolean
   autoExpandRows?: boolean

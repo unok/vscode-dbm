@@ -1,10 +1,10 @@
 import {
   ColumnSchema,
-  CompletionItem,
-  CompletionItemKind,
   CompletionInsertTextRule,
-  DatabaseSchema,
-  Position,
+  type CompletionItem,
+  CompletionItemKind,
+  type DatabaseSchema,
+  type Position,
   TableSchema,
 } from "../types/sql"
 

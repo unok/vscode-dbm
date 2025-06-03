@@ -97,11 +97,14 @@
     "test:teardown": "docker-compose -f docker-compose.test.yml down",
     "setup:test-env": "chmod +x scripts/init-databases.sh && ./scripts/init-databases.sh",
     "lint": "biome check .",
+    "lint:check": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "type-check": "tsc --noEmit",
     "package": "npx @vscode/vsce package",
-    "vscode:prepublish": "npm run build"
+    "vscode:prepublish": "npm run build",
+    "precommit": "npm run lint:check && npm run type-check && npm run build",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -120,6 +123,7 @@
     "@vscode/vsce": "^3.2.0",
     "autoprefixer": "^10.4.21",
     "happy-dom": "^15.11.6",
+    "husky": "^9.1.7",
     "msw": "^2.6.8",
     "postcss": "^8.5.4",
     "typescript": "^5.7.2",

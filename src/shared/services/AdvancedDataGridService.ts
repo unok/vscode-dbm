@@ -133,14 +133,10 @@ export class AdvancedDataGridService {
       row: this.tableData.rows[rowIndex],
       rowIndex,
       columnId,
-      value
-    }
-    
-    const result = await this.validationEngine.validateValue(
       value,
-      column,
-      validationContext
-    )
+    }
+
+    const result = await this.validationEngine.validateValue(value, column, validationContext)
 
     // Cache result
     this.validationCache.set(cacheKey, result)

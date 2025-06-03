@@ -241,7 +241,8 @@ export class DataChangeTracker {
     for (const deletedRow of changeRecord.deletedRows) {
       const primaryKeyColumn = this.originalData?.columns.find((col) => col.isPrimaryKey)
       if (primaryKeyColumn) {
-        const primaryKeyValue = (deletedRow as any).primaryKeyValue || deletedRow.data[primaryKeyColumn.id]
+        const primaryKeyValue =
+          (deletedRow as any).primaryKeyValue || deletedRow.data[primaryKeyColumn.id]
         const whereClause = `${primaryKeyColumn.id} = ${this.formatSQLValue(primaryKeyValue)}`
         statements.push(`DELETE FROM ${tableName} WHERE ${whereClause}`)
       }

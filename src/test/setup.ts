@@ -32,7 +32,9 @@ beforeAll(() => {
     observe() {}
     unobserve() {}
     disconnect() {}
-    takeRecords() { return [] }
+    takeRecords() {
+      return []
+    }
     root = null
     rootMargin = ""
     thresholds = []
