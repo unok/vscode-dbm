@@ -1,0 +1,34 @@
+{
+  "name": "DB DataGrid Extension Dev",
+  "dockerComposeFile": [
+    "../docker-compose.dev.yml"
+  ],
+  "service": "vscode",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "biomejs.biome",
+        "@tomjs/vite-plugin-vscode",
+        "ms-vscode.test-adapter-converter"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "biomejs.biome",
+        "editor.formatOnSave": true,
+        "typescript.preferences.quoteStyle": "single"
+      }
+    }
+  },
+  "postCreateCommand": "npm install && npm run setup:test-env",
+  "mounts": [
+    "source=node-modules,target=/workspace/node_modules,type=volume"
+  ],
+  "forwardPorts": [3000, 5173, 3306, 5432, 1433],
+  "portsAttributes": {
+    "3000": { "label": "Extension Dev Server", "onAutoForward": "notify" },
+    "5173": { "label": "Vite Dev Server", "onAutoForward": "openBrowser" },
+    "3306": { "label": "MySQL", "onAutoForward": "ignore" },
+    "5432": { "label": "PostgreSQL", "onAutoForward": "ignore" }
+  }
+}

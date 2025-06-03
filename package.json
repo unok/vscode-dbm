@@ -1,0 +1,112 @@
+{
+  "name": "vscode-dbm",
+  "displayName": "Database DataGrid Manager",
+  "description": "Advanced database management extension with DataGrid interface and Cursor AI integration",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Database", "Data Science", "Visualization"],
+  "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "datagrid", "cursor-ai"],
+  "activationEvents": [
+    "onCommand:vscode-dbm.openConnection",
+    "onCommand:vscode-dbm.newQuery"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscode-dbm.openConnection",
+        "title": "Open Database Connection",
+        "category": "DB Manager"
+      },
+      {
+        "command": "vscode-dbm.newQuery",
+        "title": "New SQL Query",
+        "category": "DB Manager"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "dbManagerExplorer",
+          "name": "Database Explorer",
+          "when": "vscode-dbm:hasConnection"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dbManager",
+          "title": "Database Manager",
+          "icon": "$(database)"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "dev": "docker-compose -f docker-compose.dev.yml up -d && vite",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p ./tsconfig.json",
+    "build:webview": "vite build",
+    "watch": "tsc -watch -p ./tsconfig.json",
+    "pretest": "npm run build",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:integration": "npm run test:setup && vitest run --config vitest.integration.config.ts && npm run test:teardown",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config vitest.config.ts",
+    "test:setup": "docker-compose -f docker-compose.test.yml up -d",
+    "test:teardown": "docker-compose -f docker-compose.test.yml down",
+    "setup:test-env": "chmod +x scripts/init-databases.sh && ./scripts/init-databases.sh",
+    "lint": "biome check --write .",
+    "format": "biome format --write .",
+    "type-check": "tsc --noEmit",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@tomjs/vite-plugin-vscode": "^1.5.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@types/uuid": "^10.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.8",
+    "happy-dom": "^15.11.6",
+    "msw": "^2.6.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.20.5",
+    "better-sqlite3": "^11.6.0",
+    "monaco-editor": "^0.52.2",
+    "mysql2": "^3.11.4",
+    "pg": "^8.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.17",
+    "uuid": "^11.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/vscode-dbm.git"
+  },
+  "license": "MIT",
+  "publisher": "your-publisher-name",
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  }
+}

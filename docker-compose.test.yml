@@ -1,0 +1,51 @@
+services:
+  # テスト専用MySQL
+  mysql-test:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: test_password
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    ports:
+      - "3307:3306"  # 開発環境とポートを変更
+    volumes:
+      - ./scripts/test-data.sql:/docker-entrypoint-initdb.d/test-data.sql:ro
+    tmpfs:
+      - /var/lib/mysql  # テスト用のためメモリ上で実行
+    networks:
+      - test-network
+
+  # テスト専用PostgreSQL
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5433:5432"  # 開発環境とポートを変更
+    volumes:
+      - ./scripts/postgres-test-data.sql:/docker-entrypoint-initdb.d/test-data.sql:ro
+    tmpfs:
+      - /var/lib/postgresql/data  # テスト用のためメモリ上で実行
+    networks:
+      - test-network
+
+  # テスト専用SQLite
+  sqlite-test:
+    image: alpine:latest
+    command: |
+      sh -c "
+        apk add --no-cache sqlite &&
+        sqlite3 /tmp/test.db < /scripts/sqlite-test-data.sql &&
+        tail -f /dev/null
+      "
+    volumes:
+      - ./scripts/sqlite-test-data.sql:/scripts/sqlite-test-data.sql:ro
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
