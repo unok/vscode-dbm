@@ -29,12 +29,7 @@
     },
     "types": ["vscode", "node", "vitest/globals"]
   },
-  "include": [
-    "src/**/*",
-    "scripts/**/*",
-    "vitest.config.ts",
-    "vite.config.ts"
-  ],
+  "include": ["src/**/*", "scripts/**/*", "vitest.config.ts", "vite.config.ts"],
   "exclude": [
     "node_modules",
     "dist",

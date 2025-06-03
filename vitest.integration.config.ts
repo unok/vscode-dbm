@@ -1,32 +1,24 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from "vitest/config"
+import react from "@vitejs/plugin-react"
+import path from "path"
 
 export default defineConfig({
   plugins: [
     react({
-      jsxRuntime: 'automatic',
+      jsxRuntime: "automatic",
     }),
   ],
   test: {
     globals: true,
-    environment: 'node',
-    setupFiles: ['./src/test/integration-setup.ts'],
-    include: [
-      'src/test/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-    ],
-    exclude: [
-      'node_modules',
-      'dist',
-      '.idea',
-      '.git',
-      '.cache',
-    ],
+    environment: "node",
+    setupFiles: ["./src/test/integration-setup.ts"],
+    include: ["src/test/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     testTimeout: 30000, // 統合テストは長めのタイムアウト
     hookTimeout: 15000,
     teardownTimeout: 15000,
     isolate: true,
-    pool: 'forks', // 統合テストはプロセス分離
+    pool: "forks", // 統合テストはプロセス分離
     poolOptions: {
       forks: {
         singleFork: true, // データベース接続の競合を避ける
@@ -36,13 +28,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@webview': path.resolve(__dirname, './src/webview'),
-      '@extension': path.resolve(__dirname, './src/extension'),
-      '@shared': path.resolve(__dirname, './src/shared'),
+      "@": path.resolve(__dirname, "./src"),
+      "@webview": path.resolve(__dirname, "./src/webview"),
+      "@extension": path.resolve(__dirname, "./src/extension"),
+      "@shared": path.resolve(__dirname, "./src/shared"),
     },
   },
   define: {
     __DEV__: JSON.stringify(true),
   },
-});
+})

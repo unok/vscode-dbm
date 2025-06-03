@@ -1,8 +1,6 @@
 {
   "name": "DB DataGrid Extension Dev",
-  "dockerComposeFile": [
-    "../docker-compose.dev.yml"
-  ],
+  "dockerComposeFile": ["../docker-compose.dev.yml"],
   "service": "vscode",
   "workspaceFolder": "/workspace",
   "customizations": {
@@ -21,9 +19,7 @@
     }
   },
   "postCreateCommand": "npm install && npm run setup:test-env",
-  "mounts": [
-    "source=node-modules,target=/workspace/node_modules,type=volume"
-  ],
+  "mounts": ["source=node-modules,target=/workspace/node_modules,type=volume"],
   "forwardPorts": [3000, 5173, 3306, 5432, 1433],
   "portsAttributes": {
     "3000": { "label": "Extension Dev Server", "onAutoForward": "notify" },

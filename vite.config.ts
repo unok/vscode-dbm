@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import vscode from '@tomjs/vite-plugin-vscode';
-import path from 'path';
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react"
+import vscode from "@tomjs/vite-plugin-vscode"
+import path from "path"
 
 export default defineConfig({
   plugins: [
     react({
       // React 19 対応
-      jsxRuntime: 'automatic',
+      jsxRuntime: "automatic",
     }),
     vscode({
       recommended: true, // VSCode拡張用最適化
@@ -42,21 +42,21 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@webview': path.resolve(__dirname, './src/webview'),
-      '@extension': path.resolve(__dirname, './src/extension'),
+      "@": path.resolve(__dirname, "./src"),
+      "@webview": path.resolve(__dirname, "./src/webview"),
+      "@extension": path.resolve(__dirname, "./src/extension"),
     },
   },
   build: {
-    outDir: 'dist/webview',
+    outDir: "dist/webview",
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'src/webview/index.html'),
+        main: path.resolve(__dirname, "src/webview/index.html"),
       },
       output: {
-        entryFileNames: 'assets/[name].[hash].js',
-        chunkFileNames: 'assets/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]',
+        entryFileNames: "assets/[name].[hash].js",
+        chunkFileNames: "assets/[name].[hash].js",
+        assetFileNames: "assets/[name].[hash].[ext]",
       },
     },
     sourcemap: true,
@@ -69,14 +69,9 @@ export default defineConfig({
   },
   define: {
     // グローバル変数定義（必要に応じて）
-    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
+    __DEV__: JSON.stringify(process.env.NODE_ENV === "development"),
   },
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      '@tanstack/react-table',
-      'uuid',
-    ],
+    include: ["react", "react-dom", "@tanstack/react-table", "uuid"],
   },
-});
+})

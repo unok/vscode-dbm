@@ -19,35 +19,35 @@
   .btn-primary {
     @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
   }
-  
+
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
   }
-  
+
   .card {
     @apply bg-gray-800 rounded-lg border border-gray-700 shadow-lg;
   }
-  
+
   .input-field {
     @apply bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
   }
-  
+
   .table-container {
     @apply overflow-x-auto rounded-lg border border-gray-700;
   }
-  
+
   .table-header {
     @apply bg-gray-700 text-gray-300 font-semibold text-sm uppercase tracking-wider;
   }
-  
+
   .table-cell {
     @apply px-4 py-3 text-sm border-b border-gray-700;
   }
-  
+
   .table-row-hover {
     @apply hover:bg-gray-700 transition-colors duration-150;
   }

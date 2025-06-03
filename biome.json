@@ -7,14 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": [
-      "node_modules",
-      "dist",
-      "coverage",
-      ".vscode",
-      "*.min.js",
-      "*.bundle.js"
-    ]
+    "ignore": ["node_modules", "dist", "coverage", ".vscode", "*.min.js", "*.bundle.js"]
   },
   "formatter": {
     "enabled": true,
@@ -124,10 +117,10 @@
   },
   "javascript": {
     "formatter": {
-      "jsxQuoteStyle": "double",
+      "jsxQuoteStyle": "single",
       "quoteProperties": "asNeeded",
       "trailingCommas": "es5",
-      "semicolons": "always",
+      "semicolons": "asNeeded",
       "arrowParentheses": "always",
       "bracketSameLine": false,
       "bracketSpacing": true,

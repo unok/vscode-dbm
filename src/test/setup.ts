@@ -1,11 +1,11 @@
-import '@testing-library/jest-dom';
-import { beforeAll, afterEach, afterAll } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import "@testing-library/jest-dom"
+import { beforeAll, afterEach, afterAll } from "vitest"
+import { cleanup } from "@testing-library/react"
 
 // Jest互換のグローバルAPIをセットアップ
 beforeAll(() => {
   // React Testing Library のセットアップ
-  Object.defineProperty(window, 'matchMedia', {
+  Object.defineProperty(window, "matchMedia", {
     writable: true,
     value: (query: string) => ({
       matches: false,
@@ -17,14 +17,14 @@ beforeAll(() => {
       removeEventListener: () => {},
       dispatchEvent: () => {},
     }),
-  });
+  })
 
   // ResizeObserver モック
   global.ResizeObserver = class ResizeObserver {
     observe() {}
     unobserve() {}
     disconnect() {}
-  };
+  }
 
   // IntersectionObserver モック
   global.IntersectionObserver = class IntersectionObserver {
@@ -32,14 +32,14 @@ beforeAll(() => {
     observe() {}
     unobserve() {}
     disconnect() {}
-  };
-});
+  }
+})
 
 // 各テスト後のクリーンアップ
 afterEach(() => {
-  cleanup();
-});
+  cleanup()
+})
 
 afterAll(() => {
   // 全テスト完了後のクリーンアップ
-});
+})
