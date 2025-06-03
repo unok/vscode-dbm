@@ -15,6 +15,7 @@ import type {
   PasteResult,
   RowState,
   TableData,
+  ValidationContext,
   ValidationResult,
   VirtualScrollConfig,
 } from "../types/datagrid"
@@ -79,6 +80,7 @@ export class AdvancedDataGridService {
       columnId,
       originalValue: currentValue,
       editedValue: currentValue,
+      isEditing: true,
       isDirty: false,
       isValid: true,
     }
@@ -127,10 +129,17 @@ export class AdvancedDataGridService {
       return { isValid: false, errors: [`Column "${columnId}" not found`] }
     }
 
+    const validationContext: ValidationContext = {
+      row: this.tableData.rows[rowIndex],
+      rowIndex,
+      columnId,
+      value
+    }
+    
     const result = await this.validationEngine.validateValue(
       value,
       column,
-      this.tableData.rows[rowIndex]
+      validationContext
     )
 
     // Cache result
@@ -236,7 +245,7 @@ export class AdvancedDataGridService {
       changeType: change ? "modified" : undefined,
       visualIndicator: change ? "dirty-cell" : undefined,
       originalValue: change?.originalValue,
-      currentValue: this.getCellValue(rowIndex, columnId),
+      editedValue: this.getCellValue(rowIndex, columnId),
     }
   }
 
@@ -639,6 +648,10 @@ export class AdvancedDataGridService {
 
   getChangeTracker(): DataChangeTracker {
     return this.changeTracker
+  }
+
+  getValidationEngine(): CellValidationEngine {
+    return this.validationEngine
   }
 
   /**

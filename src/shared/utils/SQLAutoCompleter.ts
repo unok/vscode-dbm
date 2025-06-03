@@ -1,8 +1,8 @@
-import type {
+import {
   ColumnSchema,
-  CompletionInsertTextRule,
   CompletionItem,
   CompletionItemKind,
+  CompletionInsertTextRule,
   DatabaseSchema,
   Position,
   TableSchema,
@@ -28,10 +28,10 @@ interface QueryContext {
 export class SQLAutoCompleter {
   private schema: DatabaseSchema
   private cache: CompletionCache = {}
-  private sqlKeywords: string[]
-  private sqlFunctions: string[]
-  private sqlDataTypes: string[]
-  private snippets: CompletionItem[]
+  private sqlKeywords: string[] = []
+  private sqlFunctions: string[] = []
+  private sqlDataTypes: string[] = []
+  private snippets: CompletionItem[] = []
 
   constructor(schema: DatabaseSchema) {
     this.schema = schema

@@ -76,8 +76,8 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
 
   // Update service when data changes
   useEffect(() => {
-    service.changeTracker.setInitialData(data)
-    service.validationEngine.setSchema(data.columns)
+    service.getChangeTracker().setInitialData(data)
+    service.getValidationEngine().setSchema(data.columns)
     setTableData(data)
   }, [data, service])
 

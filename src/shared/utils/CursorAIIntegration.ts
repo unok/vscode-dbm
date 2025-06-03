@@ -80,7 +80,7 @@ export class CursorAIIntegration {
       return defaults
     } catch (error) {
       console.warn("Cursor AI generation failed, falling back to basic defaults:", error)
-      return this.generateFallbackDefaults(options.columns)
+      return this.generateFallbackDefaults(options.columns || [])
     }
   }
 
@@ -172,7 +172,6 @@ export class CursorAIIntegration {
         issues: response.issues || [],
         confidence: response.confidence || 0.5,
         suggestions: response.suggestions || [],
-        severity: response.severity || "info",
       }
     } catch (error) {
       console.warn("AI validation failed:", error)
@@ -180,7 +179,6 @@ export class CursorAIIntegration {
         issues: [],
         confidence: 0,
         suggestions: [],
-        severity: "info",
       }
     }
   }
@@ -239,18 +237,18 @@ export class CursorAIIntegration {
       const response = await this.callCursorAPI(prompt, "suggest-transformation")
 
       return {
+        sourceColumn: options.sourceColumn,
+        targetColumn: options.targetColumn,
         function: response.transformation || ((x: any) => x),
         preview: response.preview || [],
-        confidence: response.confidence || 0.5,
-        description: response.description || "No transformation suggested",
       }
     } catch (error) {
       console.warn("Transformation suggestion failed:", error)
       return {
+        sourceColumn: options.sourceColumn,
+        targetColumn: options.targetColumn,
         function: (x: any) => x,
         preview: [],
-        confidence: 0,
-        description: "Transformation failed",
       }
     }
   }
@@ -333,8 +331,8 @@ export class CursorAIIntegration {
 
   private buildDefaultGenerationPrompt(options: CursorAIDefaultOptions): string {
     const contextInfo = options.context || "Adding new record"
-    const existingDataSample = options.existingData.slice(0, 3)
-    const columnInfo = options.columns.map((col) => `${col.name} (${col.type})`).join(", ")
+    const existingDataSample = (options.existingData || []).slice(0, 3)
+    const columnInfo = (options.columns || []).map((col) => `${col.name} (${col.type})`).join(", ")
 
     return `
 Generate smart default values for new database record.
@@ -486,10 +484,9 @@ Common transformations: extract initials, format phone numbers, standardize date
       const values = rows.map((row) => row[column.id]).filter((val) => val != null)
 
       patterns[column.id] = {
-        type: "basic",
-        pattern: this.detectBasicPattern(values),
+        pattern: this.detectBasicPattern(values) as string,
         confidence: 0.5,
-        examples: values.slice(0, 3),
+        examples: values.slice(0, 3) as string[],
       }
     }
 
@@ -498,20 +495,19 @@ Common transformations: extract initials, format phone numbers, standardize date
 
   private analyzeColumnPattern(data: CellValue[], column: ColumnDefinition): CursorAIPattern {
     if (data.length === 0) {
-      return { type: "empty", pattern: "", confidence: 0, examples: [] }
+      return { pattern: "", confidence: 0, examples: [] }
     }
 
     const stringData = data.filter((val) => typeof val === "string") as string[]
 
     if (stringData.length === 0) {
-      return { type: "non-string", pattern: "", confidence: 0.5, examples: data.slice(0, 3) }
+      return { pattern: "", confidence: 0.5, examples: data.slice(0, 3) as string[] }
     }
 
     // Detect email pattern
     if (stringData.every((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val))) {
       return {
-        type: "email",
-        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
         confidence: 0.9,
         examples: stringData.slice(0, 3),
       }
@@ -520,22 +516,20 @@ Common transformations: extract initials, format phone numbers, standardize date
     // Detect name pattern
     if (stringData.every((val) => /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(val))) {
       return {
-        type: "full-name",
-        pattern: /^[A-Z][a-z]+ [A-Z][a-z]+$/,
+        pattern: "^[A-Z][a-z]+ [A-Z][a-z]+$",
         confidence: 0.8,
         examples: stringData.slice(0, 3),
       }
     }
 
     return {
-      type: "text",
       pattern: "",
       confidence: 0.3,
       examples: stringData.slice(0, 3),
     }
   }
 
-  private detectBasicPattern(values: CellValue[]): string | RegExp {
+  private detectBasicPattern(values: CellValue[]): string {
     if (values.length === 0) return ""
 
     const stringValues = values.filter((val) => typeof val === "string") as string[]
@@ -544,7 +538,7 @@ Common transformations: extract initials, format phone numbers, standardize date
 
     // Simple pattern detection
     if (stringValues.every((val) => val.includes("@"))) {
-      return /.*@.*\..*/
+      return ".*@.*\\..*"
     }
 
     return ""

@@ -39,6 +39,8 @@ export const AdvancedDataGridDemo: React.FC = () => {
           name: "Email",
           type: "varchar(255)",
           nullable: false,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
           maxLength: 255,
         },
         {
@@ -46,6 +48,8 @@ export const AdvancedDataGridDemo: React.FC = () => {
           name: "First Name",
           type: "varchar(100)",
           nullable: false,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
           maxLength: 100,
         },
         {
@@ -53,6 +57,8 @@ export const AdvancedDataGridDemo: React.FC = () => {
           name: "Last Name",
           type: "varchar(100)",
           nullable: false,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
           maxLength: 100,
         },
         {
@@ -60,18 +66,24 @@ export const AdvancedDataGridDemo: React.FC = () => {
           name: "Age",
           type: "int",
           nullable: true,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
         },
         {
           id: "salary",
           name: "Salary",
           type: "decimal(10,2)",
           nullable: true,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
         },
         {
           id: "is_active",
           name: "Active",
           type: "boolean",
           nullable: false,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
           defaultValue: true,
         },
         {
@@ -79,6 +91,8 @@ export const AdvancedDataGridDemo: React.FC = () => {
           name: "Created At",
           type: "datetime",
           nullable: false,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
           defaultValue: new Date().toISOString(),
         },
         {
@@ -86,6 +100,8 @@ export const AdvancedDataGridDemo: React.FC = () => {
           name: "Profile UUID",
           type: "uuid",
           nullable: true,
+          isPrimaryKey: false,
+          isAutoIncrement: false,
         },
       ]
 

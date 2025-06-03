@@ -36,7 +36,11 @@ export interface ColumnDefinition {
 export type CellValue = string | number | boolean | Date | null | undefined
 
 // Enhanced column definition for TanStack Table
-export interface DataGridColumn extends ColumnDef<Record<string, CellValue>, CellValue> {
+export interface DataGridColumn {
+  id?: string
+  accessorKey?: string
+  header?: string | ((props: any) => any)
+  cell?: (props: any) => any
   meta?: {
     columnDef: ColumnDefinition
     cellType: CellType

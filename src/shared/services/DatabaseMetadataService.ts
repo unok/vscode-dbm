@@ -31,7 +31,7 @@ export class DatabaseMetadataService {
       return cached.schema
     }
 
-    const dbType = connection.getType()
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite"
     const queries = this.queryBuilder.getQueries(dbType)
 
     // Get tables
@@ -61,7 +61,7 @@ export class DatabaseMetadataService {
     // Cache the result
     this.cache.set(connectionId, {
       connectionId,
-      databaseName: tableRow?.schema || "default",
+      databaseName: (tablesResult.rows[0] as any)?.schema || "default",
       schema,
       lastUpdated: new Date(),
       isStale: false,
@@ -78,7 +78,7 @@ export class DatabaseMetadataService {
     tableName: string,
     schema?: string
   ): Promise<TableMetadata> {
-    const dbType = connection.getType()
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite"
     const queries = this.queryBuilder.getQueries(dbType)
 
     const columnsResult = await connection.query(queries.getColumns(tableName, schema))
@@ -129,7 +129,7 @@ export class DatabaseMetadataService {
     tableName: string,
     schema?: string
   ): Promise<number> {
-    const dbType = connection.getType()
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite"
     const queries = this.queryBuilder.getQueries(dbType)
 
     const result = await connection.query(queries.getRowCount(tableName, schema))

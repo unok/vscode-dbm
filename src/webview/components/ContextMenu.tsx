@@ -59,7 +59,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ node, x, y, onClose, o
                 item.disabled ? "text-gray-500 cursor-not-allowed" : "text-gray-200"
               }`}
               onClick={() => {
-                if (!item.disabled) {
+                if (!item.disabled && item.action) {
                   onAction(item.action)
                 }
               }}

@@ -437,7 +437,7 @@ export class SQLEditorService {
       // Handle COUNT queries
       if (lowerQuery.includes("count(")) {
         resultColumns = ["count"]
-        resultRows = [{ count: mockRows.length }]
+        resultRows = [{ count: mockRows.length } as any]
       }
 
       // Apply LIMIT if specified

@@ -150,7 +150,7 @@ const DataGrid: React.FC<DataGridProps> = ({
   // TanStack Table instance
   const table = useReactTable({
     data: tableData?.rows || [],
-    columns,
+    columns: columns as any,
     state: {
       sorting,
       columnFilters,

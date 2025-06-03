@@ -1,4 +1,11 @@
-import type { VirtualScrollConfig, VirtualScrollRange } from "../types/datagrid"
+import type { VirtualScrollConfig } from "../types/datagrid"
+
+export interface VirtualScrollRange {
+  start: number
+  end: number
+  visibleStart: number
+  visibleEnd: number
+}
 
 export interface VirtualScrollState {
   scrollTop: number
@@ -21,8 +28,6 @@ export class VirtualScrollManager {
 
   constructor(config: VirtualScrollConfig) {
     this.config = {
-      bufferSize: 5,
-      overscan: 2,
       ...config,
     }
 

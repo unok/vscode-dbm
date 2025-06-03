@@ -206,6 +206,7 @@ export class DataGridService {
       columnId,
       originalValue,
       editedValue: originalValue,
+      isEditing: false,
       isDirty: false,
       isValid: true,
     }
@@ -237,6 +238,7 @@ export class DataGridService {
       columnId,
       originalValue,
       editedValue: newValue,
+      isEditing: false,
       isDirty: newValue !== originalValue,
       isValid: this.validateCellValue(newValue, column),
     }
