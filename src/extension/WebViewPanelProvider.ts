@@ -1,4 +1,4 @@
-import * as path from "path"
+import * as path from "node:path"
 import * as vscode from "vscode"
 
 export class DatabaseWebViewPanelProvider {
@@ -24,7 +24,7 @@ export class DatabaseWebViewPanelProvider {
     // Otherwise, create a new panel
     const panel = vscode.window.createWebviewPanel(
       "dbManagerPanel",
-      this._getTitleForViewType(viewType),
+      DatabaseWebViewPanelProvider._getTitleForViewType(viewType),
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -35,11 +35,15 @@ export class DatabaseWebViewPanelProvider {
 
     DatabaseWebViewPanelProvider.currentPanel = panel
 
-    panel.webview.html = this._getHtmlForWebview(panel.webview, extensionUri, viewType)
+    panel.webview.html = DatabaseWebViewPanelProvider._getHtmlForWebview(
+      panel.webview,
+      extensionUri,
+      viewType
+    )
 
     // Message handling
     panel.webview.onDidReceiveMessage((message) => {
-      this._handleMessage(message, panel)
+      DatabaseWebViewPanelProvider._handleMessage(message, panel)
     })
 
     // Reset when the current panel is closed
@@ -77,11 +81,10 @@ export class DatabaseWebViewPanelProvider {
 
     if (isDevelopment) {
       // Development mode: use Vite dev server
-      return this._getDevHtml(viewType)
-    } else {
-      // Production mode: use built assets
-      return this._getProdHtml(webview, extensionUri, viewType)
+      return DatabaseWebViewPanelProvider._getDevHtml(viewType)
     }
+    // Production mode: use built assets
+    return DatabaseWebViewPanelProvider._getProdHtml(webview, extensionUri, viewType)
   }
 
   private static _getDevHtml(viewType: string) {

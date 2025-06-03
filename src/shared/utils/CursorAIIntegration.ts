@@ -99,7 +99,7 @@ export class CursorAIIntegration {
 
     try {
       const prompt = this.buildPatternAnalysisPrompt(rows, columns)
-      const response = await this.callCursorAPI(prompt, "analyze-patterns")
+      const _response = await this.callCursorAPI(prompt, "analyze-patterns")
 
       const patterns: Record<string, CursorAIPattern> = {}
 
@@ -493,7 +493,7 @@ Common transformations: extract initials, format phone numbers, standardize date
     return patterns
   }
 
-  private analyzeColumnPattern(data: CellValue[], column: ColumnDefinition): CursorAIPattern {
+  private analyzeColumnPattern(data: CellValue[], _column: ColumnDefinition): CursorAIPattern {
     if (data.length === 0) {
       return { pattern: "", confidence: 0, examples: [] }
     }

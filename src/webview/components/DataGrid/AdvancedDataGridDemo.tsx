@@ -142,7 +142,6 @@ export const AdvancedDataGridDemo: React.FC = () => {
 
   const handleDataChange = (updatedData: TableData) => {
     setTableData(updatedData)
-    console.log("Data changed:", updatedData)
   }
 
   if (isLoading) {

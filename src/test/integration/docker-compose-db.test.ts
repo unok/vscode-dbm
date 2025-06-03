@@ -1,17 +1,14 @@
-import { exec } from "child_process"
-import { promisify } from "util"
+import { exec } from "node:child_process"
+import { promisify } from "node:util"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 const execAsync = promisify(exec)
 
 describe("Docker Compose DB環境テスト", () => {
   beforeAll(async () => {
-    console.log("🚀 Docker Compose DB環境起動中...")
-
     // 開発環境のDocker Composeを起動
     try {
       await execAsync("docker-compose -f docker-compose.dev.yml up -d")
-      console.log("✅ Docker Compose起動完了")
 
       // データベース起動待機
       await new Promise((resolve) => setTimeout(resolve, 15000))
@@ -22,11 +19,8 @@ describe("Docker Compose DB環境テスト", () => {
   }, 60000) // 60秒タイムアウト
 
   afterAll(async () => {
-    console.log("🧹 Docker Compose DB環境クリーンアップ中...")
-
     try {
       await execAsync("docker-compose -f docker-compose.dev.yml down")
-      console.log("✅ Docker Compose停止完了")
     } catch (error) {
       console.error("❌ Docker Compose停止失敗:", error)
     }
@@ -74,7 +68,7 @@ describe("Docker Compose DB環境テスト", () => {
   it("SQLiteコンテナが正常に動作している", async () => {
     try {
       const { stdout } = await execAsync(
-        `docker exec $(docker-compose -f docker-compose.dev.yml ps -q sqlite-dev) ls -la /data`
+        "docker exec $(docker-compose -f docker-compose.dev.yml ps -q sqlite-dev) ls -la /data"
       )
       expect(stdout).toBeDefined()
     } catch (error) {
@@ -85,10 +79,10 @@ describe("Docker Compose DB環境テスト", () => {
   it("ポート競合が発生していない", async () => {
     // 各データベースのポートが正しく露出されている
     const { stdout: mysqlPort } = await execAsync(
-      `docker-compose -f docker-compose.dev.yml port mysql-dev 3306`
+      "docker-compose -f docker-compose.dev.yml port mysql-dev 3306"
     )
     const { stdout: postgresPort } = await execAsync(
-      `docker-compose -f docker-compose.dev.yml port postgres-dev 5432`
+      "docker-compose -f docker-compose.dev.yml port postgres-dev 5432"
     )
 
     expect(mysqlPort.trim()).toBe("0.0.0.0:3306")

@@ -160,7 +160,7 @@ describe("EncryptionService", () => {
       const encrypted = encryptionService.encrypt(originalText)
 
       // 暗号化データを改ざん
-      const tamperedData = encrypted.slice(0, -5) + "xxxxx"
+      const tamperedData = `${encrypted.slice(0, -5)}xxxxx`
 
       expect(() => {
         encryptionService.decrypt(tamperedData)

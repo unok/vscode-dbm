@@ -3,8 +3,6 @@ import { DatabaseWebViewPanelProvider } from "./WebViewPanelProvider"
 import { DatabaseWebViewProvider } from "./WebViewProvider"
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("DB DataGrid Manager extension is now active!")
-
   // WebView provider for sidebar
   const webViewProvider = new DatabaseWebViewProvider(context.extensionUri)
   context.subscriptions.push(
@@ -41,10 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Development mode detection
   if (process.env.NODE_ENV === "development") {
-    console.log("Running in development mode - Vite dev server expected on port 5173")
   }
 }
 
-export function deactivate() {
-  console.log("DB DataGrid Manager extension is deactivated")
-}
+export function deactivate() {}

@@ -167,7 +167,7 @@ export class AdvancedDataGridService {
     }
 
     // Update the actual data
-    if (this.tableData && this.tableData.rows[rowIndex]) {
+    if (this.tableData?.rows[rowIndex]) {
       this.tableData.rows[rowIndex][columnId] = newValue
     }
 
@@ -220,7 +220,7 @@ export class AdvancedDataGridService {
     this.changeTracker.rollbackCellChange(rowIndex, columnId)
 
     // Update current data
-    if (this.tableData && this.tableData.rows[rowIndex]) {
+    if (this.tableData?.rows[rowIndex]) {
       const originalValue = this.changeTracker.getOriginalCellValue(rowIndex, columnId)
       this.tableData.rows[rowIndex][columnId] = originalValue
     }
@@ -261,11 +261,11 @@ export class AdvancedDataGridService {
   setCustomIndicator(
     rowIndex: number,
     columnId: string,
-    indicator: string,
-    message?: string
+    _indicator: string,
+    _message?: string
   ): void {
     // Store custom indicators for cells
-    const cellKey = `${rowIndex}:${columnId}`
+    const _cellKey = `${rowIndex}:${columnId}`
     // Implementation would store custom indicators
   }
 
@@ -447,8 +447,11 @@ export class AdvancedDataGridService {
     }
 
     const data = rowIndices.map((rowIndex) => {
-      const row = this.tableData!.rows[rowIndex]
-      return this.tableData!.columns.map((col) => row[col.id])
+      const row = this.tableData?.rows[rowIndex]
+      if (!row || !this.tableData?.columns) {
+        return []
+      }
+      return this.tableData.columns.map((col) => row[col.id])
     })
 
     return {

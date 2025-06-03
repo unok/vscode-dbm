@@ -101,7 +101,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for SELECT clause
    */
-  private getSelectCompletions(context: QueryContext, currentWord: string): CompletionItem[] {
+  private getSelectCompletions(context: QueryContext, _currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     // Add columns from available tables
@@ -157,7 +157,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for FROM clause
    */
-  private getFromCompletions(context: QueryContext, currentWord: string): CompletionItem[] {
+  private getFromCompletions(_context: QueryContext, _currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     // Add all tables
@@ -188,7 +188,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for JOIN clause
    */
-  private getJoinCompletions(context: QueryContext, currentWord: string): CompletionItem[] {
+  private getJoinCompletions(context: QueryContext, _currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     // Add tables that are not already in the query
@@ -221,7 +221,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for WHERE/HAVING clause
    */
-  private getWhereCompletions(context: QueryContext, currentWord: string): CompletionItem[] {
+  private getWhereCompletions(context: QueryContext, _currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     // Add columns from available tables
@@ -312,7 +312,7 @@ export class SQLAutoCompleter {
   /**
    * Get general completions
    */
-  private getGeneralCompletions(context: QueryContext, currentWord: string): CompletionItem[] {
+  private getGeneralCompletions(_context: QueryContext, _currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     // Add clause keywords based on context
@@ -332,7 +332,7 @@ export class SQLAutoCompleter {
   /**
    * Get keyword completions
    */
-  private getKeywordCompletions(currentWord: string, context: QueryContext): CompletionItem[] {
+  private getKeywordCompletions(currentWord: string, _context: QueryContext): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     for (const keyword of this.sqlKeywords) {
@@ -352,7 +352,7 @@ export class SQLAutoCompleter {
   /**
    * Get function completions
    */
-  private getFunctionCompletions(currentWord: string, context: QueryContext): CompletionItem[] {
+  private getFunctionCompletions(currentWord: string, _context: QueryContext): CompletionItem[] {
     const completions: CompletionItem[] = []
 
     for (const func of this.sqlFunctions) {
@@ -374,8 +374,8 @@ export class SQLAutoCompleter {
   /**
    * Get snippet completions
    */
-  private getSnippetCompletions(context: QueryContext): CompletionItem[] {
-    return this.snippets.filter((snippet) => {
+  private getSnippetCompletions(_context: QueryContext): CompletionItem[] {
+    return this.snippets.filter((_snippet) => {
       // Return snippets based on context
       return true // Simplified for now
     })

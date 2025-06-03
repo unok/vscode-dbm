@@ -105,7 +105,7 @@ describe("DataGridService", () => {
 
     it("should handle empty tables", async () => {
       // Arrange
-      const emptyTableData: TableData = {
+      const _emptyTableData: TableData = {
         ...mockTableData,
         rows: [],
         totalRows: 0,
@@ -198,7 +198,7 @@ describe("DataGridService", () => {
 
     it("should create editable cell state", () => {
       // Arrange
-      const cell: EditableCell = {
+      const _cell: EditableCell = {
         rowIndex: 0,
         columnId: "name",
         originalValue: "John Doe",

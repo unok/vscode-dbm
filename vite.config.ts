@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
@@ -17,9 +17,14 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist/webview",
+    outDir: "../../dist/webview",
     sourcemap: true,
+    emptyOutDir: true,
+    rollupOptions: {
+      input: path.resolve(__dirname, "src/webview/index.html"),
+    },
   },
+  root: "src/webview",
   server: {
     port: 5173,
     hmr: {

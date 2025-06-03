@@ -25,7 +25,7 @@ export class CellValidationEngine {
     if (!this.customRules.has(columnId)) {
       this.customRules.set(columnId, [])
     }
-    this.customRules.get(columnId)!.push(rule)
+    this.customRules.get(columnId)?.push(rule)
   }
 
   removeCustomRule(columnId: string, ruleType: string): void {
@@ -177,11 +177,12 @@ export class CellValidationEngine {
         }
         break
 
-      case columnType.includes("json"):
+      case columnType.includes("json"): {
         const jsonValidation = this.validateJSON(value)
         errors.push(...jsonValidation.errors)
         warnings.push(...jsonValidation.warnings)
         break
+      }
 
       case columnType.includes("uuid"):
         if (!this.isValidUUID(value)) {
@@ -396,7 +397,7 @@ export class CellValidationEngine {
 
   private async getSuggestions(
     value: CellValue,
-    column: ColumnDefinition,
+    _column: ColumnDefinition,
     errors: string[]
   ): Promise<string[]> {
     const suggestions: string[] = []
@@ -427,7 +428,7 @@ export class CellValidationEngine {
       if (typeof value === "string") {
         // Try to suggest valid date format
         const dateAttempt = new Date(value)
-        if (!isNaN(dateAttempt.getTime())) {
+        if (!Number.isNaN(dateAttempt.getTime())) {
           suggestions.push(`Try ${dateAttempt.toISOString().split("T")[0]} (YYYY-MM-DD format)`)
         }
       }
@@ -445,7 +446,7 @@ export class CellValidationEngine {
   }
 
   private isNumeric(value: CellValue): boolean {
-    return !isNaN(Number(value))
+    return !Number.isNaN(Number(value))
   }
 
   private isFloat(value: CellValue): boolean {
@@ -466,13 +467,13 @@ export class CellValidationEngine {
   private isValidDate(value: CellValue): boolean {
     if (typeof value !== "string") return false
     const date = new Date(value)
-    return !isNaN(date.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    return !Number.isNaN(date.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(value)
   }
 
   private isValidDateTime(value: CellValue): boolean {
     if (typeof value !== "string") return false
     const date = new Date(value)
-    return !isNaN(date.getTime())
+    return !Number.isNaN(date.getTime())
   }
 
   private isValidTime(value: CellValue): boolean {

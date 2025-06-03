@@ -23,21 +23,24 @@ npm run lint:fix && echo "✅ Lint issues auto-fixed" || {
   echo "⚠️  Some lint issues remain. Consider reviewing before commit."
 }
 
-# TypeScript and build check (warning only for now)
+# TypeScript check (strict - blocks commit on errors)
 echo "🔍 Running TypeScript type check..."
 npm run type-check && echo "✅ TypeScript check passed" || {
-  echo "⚠️  TypeScript has type errors. These should be fixed in future commits."
+  echo "❌ TypeScript type errors found. Fix these before committing."
+  exit 1
 }
 
 echo "🏗️  Testing build process..."
 npm run build && echo "✅ Build successful" || {
-  echo "⚠️  Build has issues. Extension may not work properly until fixed."
+  echo "❌ Build failed. Fix build errors before committing."
+  exit 1
 }
 
 echo ""
 echo "📝 Pre-commit summary:"
 echo "  ✅ Dependencies and package.json verified"
-echo "  📝 Lint issues handled"
-echo "  ⚠️  TypeScript/build issues noted for future fixes"
+echo "  ✅ Lint issues auto-fixed"
+echo "  ✅ TypeScript type check passed"
+echo "  ✅ Build process successful"
 echo ""
-echo "🚀 Commit ready! The core infrastructure is stable."
+echo "🚀 Commit ready! All quality checks passed."

@@ -11,10 +11,6 @@ import { DatabaseConnection } from "../DatabaseConnection"
 export class PostgreSQLDriver extends DatabaseConnection {
   private client?: Client
 
-  constructor(config: DatabaseConfig) {
-    super(config)
-  }
-
   async connect(timeout = 10000): Promise<void> {
     try {
       await this.executeWithTimeout(async () => {

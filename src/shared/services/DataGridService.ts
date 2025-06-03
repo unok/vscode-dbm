@@ -173,7 +173,7 @@ export class DataGridService {
     // Type-specific validation
     switch (this.getCellType(column.type)) {
       case "number":
-        return !isNaN(Number(value))
+        return !Number.isNaN(Number(value))
       case "boolean":
         return (
           typeof value === "boolean" ||
@@ -191,7 +191,7 @@ export class DataGridService {
         )
       case "date":
       case "datetime":
-        return !isNaN(Date.parse(String(value)))
+        return !Number.isNaN(Date.parse(String(value)))
       default:
         return true
     }
@@ -501,10 +501,7 @@ export class DataGridService {
    * Commit changes to database
    */
   async commitChanges(): Promise<void> {
-    const statements = this.generateSQLStatements()
-
-    // In real implementation, execute SQL statements
-    console.log("Executing SQL statements:", statements)
+    const _statements = this.generateSQLStatements()
 
     // Clear changes after successful commit
     this.clearChanges()

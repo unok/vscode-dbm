@@ -130,7 +130,7 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
     try {
       if (type.includes("int")) {
         const parsed = Number.parseInt(input, 10)
-        return isNaN(parsed) ? input : parsed
+        return Number.isNaN(parsed) ? input : parsed
       }
 
       if (
@@ -140,7 +140,7 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
         type.includes("double")
       ) {
         const parsed = Number.parseFloat(input)
-        return isNaN(parsed) ? input : parsed
+        return Number.isNaN(parsed) ? input : parsed
       }
 
       if (type.includes("bool")) {

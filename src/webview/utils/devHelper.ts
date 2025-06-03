@@ -35,12 +35,8 @@ export class DevHelper {
   static logHMRStatus = () => {
     if (DevHelper.isDevelopment) {
       console.group("🔥 HMR Status")
-      console.log("Environment:", DevHelper.getEnvironmentInfo())
-      console.log("HMR Enabled:", DevHelper.isHMREnabled())
-      console.log("Vite Dev Server:", DevHelper.isViteDevServer())
 
       if (DevHelper.isHMREnabled()) {
-        console.log("✅ Hot Module Replacement is working")
       } else {
         console.warn("⚠️ Hot Module Replacement is not available")
       }
@@ -106,21 +102,10 @@ export class DevHelper {
   static logPerformanceMetrics = () => {
     if (DevHelper.isDevelopment && typeof window !== "undefined" && "performance" in window) {
       setTimeout(() => {
-        const navigation = performance.getEntriesByType(
+        const _navigation = performance.getEntriesByType(
           "navigation"
         )[0] as PerformanceNavigationTiming
         console.group("⚡ Performance Metrics")
-        console.log(
-          "DOM Content Loaded:",
-          Math.round(navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart),
-          "ms"
-        )
-        console.log(
-          "Load Complete:",
-          Math.round(navigation.loadEventEnd - navigation.loadEventStart),
-          "ms"
-        )
-        console.log("React Refresh:", DevHelper.isReactRefreshEnabled() ? "✅" : "❌")
         console.groupEnd()
       }, 1000)
     }
@@ -129,12 +114,10 @@ export class DevHelper {
   // Test HMR functionality
   static testHMR = () => {
     if (DevHelper.isHMREnabled()) {
-      console.log("🔥 HMR Test: Update this file to see changes without page reload")
       return true
-    } else {
-      console.warn("⚠️ HMR not available - changes require page reload")
-      return false
     }
+    console.warn("⚠️ HMR not available - changes require page reload")
+    return false
   }
 }
 

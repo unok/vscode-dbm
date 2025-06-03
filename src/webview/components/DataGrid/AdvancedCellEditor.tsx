@@ -23,7 +23,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
   onChange,
 }) => {
   const [value, setValue] = useState<string>(String(cell.editedValue || ""))
-  const [validation, setValidation] = useState<ValidationResult | null>(null)
+  const [validation, _setValidation] = useState<ValidationResult | null>(null)
   const [isCommitting, setIsCommitting] = useState(false)
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null)
 
@@ -58,7 +58,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
       try {
         if (type.includes("int")) {
           const parsed = Number.parseInt(input, 10)
-          return isNaN(parsed) ? input : parsed
+          return Number.isNaN(parsed) ? input : parsed
         }
 
         if (
@@ -68,7 +68,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
           type.includes("double")
         ) {
           const parsed = Number.parseFloat(input)
-          return isNaN(parsed) ? input : parsed
+          return Number.isNaN(parsed) ? input : parsed
         }
 
         if (type.includes("bool")) {
@@ -81,14 +81,14 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
         if (type.includes("date") && !type.includes("time")) {
           // Validate date format
           const date = new Date(input)
-          if (!isNaN(date.getTime())) {
+          if (!Number.isNaN(date.getTime())) {
             return input
           }
         }
 
         if (type.includes("datetime") || type.includes("timestamp")) {
           const date = new Date(input)
-          if (!isNaN(date.getTime())) {
+          if (!Number.isNaN(date.getTime())) {
             return input
           }
         }

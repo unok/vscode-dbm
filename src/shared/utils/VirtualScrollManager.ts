@@ -206,7 +206,6 @@ export class VirtualScrollManager {
       case "end":
         targetScrollTop = itemOffset - this.state.containerHeight + itemHeight
         break
-      case "start":
       default:
         targetScrollTop = itemOffset
         break

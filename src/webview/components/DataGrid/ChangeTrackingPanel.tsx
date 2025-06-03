@@ -287,7 +287,7 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
                   <button
                     className='copy-sql-button'
                     onClick={() => {
-                      navigator.clipboard?.writeText(sqlStatements.join(";\n") + ";")
+                      navigator.clipboard?.writeText(`${sqlStatements.join(";\n")};`)
                     }}
                   >
                     📋 Copy All
@@ -300,7 +300,7 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
                       <code className='sql-code'>{statement};</code>
                       <button
                         className='copy-statement-button'
-                        onClick={() => navigator.clipboard?.writeText(statement + ";")}
+                        onClick={() => navigator.clipboard?.writeText(`${statement};`)}
                         title='Copy this statement'
                       >
                         📋

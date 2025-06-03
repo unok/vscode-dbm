@@ -11,10 +11,6 @@ import { DatabaseConnection } from "../DatabaseConnection"
 export class MySQLDriver extends DatabaseConnection {
   private connection?: mysql.Connection
 
-  constructor(config: DatabaseConfig) {
-    super(config)
-  }
-
   async connect(timeout = 10000): Promise<void> {
     try {
       await this.executeWithTimeout(async () => {
@@ -56,7 +52,7 @@ export class MySQLDriver extends DatabaseConnection {
     const startTime = Date.now()
 
     try {
-      const [rows, fields] = await this.connection.execute(sql, params)
+      const [rows, _fields] = await this.connection.execute(sql, params)
       const executionTime = Date.now() - startTime
 
       // INSERT/UPDATE/DELETE の場合
@@ -130,7 +126,7 @@ export class MySQLDriver extends DatabaseConnection {
           type: "BTREE",
         })
       }
-      indexMap.get(row.Key_name)!.columns.push(row.Column_name)
+      indexMap.get(row.Key_name)?.columns.push(row.Column_name)
     })
 
     indexes.push(...indexMap.values())

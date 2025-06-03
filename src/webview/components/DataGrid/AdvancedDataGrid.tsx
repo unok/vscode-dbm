@@ -193,7 +193,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
     []
   )
 
-  const handleRowSelect = useCallback((rowIndex: number, addToSelection = false) => {
+  const _handleRowSelect = useCallback((rowIndex: number, addToSelection = false) => {
     if (addToSelection) {
       setSelectedRows((prev) => [...prev, rowIndex])
     } else {
@@ -442,7 +442,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
         <ChangeTrackingPanel
           changeTracker={service.getChangeTracker()}
           onClose={() => setShowChangeTracking(false)}
-          onRollback={(type, index?) => {
+          onRollback={(type, _index?) => {
             if (type === "all") {
               service.rollbackChanges()
             }

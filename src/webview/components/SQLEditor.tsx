@@ -275,7 +275,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
 
     // Configure validation
     monaco.languages.registerCodeActionProvider("sql", {
-      provideCodeActions: (model, range, context) => {
+      provideCodeActions: (model, _range, context) => {
         const actions: monaco.languages.CodeAction[] = []
 
         for (const marker of context.markers) {
@@ -287,7 +287,8 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
                 edits: [
                   {
                     resource: model.uri,
-                    edit: {
+                    versionId: model.getVersionId(),
+                    textEdit: {
                       range: model.getFullModelRange(),
                       text: sqlEditorService.formatQuery(model.getValue()),
                     },
@@ -572,7 +573,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
       {showHistory && (
         <SQLHistoryModal
           history={executionHistory}
-          onSelect={(selectedQuery) => {
+          onSelect={(selectedQuery: string) => {
             if (monacoEditorRef.current) {
               monacoEditorRef.current.setValue(selectedQuery)
             }
@@ -587,7 +588,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
         <SQLBookmarksModal
           bookmarks={bookmarks}
           onSelect={handleLoadBookmark}
-          onDelete={(id) => {
+          onDelete={(id: string) => {
             sqlEditorService.deleteBookmark(id)
             setBookmarks(sqlEditorService.getBookmarks())
           }}
@@ -641,7 +642,7 @@ const SQLEditorToolbar: React.FC<{
         >
           {isExecuting ? (
             <>
-              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white' />
               Executing...
             </>
           ) : (

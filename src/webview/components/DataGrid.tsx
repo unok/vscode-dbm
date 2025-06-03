@@ -71,7 +71,7 @@ const DataGrid: React.FC<DataGridProps> = ({
 
   // Services
   const dataGridService = useMemo(() => new DataGridService(), [])
-  const uuidGenerator = useMemo(() => new UUIDGenerator(), [])
+  const _uuidGenerator = useMemo(() => new UUIDGenerator(), [])
   const vscodeApi = useVSCodeAPI()
   const finalConfig = { ...defaultConfig, ...config }
 
@@ -300,7 +300,7 @@ const DataGrid: React.FC<DataGridProps> = ({
     return (
       <div className='data-grid-loading'>
         <div className='flex items-center justify-center p-8'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mr-3'></div>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mr-3' />
           <span>Loading table data...</span>
         </div>
       </div>
@@ -462,7 +462,6 @@ const DataGridCell: React.FC<any> = ({
         onBlur={() => onCommit(rowIndex, column.id, editValue)}
         onKeyDown={handleKeyDown}
         className='data-grid-cell-input'
-        autoFocus
       />
     )
   }

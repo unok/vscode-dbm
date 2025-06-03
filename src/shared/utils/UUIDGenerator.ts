@@ -21,7 +21,7 @@ export class UUIDGenerator {
     // Split timestamp into parts for UUID format
     const timeLow = timestampHex.slice(-8)
     const timeMid = timestampHex.slice(-12, -8)
-    const timeHi = "7" + timestampHex.slice(-15, -12).padStart(3, "0")
+    const timeHi = `7${timestampHex.slice(-15, -12).padStart(3, "0")}`
 
     // Generate random clock sequence and node
     const clockSeq = Math.floor(Math.random() * 0x3fff) | 0x8000
@@ -69,7 +69,6 @@ export class UUIDGenerator {
       case 7:
         uuid = this.generateV7()
         break
-      case 4:
       default:
         uuid = this.generateV4()
         break
@@ -80,7 +79,7 @@ export class UUIDGenerator {
     }
 
     if (options.suffix) {
-      uuid = uuid + options.suffix
+      uuid += options.suffix
     }
 
     return uuid
@@ -153,7 +152,7 @@ export class UUIDGenerator {
     existingRows: Record<string, CellValue>[]
   ): CellValue {
     const columnName = column.name.toLowerCase()
-    const columnType = column.type.toLowerCase()
+    const _columnType = column.type.toLowerCase()
 
     // Generate context-aware defaults based on column name patterns
     if (columnName.includes("email")) {
@@ -228,7 +227,7 @@ export class UUIDGenerator {
     if (columnType.includes("int") || columnType.includes("serial")) {
       const existingValues = existingRows
         .map((row) => Number(row[column.id]))
-        .filter((val) => !isNaN(val))
+        .filter((val) => !Number.isNaN(val))
 
       if (existingValues.length === 0) {
         return 1
@@ -260,7 +259,7 @@ export class UUIDGenerator {
     }
 
     // Check for numeric sequence
-    const numericValues = values.map((v) => Number(v)).filter((v) => !isNaN(v))
+    const numericValues = values.map((v) => Number(v)).filter((v) => !Number.isNaN(v))
     if (numericValues.length === values.length && numericValues.length > 1) {
       const differences = []
       for (let i = 1; i < numericValues.length; i++) {

@@ -1,5 +1,19 @@
 // Database schema types for metadata management
 
+export interface ConnectionInfo {
+  id: string
+  name: string
+  type: "mysql" | "postgresql" | "sqlite"
+  host?: string
+  port?: number
+  username?: string
+  password?: string
+  database: string
+  ssl?: boolean | object
+  isConnected?: boolean
+  lastConnected?: Date
+}
+
 export interface DatabaseSchema {
   name?: string
   tables: TableMetadata[]

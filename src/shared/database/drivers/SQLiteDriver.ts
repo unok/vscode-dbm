@@ -11,10 +11,6 @@ import { DatabaseConnection } from "../DatabaseConnection"
 export class SQLiteDriver extends DatabaseConnection {
   private db?: Database.Database
 
-  constructor(config: DatabaseConfig) {
-    super(config)
-  }
-
   async connect(timeout = 10000): Promise<void> {
     try {
       await this.executeWithTimeout(async () => {
@@ -60,16 +56,15 @@ export class SQLiteDriver extends DatabaseConnection {
           rowCount: rows.length,
           executionTime: Date.now() - startTime,
         }
-      } else {
-        // INSERT, UPDATE, DELETE など
-        const stmt = this.db.prepare(sql)
-        const result = stmt.run(params || [])
+      }
+      // INSERT, UPDATE, DELETE など
+      const stmt = this.db.prepare(sql)
+      const result = stmt.run(params || [])
 
-        return {
-          rows: [],
-          rowCount: result.changes,
-          executionTime: Date.now() - startTime,
-        }
+      return {
+        rows: [],
+        rowCount: result.changes,
+        executionTime: Date.now() - startTime,
       }
     } catch (error) {
       return {

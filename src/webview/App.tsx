@@ -74,8 +74,7 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
   const handleTestConnection = async () => {
     try {
       vscodeApi.showInfo("Testing VSCode API communication...")
-      const status = await vscodeApi.getConnectionStatus()
-      console.log("Connection status:", status)
+      const _status = await vscodeApi.getConnectionStatus()
     } catch (error) {
       console.error("Connection test failed:", error)
     }

@@ -161,7 +161,7 @@ const SchemaTreeNode: React.FC<SchemaTreeNodeProps> = ({
 
       {hasChildren && isExpanded && (
         <div className='schema-tree-children'>
-          {node.children!.map((childNode) => (
+          {node.children?.map((childNode) => (
             <SchemaTreeNode
               key={childNode.id}
               node={childNode}

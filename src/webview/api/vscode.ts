@@ -1,6 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // VSCode API types
+export interface ConnectionResult {
+  success: boolean
+  error?: string
+  connectionId?: string
+}
+
+export interface QueryResult {
+  success: boolean
+  data?: any[]
+  error?: string
+  executionTime?: number
+}
 interface VSCodeApi {
   postMessage(message: any): void
   getState(): any
@@ -32,8 +44,6 @@ class VSCodeWebViewAPI {
 
         // Listen for messages from extension
         window.addEventListener("message", this.handleMessage.bind(this))
-
-        console.log("VSCode WebView API initialized")
       } else {
         console.warn("VSCode API not available - running in development mode")
         this.setupDevMode()
@@ -47,13 +57,9 @@ class VSCodeWebViewAPI {
   private setupDevMode() {
     // Mock VSCode API for development
     this.vscode = {
-      postMessage: (message: any) => {
-        console.log("Mock VSCode API - postMessage:", message)
-      },
+      postMessage: (_message: any) => {},
       getState: () => ({}),
-      setState: (state: any) => {
-        console.log("Mock VSCode API - setState:", state)
-      },
+      setState: (_state: any) => {},
     }
     this.isInitialized = true
   }
@@ -103,14 +109,14 @@ class VSCodeWebViewAPI {
     })
   }
 
-  public async openConnection(connectionData: any) {
+  public async openConnection(connectionData: any): Promise<ConnectionResult> {
     return new Promise((resolve) => {
       this.onMessage("connectionResult", resolve)
       this.postMessage("openConnection", connectionData)
     })
   }
 
-  public async executeQuery(query: string) {
+  public async executeQuery(query: string): Promise<QueryResult> {
     return new Promise((resolve) => {
       this.onMessage("queryResult", resolve)
       this.postMessage("executeQuery", { query })

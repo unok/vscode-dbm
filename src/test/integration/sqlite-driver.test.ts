@@ -1,5 +1,5 @@
-import { promises as fs } from "fs"
-import { resolve } from "path"
+import { promises as fs } from "node:fs"
+import { resolve } from "node:path"
 import { SQLiteDriver } from "@/shared/database/drivers/SQLiteDriver"
 import type { DatabaseConfig } from "@/shared/types"
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
@@ -31,7 +31,7 @@ describe("SQLiteDriver統合テスト", () => {
     // テスト用データベースファイルを削除
     try {
       await fs.unlink(tempDbPath)
-    } catch (error) {
+    } catch (_error) {
       // ファイルが存在しない場合は無視
     }
   })

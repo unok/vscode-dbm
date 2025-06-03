@@ -178,7 +178,7 @@ body {
   }
 
   .connection-item {
-    @apply relative rounded-md p-2 hover:bg-gray-800 transition-colors duration-150 group;
+    @apply relative rounded-md p-2 hover:bg-gray-800 transition-colors duration-150;
   }
 
   .connection-item.active {

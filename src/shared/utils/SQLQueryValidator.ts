@@ -146,7 +146,7 @@ export class SQLQueryValidator {
    */
   validateSchema(query: string): ValidationError[] {
     const errors: ValidationError[] = []
-    const upperQuery = query.toUpperCase()
+    const _upperQuery = query.toUpperCase()
 
     // Find table references
     const tableMatches = query.match(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)
@@ -182,7 +182,7 @@ export class SQLQueryValidator {
 
     // Validate column references (basic validation)
     const selectMatches = query.match(/SELECT\s+(.*?)\s+FROM/i)
-    if (selectMatches && selectMatches[1]) {
+    if (selectMatches?.[1]) {
       const columns = selectMatches[1].split(",").map((col) => col.trim())
       for (const column of columns) {
         if (column === "*") continue
@@ -378,10 +378,9 @@ export class SQLQueryValidator {
           current += char + nextChar
           i++
           continue
-        } else {
-          inString = false
-          stringChar = ""
         }
+        inString = false
+        stringChar = ""
       }
 
       if (!inString && char === ";") {

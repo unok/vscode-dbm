@@ -408,7 +408,7 @@ describe("AdvancedDataGridService", () => {
       const bulkOperation: BulkEditOperation = {
         type: "update",
         columnId: "age",
-        valueFunction: (row, index) => (row.age as number) + 1,
+        valueFunction: (row, _index) => (row.age as number) + 1,
         rowIndices: [0, 1, 2],
       }
 

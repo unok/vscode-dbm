@@ -1,4 +1,4 @@
-import * as path from "path"
+import * as path from "node:path"
 import * as vscode from "vscode"
 
 export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
@@ -10,7 +10,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
     this._view = webviewView
@@ -53,10 +53,9 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     if (isDevelopment) {
       // Development mode: use Vite dev server
       return this._getDevHtml()
-    } else {
-      // Production mode: use built assets
-      return this._getProdHtml(webview)
     }
+    // Production mode: use built assets
+    return this._getProdHtml(webview)
   }
 
   private _getDevHtml() {
@@ -78,7 +77,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private _getProdHtml(webview: vscode.Webview) {
     // Production HTML with built assets
     const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
-    const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
+    const _indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
 
     // For now, return basic HTML structure
     // This will be improved when we have actual built assets

@@ -8,7 +8,8 @@ import type {
   SchemaTreeNode,
 } from "../../shared/types/schema"
 import { useVSCodeAPI } from "../api/vscode"
-import { ConnectionForm, ConnectionManager } from "./ConnectionManager"
+import type { ConnectionResult } from "../api/vscode"
+import { type ConnectionConfig, ConnectionForm, ConnectionManager } from "./ConnectionManager"
 import { ContextMenu } from "./ContextMenu"
 import { SchemaTree } from "./SchemaTree"
 import { SearchBar } from "./SearchBar"
@@ -114,7 +115,7 @@ const DatabaseExplorer: React.FC = () => {
 
         // Send connection request to extension
         vscodeApi.showInfo(`Connecting to ${connection.name}...`)
-        const result = await vscodeApi.openConnection({
+        const result: ConnectionResult = await vscodeApi.openConnection({
           type: connection.type,
           host: connection.host,
           port: connection.port,
@@ -222,7 +223,7 @@ const DatabaseExplorer: React.FC = () => {
           setSchema(mockSchema)
           vscodeApi.showInfo(`Connected to ${connection.name}`)
         } else {
-          throw new Error(result.message || "Connection failed")
+          throw new Error(result.error || "Connection failed")
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error"
@@ -278,22 +279,22 @@ const DatabaseExplorer: React.FC = () => {
   )
 
   const handleConnectionSave = useCallback(
-    (connectionData: Partial<ConnectionInfo>) => {
+    (connectionData: ConnectionConfig) => {
       if (editingConnection) {
         // Update existing connection
+        const updatedConnection: ConnectionInfo = {
+          ...editingConnection,
+          ...connectionData,
+          isConnected: editingConnection.isConnected,
+          lastConnected: editingConnection.lastConnected,
+        }
         setConnections((prev) =>
-          prev.map((c) => (c.id === editingConnection.id ? { ...c, ...connectionData } : c))
+          prev.map((c) => (c.id === editingConnection.id ? updatedConnection : c))
         )
       } else {
         // Create new connection
         const newConnection: ConnectionInfo = {
-          id: Date.now().toString(),
-          name: connectionData.name || "New Connection",
-          type: connectionData.type || "mysql",
-          host: connectionData.host || "localhost",
-          port: connectionData.port || 3306,
-          database: connectionData.database || "",
-          username: connectionData.username || "",
+          ...connectionData,
           isConnected: false,
         }
         setConnections((prev) => [...prev, newConnection])
@@ -421,7 +422,7 @@ const DatabaseExplorer: React.FC = () => {
 
                 {isLoading ? (
                   <div className='loading-state p-8 text-center'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-2'></div>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-2' />
                     <p className='text-gray-400 text-sm'>Loading schema...</p>
                   </div>
                 ) : schema ? (
@@ -449,15 +450,16 @@ const DatabaseExplorer: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <ConnectionForm
-        connection={editingConnection}
-        isOpen={showConnectionForm}
-        onClose={() => {
-          setShowConnectionForm(false)
-          setEditingConnection(undefined)
-        }}
-        onSave={handleConnectionSave}
-      />
+      {showConnectionForm && (
+        <ConnectionForm
+          initialData={editingConnection}
+          onSubmit={handleConnectionSave}
+          onCancel={() => {
+            setShowConnectionForm(false)
+            setEditingConnection(undefined)
+          }}
+        />
+      )}
 
       {/* Context Menu */}
       {contextMenu && (
@@ -466,8 +468,7 @@ const DatabaseExplorer: React.FC = () => {
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
-          onAction={(action) => {
-            console.log("Context menu action:", action, contextMenu.node)
+          onAction={(_action) => {
             setContextMenu(null)
           }}
         />
