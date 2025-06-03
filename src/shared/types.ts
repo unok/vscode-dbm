@@ -58,3 +58,18 @@ export interface ConnectionStatus {
   lastConnected?: Date;
   error?: string;
 }
+
+export interface DatabaseDriver {
+  connect(timeout?: number): Promise<void>;
+  disconnect(): Promise<void>;
+  query(sql: string, params?: any[]): Promise<QueryResult>;
+  isConnected(): boolean;
+  getConnectionInfo(): DatabaseConfig;
+  getConnectionStatus(): ConnectionStatus;
+  getDatabases?(): Promise<string[]>;
+  getSchemas?(): Promise<string[]>;
+  getTables(): Promise<{ name: string; type: string }[]>;
+  getViews?(): Promise<{ name: string; type: string }[]>;
+  getTableSchema(tableName: string): Promise<TableSchema>;
+  getTableIndexes?(tableName: string): Promise<IndexSchema[]>;
+}
