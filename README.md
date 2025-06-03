@@ -1,5 +1,7 @@
 # Database DataGrid Manager
 
+![CI Status](https://github.com/your-username/vscode-dbm/workflows/CI%20-%20Pull%20Request%20Checks/badge.svg)
+
 VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGripのような直感的な操作感を持つDataGridインターフェースを提供し、複数のデータベースに対応した包括的なDB管理ツールです。
 
 ## 🎉 フェーズ2完了: データベース接続基盤（TDD実装）
@@ -50,6 +52,12 @@ VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGrip�
 - **Dev Container** - VSCode統合開発環境
 - **Docker Compose** - 複数データベースのテスト環境
 - **Claude Code対応** - Dev Container内で動作可能
+
+### CI/CD（GitHub Actions）
+- **GitHub Actions** - 自動CI/CDパイプライン
+- **品質チェック** - Lint、TypeScript、テスト
+- **自動ビルド** - 拡張機能パッケージング
+- **PRチェック** - プルリクエスト時の自動品質確認
 
 ### ✅ フェーズ2: データベース接続基盤（TDD実装）
 
