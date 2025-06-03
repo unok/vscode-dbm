@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Check package.json validity
-        run: node -p "'Package.json is valid: ' + Boolean(require('./package.json'))"
+        run: node -e "require('./package.json')" && echo "Package.json is valid"
 
       - name: Verify dependencies
         run: test -d node_modules && echo "Dependencies installed successfully"
