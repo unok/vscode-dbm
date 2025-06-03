@@ -89,4 +89,323 @@ body {
   .table-row-hover {
     @apply hover:bg-gray-700 transition-colors duration-150;
   }
+
+  /* Schema Tree Styles */
+  .schema-tree {
+    @apply text-sm font-mono;
+  }
+
+  .schema-tree-item {
+    @apply flex items-center py-1 px-2 rounded-sm;
+    min-height: 24px;
+  }
+
+  .schema-tree-item-content {
+    @apply flex items-center flex-1 gap-1;
+  }
+
+  .schema-tree-expand-button {
+    @apply flex items-center justify-center w-4 h-4 rounded-sm hover:bg-gray-600 transition-colors;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: currentColor;
+  }
+
+  .schema-tree-icon {
+    @apply flex items-center justify-center w-4 h-4;
+  }
+
+  .schema-tree-label {
+    @apply flex-1 truncate;
+    user-select: none;
+  }
+
+  .schema-tree-loading {
+    @apply ml-2;
+  }
+
+  .schema-tree-children {
+    @apply ml-0;
+  }
+
+  /* Node type specific styles */
+  .schema-node-database {
+    @apply font-semibold;
+  }
+
+  .schema-node-schema {
+    @apply font-medium;
+  }
+
+  .schema-node-table {
+    @apply hover:bg-green-900 hover:bg-opacity-20;
+  }
+
+  .schema-node-view {
+    @apply hover:bg-indigo-900 hover:bg-opacity-20;
+  }
+
+  .schema-node-column {
+    @apply text-gray-300 hover:bg-gray-800;
+  }
+
+  .schema-node-tables,
+  .schema-node-views,
+  .schema-node-columns,
+  .schema-node-indexes,
+  .schema-node-constraints,
+  .schema-node-functions,
+  .schema-node-triggers {
+    @apply text-gray-400 font-medium;
+  }
+
+  /* Connection Manager Styles */
+  .connection-manager {
+    @apply border-b border-gray-700 pb-4 mb-4;
+  }
+
+  .connection-manager-header {
+    @apply mb-2;
+  }
+
+  .connection-list {
+    @apply space-y-1;
+  }
+
+  .connection-empty-state {
+    @apply text-center py-8;
+  }
+
+  .connection-item {
+    @apply relative rounded-md p-2 hover:bg-gray-800 transition-colors duration-150 group;
+  }
+
+  .connection-item.active {
+    @apply bg-blue-900 bg-opacity-50 border border-blue-600;
+  }
+
+  .connection-info {
+    @apply flex items-center gap-3 cursor-pointer;
+  }
+
+  .connection-status {
+    @apply flex-shrink-0;
+  }
+
+  .connection-details {
+    @apply flex-1 min-w-0;
+  }
+
+  .connection-name {
+    @apply font-medium text-sm truncate;
+  }
+
+  .connection-description {
+    @apply text-xs text-gray-400 truncate;
+  }
+
+  .connection-state {
+    @apply flex-shrink-0;
+  }
+
+  .connection-actions {
+    @apply absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity;
+  }
+
+  .connection-action-button {
+    @apply p-1 rounded hover:bg-gray-600 transition-colors;
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+  }
+
+  /* Connection Form Styles */
+  .connection-form-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+
+  .connection-form-modal {
+    @apply bg-gray-800 rounded-lg border border-gray-700 w-full max-w-md mx-4 max-h-screen overflow-y-auto;
+  }
+
+  .connection-form-header {
+    @apply flex items-center justify-between p-4 border-b border-gray-700;
+  }
+
+  .connection-form-close {
+    @apply p-1 rounded hover:bg-gray-700 transition-colors;
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+  }
+
+  .connection-form {
+    @apply p-4 space-y-4;
+  }
+
+  .form-group {
+    @apply space-y-1;
+  }
+
+  .form-group label {
+    @apply block text-sm font-medium text-gray-300;
+  }
+
+  .connection-form-actions {
+    @apply flex justify-between items-center pt-4 border-t border-gray-700;
+  }
+
+  /* Search Bar Styles */
+  .search-bar {
+    @apply space-y-2;
+  }
+
+  .search-input-container {
+    @apply relative flex items-center border border-gray-600 rounded-md bg-gray-700 transition-colors;
+  }
+
+  .search-input-container.focused {
+    @apply border-blue-500 ring-1 ring-blue-500;
+  }
+
+  .search-icon {
+    @apply absolute left-3 text-gray-400;
+  }
+
+  .search-input {
+    @apply w-full bg-transparent pl-10 pr-20 py-2 text-sm text-white placeholder-gray-400 border-none outline-none;
+  }
+
+  .search-clear-button {
+    @apply absolute right-12 p-1 text-gray-400 hover:text-gray-200 transition-colors;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .search-shortcut {
+    @apply absolute right-3 flex items-center gap-1 text-xs text-gray-500;
+  }
+
+  .search-shortcut-key {
+    @apply px-1 py-0.5 bg-gray-600 rounded text-xs;
+  }
+
+  .search-shortcut-separator {
+    @apply text-gray-500;
+  }
+
+  .search-results-indicator {
+    @apply px-3 py-1;
+  }
+
+  /* Advanced Search Bar Styles */
+  .advanced-search-bar {
+    @apply space-y-2;
+  }
+
+  .search-filters {
+    @apply relative;
+  }
+
+  .search-filters-toggle {
+    @apply flex items-center gap-2 px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-md transition-colors;
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+  }
+
+  .search-filters-count {
+    @apply bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-xs min-w-[1.25rem] text-center;
+  }
+
+  .search-filters-dropdown {
+    @apply absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-lg py-1 z-10;
+  }
+
+  .search-filter-item {
+    @apply flex items-center px-3 py-2 hover:bg-gray-700 cursor-pointer transition-colors;
+  }
+
+  .search-filter-checkbox {
+    @apply mr-3;
+  }
+
+  .search-filter-content {
+    @apply flex items-center gap-2 text-sm;
+  }
+
+  .search-filter-icon {
+    @apply w-4 h-4;
+  }
+
+  /* Context Menu Styles */
+  .context-menu {
+    @apply select-none;
+  }
+
+  .context-menu-content {
+    @apply min-w-48 max-w-64;
+  }
+
+  .context-menu-item {
+    @apply block w-full text-left;
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+  }
+
+  .context-menu-item:hover:not(:disabled) {
+    @apply bg-gray-700;
+  }
+
+  .context-menu-item:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .context-menu-separator {
+    @apply mx-2;
+  }
+
+  .context-menu-icon {
+    @apply text-gray-400;
+  }
+
+  .context-menu-shortcut {
+    @apply font-mono;
+  }
+
+  /* Database Explorer Styles */
+  .database-explorer {
+    @apply bg-gray-900;
+  }
+
+  .database-explorer-header {
+    @apply bg-gray-800;
+  }
+
+  .database-explorer-content {
+    @apply bg-gray-900;
+  }
+
+  .schema-tree-container {
+    @apply bg-gray-800 rounded-md border border-gray-700 p-2;
+  }
+
+  .loading-state {
+    @apply text-gray-400;
+  }
+
+  .empty-state {
+    @apply text-gray-400;
+  }
+
+  .error-message {
+    @apply text-red-400;
+  }
 }
