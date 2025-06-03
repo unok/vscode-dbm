@@ -29,6 +29,10 @@ export abstract class DatabaseConnection {
     return this.config.id
   }
 
+  getType(): string {
+    return this.config.type
+  }
+
   getConnectionInfo(): DatabaseConfig {
     return { ...this.config }
   }

@@ -9,7 +9,7 @@ export interface DatabaseConfig {
   username?: string
   password?: string
   database: string
-  ssl?: boolean
+  ssl?: boolean | object
 }
 
 export interface TableSchema {

@@ -89,7 +89,7 @@ export class SQLiteDriver extends DatabaseConnection {
       ORDER BY name
     `)
 
-    return result.rows
+    return result.rows as { name: string; type: string }[]
   }
 
   async getViews(): Promise<{ name: string; type: string }[]> {
@@ -100,7 +100,7 @@ export class SQLiteDriver extends DatabaseConnection {
       ORDER BY name
     `)
 
-    return result.rows
+    return result.rows as { name: string; type: string }[]
   }
 
   async getTableSchema(tableName: string): Promise<TableSchema> {
