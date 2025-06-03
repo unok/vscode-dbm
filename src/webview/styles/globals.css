@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* VSCodeテーマとの統合 */
+/* VSCode theme integration */
 :root {
   --color-primary: var(--vscode-button-background);
   --color-primary-hover: var(--vscode-button-hoverBackground);
@@ -14,22 +14,60 @@
   --color-info: var(--vscode-terminal-ansiBlue);
 }
 
+/* Theme-specific overrides */
+body.light {
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+}
+
+body.dark {
+  --card-bg: #1f2937;
+  --card-border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+}
+
+/* Ensure proper contrast in both themes */
+body {
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 /* カスタムコンポーネントスタイル */
 @layer components {
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    @apply font-medium py-2 px-4 rounded transition-colors duration-200;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--vscode-button-hoverBackground);
   }
 
   .btn-secondary {
-    @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    @apply font-medium py-2 px-4 rounded transition-colors duration-200;
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
   }
 
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
+    background-color: var(--vscode-errorForeground);
+    color: var(--vscode-errorBackground, #ffffff);
+    @apply font-medium py-2 px-4 rounded transition-colors duration-200;
   }
 
   .card {
-    @apply bg-gray-800 rounded-lg border border-gray-700 shadow-lg;
+    background-color: var(--card-bg, var(--vscode-editor-background));
+    border-color: var(--card-border, var(--vscode-panel-border));
+    @apply rounded-lg border shadow-lg;
   }
 
   .input-field {

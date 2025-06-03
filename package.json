@@ -15,20 +15,35 @@
       {
         "command": "vscode-dbm.openConnection",
         "title": "Open Database Connection",
-        "category": "DB Manager"
+        "category": "DB Manager",
+        "icon": "$(plug)"
       },
       {
         "command": "vscode-dbm.newQuery",
         "title": "New SQL Query",
-        "category": "DB Manager"
+        "category": "DB Manager",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "vscode-dbm.openDataGrid",
+        "title": "Open DataGrid",
+        "category": "DB Manager",
+        "icon": "$(table)"
+      },
+      {
+        "command": "vscode-dbm.openDashboard",
+        "title": "Open Dashboard",
+        "category": "DB Manager",
+        "icon": "$(dashboard)"
       }
     ],
     "views": {
-      "explorer": [
+      "dbManager": [
         {
-          "id": "dbManagerExplorer",
-          "name": "Database Explorer",
-          "when": "vscode-dbm:hasConnection"
+          "type": "webview",
+          "id": "dbManager.webview",
+          "name": "Quick Actions",
+          "when": "true"
         }
       ]
     },
@@ -38,6 +53,29 @@
           "id": "dbManager",
           "title": "Database Manager",
           "icon": "$(database)"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "vscode-dbm.openConnection"
+        },
+        {
+          "command": "vscode-dbm.newQuery"
+        },
+        {
+          "command": "vscode-dbm.openDataGrid"
+        },
+        {
+          "command": "vscode-dbm.openDashboard"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "vscode-dbm.openConnection",
+          "when": "view == dbManager.webview",
+          "group": "navigation"
         }
       ]
     }

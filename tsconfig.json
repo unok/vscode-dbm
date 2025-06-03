@@ -19,7 +19,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
@@ -27,7 +26,7 @@
       "@extension/*": ["./src/extension/*"],
       "@shared/*": ["./src/shared/*"]
     },
-    "types": ["vscode", "node", "vitest/globals"]
+    "types": ["node"]
   },
   "include": ["src/**/*", "scripts/**/*", "vitest.config.ts", "vite.config.ts"],
   "exclude": [

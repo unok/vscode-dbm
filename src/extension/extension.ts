@@ -1,24 +1,48 @@
 import * as vscode from "vscode"
+import { DatabaseWebViewProvider } from "./WebViewProvider"
+import { DatabaseWebViewPanelProvider } from "./WebViewPanelProvider"
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("DB DataGrid Manager extension is now active!")
 
-  // データベース接続コマンド
+  // WebView provider for sidebar
+  const webViewProvider = new DatabaseWebViewProvider(context.extensionUri)
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(DatabaseWebViewProvider.viewType, webViewProvider)
+  )
+
+  // Commands
   const openConnectionCommand = vscode.commands.registerCommand("vscode-dbm.openConnection", () => {
-    vscode.window.showInformationMessage("データベース接続機能 - 実装予定")
-    // 将来的にWebViewパネルを開く
+    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "dashboard")
   })
 
-  // 新しいSQLクエリコマンド
   const newQueryCommand = vscode.commands.registerCommand("vscode-dbm.newQuery", () => {
-    vscode.window.showInformationMessage("SQLクエリエディタ - 実装予定")
-    // 将来的にSQLエディタを開く
+    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "sql")
   })
 
-  context.subscriptions.push(openConnectionCommand, newQueryCommand)
+  // Additional commands for different views
+  const openDataGridCommand = vscode.commands.registerCommand("vscode-dbm.openDataGrid", () => {
+    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "datagrid")
+  })
 
-  // コンテキストを設定（ビューの表示制御用）
+  const openDashboardCommand = vscode.commands.registerCommand("vscode-dbm.openDashboard", () => {
+    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "dashboard")
+  })
+
+  context.subscriptions.push(
+    openConnectionCommand,
+    newQueryCommand,
+    openDataGridCommand,
+    openDashboardCommand
+  )
+
+  // Context setup
   vscode.commands.executeCommand("setContext", "vscode-dbm:hasConnection", false)
+
+  // Development mode detection
+  if (process.env.NODE_ENV === "development") {
+    console.log("Running in development mode - Vite dev server expected on port 5173")
+  }
 }
 
 export function deactivate() {

@@ -74,4 +74,7 @@ export default defineConfig({
   optimizeDeps: {
     include: ["react", "react-dom", "@tanstack/react-table", "uuid"],
   },
+  css: {
+    postcss: "./postcss.config.js",
+  },
 })
