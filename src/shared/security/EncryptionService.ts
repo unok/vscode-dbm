@@ -1,4 +1,4 @@
-import { createCipher, createDecipher, createHash, randomBytes } from "crypto"
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto"
 import type { DatabaseConfig } from "../types"
 
 export class EncryptionService {
@@ -24,13 +24,14 @@ export class EncryptionService {
     }
 
     const iv = randomBytes(16)
-    const cipher = createCipher(this.algorithm, this.key + iv.toString("hex"))
+    const key = createHash("sha256").update(this.key).digest()
+    const cipher = createCipheriv(this.algorithm, key, iv)
 
     let encrypted = cipher.update(text, "utf8", "hex")
     encrypted += cipher.final("hex")
 
     // IVを先頭に付加
-    return iv.toString("hex") + ":" + encrypted
+    return `${iv.toString("hex")}:${encrypted}`
   }
 
   decrypt(encryptedText: string): string {
@@ -48,10 +49,11 @@ export class EncryptionService {
         throw new Error("Invalid encrypted data format")
       }
 
-      const iv = parts[0]
+      const iv = Buffer.from(parts[0], "hex")
       const encrypted = parts[1]
+      const key = createHash("sha256").update(this.key).digest()
 
-      const decipher = createDecipher(this.algorithm, this.key + iv)
+      const decipher = createDecipheriv(this.algorithm, key, iv)
 
       let decrypted = decipher.update(encrypted, "hex", "utf8")
       decrypted += decipher.final("utf8")
@@ -63,7 +65,7 @@ export class EncryptionService {
   }
 
   private encryptEmpty(): string {
-    return "EMPTY_STRING_MARKER:" + randomBytes(8).toString("hex")
+    return `EMPTY_STRING_MARKER:${randomBytes(8).toString("hex")}`
   }
 
   private isEmptyEncrypted(encryptedText: string): boolean {

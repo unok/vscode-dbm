@@ -334,3 +334,133 @@ export interface DataGridTheme {
     headerHeight: string
   }
 }
+
+// Advanced DataGrid types (missing exports)
+export interface BulkEditOperation {
+  type: 'update' | 'delete'
+  columnId?: string
+  value?: CellValue
+  valueFunction?: (row: Record<string, CellValue>, index?: number) => CellValue
+  rowIndices: number[]
+  condition?: (row: Record<string, CellValue>) => boolean
+}
+
+export interface BulkOperationPreview {
+  willAffect: number
+  changes: Array<{
+    rowIndex: number
+    columnId: string
+    currentValue: CellValue
+    newValue: CellValue
+  }>
+}
+
+export interface BulkOperationResult {
+  success: boolean
+  affectedRows: number
+  validationErrors?: string[]
+  error?: string
+}
+
+export interface CellEditResult {
+  success: boolean
+  error?: string
+  validationErrors?: string[]
+  cellState?: CellState
+}
+
+export interface CellState {
+  isEditing: boolean
+  isDirty: boolean
+  isValid: boolean
+  originalValue: CellValue
+  editedValue?: CellValue
+  validationResult?: ValidationResult
+  changeType?: 'none' | 'modified' | 'added'
+  visualIndicator?: string
+  customIndicator?: string
+  customMessage?: string
+}
+
+export interface RowState {
+  isNew: boolean
+  isDeleted: boolean
+  hasChanges: boolean
+  visualIndicator?: string
+}
+
+export interface ChangeRecord {
+  modifiedCells: Array<{
+    rowIndex: number
+    columnId: string
+    originalValue: CellValue
+    newValue: CellValue
+    timestamp: Date
+  }>
+  addedRows: Array<{
+    rowIndex: number
+    tempId: string
+    data: Record<string, CellValue>
+    timestamp: Date
+  }>
+  deletedRows: Array<{
+    originalIndex: number
+    data: Record<string, CellValue>
+    timestamp: Date
+  }>
+  affectedRows: Set<number>
+  totalChanges: number
+  lastModified: Date | null
+}
+
+export interface ChangeStatistics {
+  totalChanges: number
+  modifiedCells: number
+  addedRows: number
+  deletedRows: number
+  affectedRows: number
+}
+
+export interface CopyPasteData {
+  type: 'single-cell' | 'range' | 'rows'
+  data: CellValue[][]
+  metadata: {
+    columns: string[]
+    rows: number
+  }
+}
+
+export interface PasteOptions {
+  conflictResolution?: 'overwrite' | 'skip' | 'merge'
+  validateData?: boolean
+  preserveFormatting?: boolean
+}
+
+export interface PasteResult {
+  success: boolean
+  affectedCells: number
+  validationErrors?: string[]
+  error?: string
+}
+
+export interface CursorAIDefaultOptions {
+  context?: string
+  existingData?: Record<string, CellValue>[]
+  columns?: ColumnDefinition[]
+  rowIndex?: number
+}
+
+export interface ValidationResult {
+  isValid: boolean
+  errors: string[]
+  warnings?: string[]
+  suggestions?: string[]
+}
+
+export interface VirtualScrollConfig {
+  enabled: boolean
+  itemHeight: number | ((index: number) => number)
+  containerHeight: number
+  bufferSize: number
+  overscan: number
+}
