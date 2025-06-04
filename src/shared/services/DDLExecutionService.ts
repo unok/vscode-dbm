@@ -4,17 +4,20 @@ import { PostgreSQLDriver } from "../database/drivers/PostgreSQLDriver"
 import { SQLiteDriver } from "../database/drivers/SQLiteDriver"
 import type { DatabaseConnection as DatabaseConnectionConfig } from "../types/sql"
 import type { DDLResult, TableDefinition } from "../types/table-management"
-import { TableManagementService } from "./TableManagementService"
 import { ConstraintManagementService } from "./ConstraintManagementService"
+import { IndexManagementService } from "./IndexManagementService"
+import { TableManagementService } from "./TableManagementService"
 
 export class DDLExecutionService {
   private tableService: TableManagementService
   private constraintService: ConstraintManagementService
+  private indexService: IndexManagementService
   private connectionCache: Map<string, DatabaseDriver> = new Map()
 
   constructor() {
     this.tableService = new TableManagementService()
     this.constraintService = new ConstraintManagementService()
+    this.indexService = new IndexManagementService()
   }
 
   /**
@@ -233,20 +236,16 @@ export class DDLExecutionService {
         availableColumns,
         connection
       )
-      
+
       if (!validation.isValid) {
-        const errorMessages = validation.errors.map(e => e.message).join("; ")
+        const errorMessages = validation.errors.map((e) => e.message).join("; ")
         return {
           success: false,
           error: `Constraint validation failed: ${errorMessages}`,
         }
       }
 
-      const sql = this.constraintService.generateAddConstraintSQL(
-        tableName,
-        constraint,
-        connection
-      )
+      const sql = this.constraintService.generateAddConstraintSQL(tableName, constraint, connection)
       return await this.executeDDL(sql, connection)
     } catch (error) {
       return {
@@ -284,10 +283,28 @@ export class DDLExecutionService {
    */
   async createIndex(
     indexDefinition: any,
-    connection: DatabaseConnectionConfig
+    connection: DatabaseConnectionConfig,
+    availableColumns: string[] = [],
+    existingIndexes: any[] = []
   ): Promise<DDLResult> {
     try {
-      const sql = await this.tableService.generateCreateIndexSQL(indexDefinition, connection)
+      // Validate index first
+      const validation = this.indexService.validateIndex(
+        indexDefinition,
+        availableColumns,
+        connection,
+        existingIndexes
+      )
+
+      if (!validation.isValid) {
+        const errorMessages = validation.errors.map((e) => e.message).join("; ")
+        return {
+          success: false,
+          error: `Index validation failed: ${errorMessages}`,
+        }
+      }
+
+      const sql = this.indexService.generateCreateIndexSQL(indexDefinition, connection)
       return await this.executeDDL(sql, connection)
     } catch (error) {
       return {
@@ -300,9 +317,13 @@ export class DDLExecutionService {
   /**
    * Drop index
    */
-  async dropIndex(indexName: string, connection: DatabaseConnectionConfig): Promise<DDLResult> {
+  async dropIndex(
+    indexName: string,
+    connection: DatabaseConnectionConfig,
+    ifExists = false
+  ): Promise<DDLResult> {
     try {
-      const sql = await this.tableService.generateDropIndexSQL(indexName, connection)
+      const sql = this.indexService.generateDropIndexSQL(indexName, connection, ifExists)
       return await this.executeDDL(sql, connection)
     } catch (error) {
       return {
@@ -583,6 +604,204 @@ export class DDLExecutionService {
       }
 
       return results
+    }
+  }
+
+  /**
+   * Validate index definition
+   */
+  validateIndex(
+    index: any,
+    availableColumns: string[],
+    connection: DatabaseConnectionConfig,
+    existingIndexes: any[] = []
+  ) {
+    return this.indexService.validateIndex(index, availableColumns, connection, existingIndexes)
+  }
+
+  /**
+   * Analyze index performance
+   */
+  analyzeIndexPerformance(index: any, availableColumns: string[] = []) {
+    return this.indexService.analyzeIndexPerformance(index, availableColumns)
+  }
+
+  /**
+   * Get optimization suggestions for indexes
+   */
+  getIndexOptimizationSuggestions(indexes: any[], tableColumns: string[]) {
+    return this.indexService.getOptimizationSuggestions(indexes, tableColumns)
+  }
+
+  /**
+   * Analyze index maintenance requirements
+   */
+  analyzeIndexMaintenance(indexes: any[]) {
+    return this.indexService.analyzeIndexMaintenance(indexes)
+  }
+
+  /**
+   * Batch index operations
+   */
+  async batchIndexOperations(
+    operations: Array<{
+      type: "create" | "drop"
+      indexDefinition?: any
+      indexName?: string
+      availableColumns?: string[]
+      existingIndexes?: any[]
+      ifExists?: boolean
+    }>,
+    connection: DatabaseConnectionConfig
+  ): Promise<DDLResult[]> {
+    const results: DDLResult[] = []
+
+    try {
+      const driver = await this.getConnection(connection)
+
+      // Start transaction
+      await driver.query("BEGIN")
+
+      try {
+        for (const operation of operations) {
+          let result: DDLResult
+
+          if (operation.type === "create" && operation.indexDefinition) {
+            result = await this.createIndex(
+              operation.indexDefinition,
+              connection,
+              operation.availableColumns,
+              operation.existingIndexes
+            )
+          } else if (operation.type === "drop" && operation.indexName) {
+            result = await this.dropIndex(operation.indexName, connection, operation.ifExists)
+          } else {
+            result = {
+              success: false,
+              error: "Invalid index operation",
+            }
+          }
+
+          results.push(result)
+
+          if (!result.success) {
+            throw new Error(`Index operation failed: ${result.error}`)
+          }
+        }
+
+        // Commit transaction
+        await driver.query("COMMIT")
+
+        return results
+      } catch (error) {
+        // Rollback transaction
+        await driver.query("ROLLBACK")
+        throw error
+      }
+    } catch (error) {
+      // Add error result for any remaining operations
+      const errorResult: DDLResult = {
+        success: false,
+        error: error instanceof Error ? error.message : "Transaction failed",
+      }
+
+      while (results.length < operations.length) {
+        results.push(errorResult)
+      }
+
+      return results
+    }
+  }
+
+  /**
+   * Rebuild index (drop and recreate)
+   */
+  async rebuildIndex(
+    indexDefinition: any,
+    connection: DatabaseConnectionConfig,
+    availableColumns: string[] = [],
+    existingIndexes: any[] = []
+  ): Promise<DDLResult[]> {
+    const operations = [
+      {
+        type: "drop" as const,
+        indexName: indexDefinition.name,
+        ifExists: true,
+      },
+      {
+        type: "create" as const,
+        indexDefinition,
+        availableColumns,
+        existingIndexes,
+      },
+    ]
+
+    return await this.batchIndexOperations(operations, connection)
+  }
+
+  /**
+   * Analyze and optimize table indexes
+   */
+  async optimizeTableIndexes(
+    tableName: string,
+    currentIndexes: any[],
+    tableColumns: string[],
+    _connection: DatabaseConnectionConfig
+  ): Promise<{
+    analysis: any
+    recommendations: any[]
+    suggestedOperations: Array<{
+      type: "create" | "drop" | "modify"
+      description: string
+      indexDefinition?: any
+      indexName?: string
+    }>
+  }> {
+    const analysis = this.analyzeIndexMaintenance(currentIndexes)
+    const recommendations = this.getIndexOptimizationSuggestions(currentIndexes, tableColumns)
+
+    const suggestedOperations: Array<{
+      type: "create" | "drop" | "modify"
+      description: string
+      indexDefinition?: any
+      indexName?: string
+    }> = []
+
+    // Generate suggested operations based on recommendations
+    for (const recommendation of recommendations) {
+      if (recommendation.message.includes("foreign key column")) {
+        const match = recommendation.message.match(/"([^"]+)"/)
+        if (match) {
+          const columnName = match[1]
+          suggestedOperations.push({
+            type: "create",
+            description: `Add index on foreign key column ${columnName}`,
+            indexDefinition: {
+              name: `idx_${tableName}_${columnName}`,
+              tableName,
+              columns: [columnName],
+              unique: false,
+              type: "BTREE",
+            },
+          })
+        }
+      } else if (recommendation.message.includes("redundant")) {
+        const match = recommendation.message.match(/Index "([^"]+)"/)
+        if (match) {
+          const indexName = match[1]
+          suggestedOperations.push({
+            type: "drop",
+            description: `Remove redundant index ${indexName}`,
+            indexName,
+          })
+        }
+      }
+    }
+
+    return {
+      analysis,
+      recommendations,
+      suggestedOperations,
     }
   }
 }

@@ -42,7 +42,8 @@ export class ConstraintManagementService {
       errors.push({
         type: "validation",
         field: "name",
-        message: "Constraint name must start with letter or underscore, contain only alphanumeric characters and underscores",
+        message:
+          "Constraint name must start with letter or underscore, contain only alphanumeric characters and underscores",
         severity: "error",
       })
     }
@@ -86,7 +87,7 @@ export class ConstraintManagementService {
     connection: DatabaseConnection
   ): string {
     const constraintDef = this.generateConstraintDefinition(constraint)
-    
+
     // Some databases require different syntax
     switch (connection.type) {
       case "mysql":
@@ -95,7 +96,9 @@ export class ConstraintManagementService {
         return `ALTER TABLE ${this.escapeIdentifier(tableName)} ADD CONSTRAINT ${constraintDef}`
       case "sqlite":
         // SQLite has limited ALTER TABLE support for constraints
-        throw new Error("SQLite does not support adding constraints to existing tables. Table recreation required.")
+        throw new Error(
+          "SQLite does not support adding constraints to existing tables. Table recreation required."
+        )
       default:
         return `ALTER TABLE ${this.escapeIdentifier(tableName)} ADD CONSTRAINT ${constraintDef}`
     }
@@ -131,7 +134,7 @@ export class ConstraintManagementService {
       case "PRIMARY_KEY":
         return `${name} PRIMARY KEY (${this.formatColumnList(constraint.columns || [])})`
 
-      case "FOREIGN_KEY":
+      case "FOREIGN_KEY": {
         let fkDef = `${name} FOREIGN KEY (${this.formatColumnList(constraint.columns || [])}) `
         fkDef += `REFERENCES ${this.escapeIdentifier(constraint.referencedTable || "")}(${this.formatColumnList(constraint.referencedColumns || [])})`
 
@@ -143,6 +146,7 @@ export class ConstraintManagementService {
         }
 
         return fkDef
+      }
 
       case "UNIQUE":
         return `${name} UNIQUE (${this.formatColumnList(constraint.columns || [])})`
@@ -159,8 +163,8 @@ export class ConstraintManagementService {
    * Get existing constraints for a table
    */
   async getTableConstraints(
-    tableName: string,
-    connection: DatabaseConnection
+    _tableName: string,
+    _connection: DatabaseConnection
   ): Promise<ConstraintDefinition[]> {
     // This would require database-specific queries to retrieve constraints
     // For now, return empty array as this would be implemented with actual database drivers
@@ -170,16 +174,14 @@ export class ConstraintManagementService {
   /**
    * Analyze constraint dependencies
    */
-  analyzeConstraintDependencies(
-    constraints: ConstraintDefinition[]
-  ): ConstraintManagementResult {
+  analyzeConstraintDependencies(constraints: ConstraintDefinition[]): ConstraintManagementResult {
     const dependencyMap = new Map<string, string[]>()
     const circularDependencies: string[] = []
     const warnings: string[] = []
 
     // Analyze foreign key dependencies
     const foreignKeys = constraints.filter((c) => c.type === "FOREIGN_KEY")
-    
+
     for (const fk of foreignKeys) {
       if (fk.referencedTable) {
         const deps = dependencyMap.get(fk.name) || []
@@ -191,12 +193,14 @@ export class ConstraintManagementService {
     // Check for potential issues
     const primaryKeys = constraints.filter((c) => c.type === "PRIMARY_KEY")
     if (primaryKeys.length > 1) {
-      warnings.push("Multiple primary key constraints defined. Only one primary key per table is allowed.")
+      warnings.push(
+        "Multiple primary key constraints defined. Only one primary key per table is allowed."
+      )
     }
 
     const uniqueConstraints = constraints.filter((c) => c.type === "UNIQUE")
     const uniqueColumnSets = new Set<string>()
-    
+
     for (const unique of uniqueConstraints) {
       const columnSet = (unique.columns || []).sort().join(",")
       if (uniqueColumnSets.has(columnSet)) {
@@ -223,7 +227,7 @@ export class ConstraintManagementService {
     // First, add all non-foreign key constraints
     const nonForeignKeys = remaining.filter((c) => c.type !== "FOREIGN_KEY")
     ordered.push(...nonForeignKeys)
-    
+
     // Remove non-foreign keys from remaining
     const foreignKeys = remaining.filter((c) => c.type === "FOREIGN_KEY")
 
@@ -321,7 +325,7 @@ export class ConstraintManagementService {
 
     // Validate reference actions
     const validActions = ["CASCADE", "SET_NULL", "RESTRICT", "NO_ACTION", "SET_DEFAULT"]
-    
+
     if (constraint.onDelete && !validActions.includes(constraint.onDelete)) {
       errors.push({
         type: "validation",
@@ -386,7 +390,7 @@ export class ConstraintManagementService {
 
     // Basic syntax validation
     const expression = constraint.checkExpression.trim()
-    
+
     // Check for balanced parentheses
     let parenCount = 0
     for (const char of expression) {
@@ -402,7 +406,7 @@ export class ConstraintManagementService {
         return
       }
     }
-    
+
     if (parenCount !== 0) {
       errors.push({
         type: "validation",

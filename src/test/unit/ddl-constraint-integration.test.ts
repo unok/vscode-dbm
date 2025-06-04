@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, test } from "vitest"
 import { DDLExecutionService } from "@/shared/services/DDLExecutionService"
 import type { DatabaseConnection } from "@/shared/types/sql"
 import type { ConstraintDefinition, TableDefinition } from "@/shared/types/table-management"
+import { beforeEach, describe, expect, test } from "vitest"
 
 describe("DDL Execution Service - Constraint Management Integration", () => {
   let ddlService: DDLExecutionService
@@ -59,7 +59,12 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       }
 
       const availableColumns = ["id", "email", "age", "department_id"]
-      const result = await ddlService.addConstraint("users", constraint, mockConnection, availableColumns)
+      const result = await ddlService.addConstraint(
+        "users",
+        constraint,
+        mockConnection,
+        availableColumns
+      )
 
       expect(result.success).toBe(true)
       expect(result.sql).toContain("ALTER TABLE")
@@ -79,7 +84,12 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       }
 
       const availableColumns = ["id", "email", "age", "department_id"]
-      const result = await ddlService.addConstraint("users", constraint, mockConnection, availableColumns)
+      const result = await ddlService.addConstraint(
+        "users",
+        constraint,
+        mockConnection,
+        availableColumns
+      )
 
       expect(result.success).toBe(true)
       expect(result.sql).toContain("FOREIGN KEY")
@@ -95,7 +105,12 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       }
 
       const availableColumns = ["id", "email", "age", "department_id"]
-      const result = await ddlService.addConstraint("users", constraint, mockConnection, availableColumns)
+      const result = await ddlService.addConstraint(
+        "users",
+        constraint,
+        mockConnection,
+        availableColumns
+      )
 
       expect(result.success).toBe(true)
       expect(result.sql).toContain("CHECK")
@@ -110,7 +125,12 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       }
 
       const availableColumns = ["id", "email", "age", "department_id"]
-      const result = await ddlService.addConstraint("users", constraint, mockConnection, availableColumns)
+      const result = await ddlService.addConstraint(
+        "users",
+        constraint,
+        mockConnection,
+        availableColumns
+      )
 
       expect(result.success).toBe(false)
       expect(result.error).toContain("validation failed")
@@ -124,7 +144,12 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       }
 
       const availableColumns = ["id", "email", "age", "department_id"]
-      const result = await ddlService.addConstraint("users", constraint, mockConnection, availableColumns)
+      const result = await ddlService.addConstraint(
+        "users",
+        constraint,
+        mockConnection,
+        availableColumns
+      )
 
       expect(result.success).toBe(false)
       expect(result.error).toContain("does not exist")
@@ -139,7 +164,12 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
 
       const sqliteConnection = { ...mockConnection, type: "sqlite" as const }
       const availableColumns = ["id", "email", "age", "department_id"]
-      const result = await ddlService.addConstraint("users", constraint, sqliteConnection, availableColumns)
+      const result = await ddlService.addConstraint(
+        "users",
+        constraint,
+        sqliteConnection,
+        availableColumns
+      )
 
       expect(result.success).toBe(false)
       expect(result.error).toContain("SQLite does not support")
@@ -240,7 +270,7 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       const result = ddlService.analyzeConstraintDependencies(constraints)
 
       expect(result.warnings.length).toBeGreaterThan(0)
-      expect(result.warnings.some(w => w.includes("Multiple primary key"))).toBe(true)
+      expect(result.warnings.some((w) => w.includes("Multiple primary key"))).toBe(true)
     })
   })
 
@@ -302,7 +332,7 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       const results = await ddlService.batchConstraintOperations(operations, mockConnection)
 
       expect(results).toHaveLength(2)
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.success).toBe(true)
       })
     })
@@ -355,7 +385,7 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       const results = await ddlService.batchConstraintOperations(operations, mockConnection)
 
       expect(results).toHaveLength(2)
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.success).toBe(true)
       })
     })
@@ -378,7 +408,7 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       const results = await ddlService.batchConstraintOperations(operations as any, mockConnection)
 
       expect(results).toHaveLength(2)
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.success).toBe(false)
         expect(result.error).toContain("Invalid constraint operation")
       })

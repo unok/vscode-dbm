@@ -88,6 +88,46 @@ export interface ConstraintManagementResult {
   canApply: boolean
 }
 
+// Index Management Types
+export interface IndexValidationError {
+  type: "validation" | "database" | "security" | "performance" | "optimization"
+  field: string
+  message: string
+  severity: "error" | "warning" | "info"
+}
+
+export interface IndexValidationResult {
+  isValid: boolean
+  errors: IndexValidationError[]
+  warnings: IndexValidationError[]
+}
+
+export interface IndexOptimizationSuggestion {
+  type: "optimization" | "warning" | "performance"
+  priority: "high" | "medium" | "low"
+  message: string
+}
+
+export interface IndexPerformanceAnalysis {
+  estimatedSelectivity: number // 0.0 to 1.0
+  estimatedSize: number // in MB
+  maintenanceCost: "low" | "medium" | "high"
+  suggestions: IndexOptimizationSuggestion[]
+}
+
+export interface IndexManagementResult {
+  analysis: {
+    totalIndexes: number
+    uniqueIndexes: number
+    partialIndexes: number
+    coveringIndexes: number
+    estimatedTotalSize: number
+    maintenanceComplexity: "low" | "medium" | "high"
+  }
+  recommendations: IndexOptimizationSuggestion[]
+  canOptimize: boolean
+}
+
 // Data type mappings for different databases
 export interface DataTypeMapping {
   mysql: Record<string, string>

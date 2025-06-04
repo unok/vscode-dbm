@@ -1,8 +1,5 @@
 import type { DatabaseConnection } from "../types/sql"
-import {
-  DATA_TYPE_MAPPINGS,
-  SQL_RESERVED_KEYWORDS,
-} from "../types/table-management"
+import { DATA_TYPE_MAPPINGS, SQL_RESERVED_KEYWORDS } from "../types/table-management"
 import type {
   ColumnDefinition,
   ConstraintDefinition,
@@ -15,7 +12,6 @@ import type {
 } from "../types/table-management"
 
 export class TableManagementService {
-
   // テーブル作成SQL生成
   async generateCreateTableSQL(
     tableDefinition: TableDefinition,
@@ -24,7 +20,7 @@ export class TableManagementService {
     const { name, schema, columns, constraints = [] } = tableDefinition
     const dbType = connection.type
 
-    let sql = `CREATE TABLE `
+    let sql = "CREATE TABLE "
 
     if (schema && schema !== "public") {
       sql += `${this.escapeIdentifier(schema)}.`
@@ -50,7 +46,7 @@ export class TableManagementService {
       }
     })
 
-    sql += columnDefinitions.join(",\n") + "\n"
+    sql += `${columnDefinitions.join(",\n")}\n`
     sql += ")"
 
     // データベース固有のオプション
@@ -81,7 +77,7 @@ export class TableManagementService {
     switch (connection.type) {
       case "mysql":
         return `ALTER TABLE ${this.escapeIdentifier(tableName)} MODIFY COLUMN ${columnDef}`
-      case "postgresql":
+      case "postgresql": {
         // PostgreSQLは複数のALTER文が必要な場合がある
         const statements = []
 
@@ -112,6 +108,7 @@ export class TableManagementService {
         }
 
         return statements.join(";\n")
+      }
 
       case "sqlite":
         // SQLiteは制限があるため、テーブル再作成が必要な場合がある
@@ -156,7 +153,7 @@ export class TableManagementService {
   async generateAddConstraintSQL(
     tableName: string,
     constraint: ConstraintDefinition,
-    connection: DatabaseConnection
+    _connection: DatabaseConnection
   ): Promise<string> {
     const constraintDef = this.generateConstraintDefinition(constraint)
     return `ALTER TABLE ${this.escapeIdentifier(tableName)} ADD CONSTRAINT ${constraintDef}`
@@ -213,7 +210,7 @@ export class TableManagementService {
   // テーブル削除SQL生成
   async generateDropTableSQL(
     tableName: string,
-    connection: DatabaseConnection,
+    _connection: DatabaseConnection,
     ifExists = false
   ): Promise<string> {
     let sql = "DROP TABLE "
@@ -223,7 +220,7 @@ export class TableManagementService {
   }
 
   // DDL実行
-  async executeSQL(sql: string, connection: DatabaseConnection): Promise<DDLResult> {
+  async executeSQL(sql: string, _connection: DatabaseConnection): Promise<DDLResult> {
     try {
       // 実際のDB接続とSQL実行はここで行う
       // モックのため成功を返す
@@ -403,7 +400,7 @@ export class TableManagementService {
       case "PRIMARY_KEY":
         return `${name} PRIMARY KEY (${constraint.columns?.map((col) => this.escapeIdentifier(col)).join(", ") || ""})`
 
-      case "FOREIGN_KEY":
+      case "FOREIGN_KEY": {
         let fkDef = `${name} FOREIGN KEY (${constraint.columns?.map((col) => this.escapeIdentifier(col)).join(", ") || ""}) `
         fkDef += `REFERENCES ${this.escapeIdentifier(constraint.referencedTable || "")}(${constraint.referencedColumns?.map((col) => this.escapeIdentifier(col)).join(", ") || ""})`
 
@@ -415,6 +412,7 @@ export class TableManagementService {
         }
 
         return fkDef
+      }
 
       case "UNIQUE":
         return `${name} UNIQUE (${constraint.columns?.map((col) => this.escapeIdentifier(col)).join(", ") || ""})`

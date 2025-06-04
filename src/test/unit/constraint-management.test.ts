@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, test } from "vitest"
 import { ConstraintManagementService } from "@/shared/services/ConstraintManagementService"
 import type { DatabaseConnection } from "@/shared/types/sql"
 import type { ConstraintDefinition } from "@/shared/types/table-management"
+import { beforeEach, describe, expect, test } from "vitest"
 
 describe("ConstraintManagementService", () => {
   let constraintService: ConstraintManagementService
@@ -27,7 +27,11 @@ describe("ConstraintManagementService", () => {
         columns: ["id"],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(true)
       expect(result.errors).toHaveLength(0)
@@ -61,7 +65,11 @@ describe("ConstraintManagementService", () => {
         columns: ["email"],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(true)
       expect(result.errors).toHaveLength(0)
@@ -74,7 +82,11 @@ describe("ConstraintManagementService", () => {
         checkExpression: "age >= 0 AND age <= 150",
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(true)
       expect(result.errors).toHaveLength(0)
@@ -87,7 +99,11 @@ describe("ConstraintManagementService", () => {
         columns: ["id"],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
       expect(result.errors).toHaveLength(1)
@@ -102,10 +118,14 @@ describe("ConstraintManagementService", () => {
         columns: ["id"],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "name")).toBe(true)
+      expect(result.errors.some((e) => e.field === "name")).toBe(true)
     })
 
     test("should reject PRIMARY KEY without columns", () => {
@@ -115,10 +135,14 @@ describe("ConstraintManagementService", () => {
         columns: [],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "columns")).toBe(true)
+      expect(result.errors.some((e) => e.field === "columns")).toBe(true)
     })
 
     test("should reject PRIMARY KEY with non-existent columns", () => {
@@ -128,10 +152,14 @@ describe("ConstraintManagementService", () => {
         columns: ["non_existent_column"],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "columns")).toBe(true)
+      expect(result.errors.some((e) => e.field === "columns")).toBe(true)
     })
 
     test("should reject FOREIGN KEY without referenced table", () => {
@@ -143,10 +171,14 @@ describe("ConstraintManagementService", () => {
         referencedColumns: ["id"],
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "referencedTable")).toBe(true)
+      expect(result.errors.some((e) => e.field === "referencedTable")).toBe(true)
     })
 
     test("should reject FOREIGN KEY with mismatched column count", () => {
@@ -158,10 +190,14 @@ describe("ConstraintManagementService", () => {
         referencedColumns: ["id"], // Only one column
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "columns")).toBe(true)
+      expect(result.errors.some((e) => e.field === "columns")).toBe(true)
     })
 
     test("should reject FOREIGN KEY with invalid actions", () => {
@@ -175,11 +211,15 @@ describe("ConstraintManagementService", () => {
         onUpdate: "ANOTHER_INVALID" as any,
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "onDelete")).toBe(true)
-      expect(result.errors.some(e => e.field === "onUpdate")).toBe(true)
+      expect(result.errors.some((e) => e.field === "onDelete")).toBe(true)
+      expect(result.errors.some((e) => e.field === "onUpdate")).toBe(true)
     })
 
     test("should reject CHECK constraint without expression", () => {
@@ -189,10 +229,14 @@ describe("ConstraintManagementService", () => {
         checkExpression: "",
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "checkExpression")).toBe(true)
+      expect(result.errors.some((e) => e.field === "checkExpression")).toBe(true)
     })
 
     test("should reject CHECK constraint with dangerous SQL", () => {
@@ -202,10 +246,14 @@ describe("ConstraintManagementService", () => {
         checkExpression: "age > 0 OR DROP TABLE users",
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.type === "security")).toBe(true)
+      expect(result.errors.some((e) => e.type === "security")).toBe(true)
     })
 
     test("should reject CHECK constraint with unbalanced parentheses", () => {
@@ -215,10 +263,14 @@ describe("ConstraintManagementService", () => {
         checkExpression: "age > 0 AND (name IS NOT NULL",
       }
 
-      const result = constraintService.validateConstraint(constraint, availableColumns, mockConnection)
+      const result = constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection
+      )
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.message.includes("parentheses"))).toBe(true)
+      expect(result.errors.some((e) => e.message.includes("parentheses"))).toBe(true)
     })
   })
 
@@ -334,13 +386,21 @@ describe("ConstraintManagementService", () => {
   describe("DROP CONSTRAINT SQL Generation", () => {
     test("should generate DROP CONSTRAINT SQL for MySQL", () => {
       const mysqlConnection = { ...mockConnection, type: "mysql" as const }
-      const sql = constraintService.generateDropConstraintSQL("users", "uk_users_email", mysqlConnection)
+      const sql = constraintService.generateDropConstraintSQL(
+        "users",
+        "uk_users_email",
+        mysqlConnection
+      )
 
       expect(sql).toBe("ALTER TABLE `users` DROP CONSTRAINT `uk_users_email`")
     })
 
     test("should generate DROP CONSTRAINT SQL for PostgreSQL", () => {
-      const sql = constraintService.generateDropConstraintSQL("users", "uk_users_email", mockConnection)
+      const sql = constraintService.generateDropConstraintSQL(
+        "users",
+        "uk_users_email",
+        mockConnection
+      )
 
       expect(sql).toBe("ALTER TABLE `users` DROP CONSTRAINT `uk_users_email`")
     })
@@ -380,7 +440,7 @@ describe("ConstraintManagementService", () => {
 
       expect(result.canApply).toBe(true)
       expect(result.circularDependencies).toHaveLength(0)
-      expect(result.dependencies["fk_users_department"]).toContain("departments")
+      expect(result.dependencies.fk_users_department).toContain("departments")
     })
 
     test("should detect multiple primary key warning", () => {
@@ -399,7 +459,7 @@ describe("ConstraintManagementService", () => {
 
       const result = constraintService.analyzeConstraintDependencies(constraints)
 
-      expect(result.warnings.some(w => w.includes("Multiple primary key"))).toBe(true)
+      expect(result.warnings.some((w) => w.includes("Multiple primary key"))).toBe(true)
     })
 
     test("should detect duplicate unique constraints", () => {
@@ -418,7 +478,7 @@ describe("ConstraintManagementService", () => {
 
       const result = constraintService.analyzeConstraintDependencies(constraints)
 
-      expect(result.warnings.some(w => w.includes("Duplicate unique constraint"))).toBe(true)
+      expect(result.warnings.some((w) => w.includes("Duplicate unique constraint"))).toBe(true)
     })
   })
 
@@ -489,7 +549,7 @@ describe("ConstraintManagementService", () => {
       const result = constraintService.validateConstraint(constraint, [], sqliteConnection)
 
       expect(result.isValid).toBe(true)
-      expect(result.warnings.some(w => w.message.includes("ROWID"))).toBe(true)
+      expect(result.warnings.some((w) => w.message.includes("ROWID"))).toBe(true)
     })
 
     test("should handle unknown constraint type", () => {
@@ -502,7 +562,7 @@ describe("ConstraintManagementService", () => {
       const result = constraintService.validateConstraint(constraint, ["id"], mockConnection)
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "type")).toBe(true)
+      expect(result.errors.some((e) => e.field === "type")).toBe(true)
     })
   })
 
@@ -518,7 +578,7 @@ describe("ConstraintManagementService", () => {
       const result = constraintService.validateConstraint(constraint, ["id"], mockConnection)
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.message.includes("63 characters"))).toBe(true)
+      expect(result.errors.some((e) => e.message.includes("63 characters"))).toBe(true)
     })
 
     test("should handle empty available columns array", () => {
@@ -531,7 +591,7 @@ describe("ConstraintManagementService", () => {
       const result = constraintService.validateConstraint(constraint, [], mockConnection)
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.message.includes("does not exist"))).toBe(true)
+      expect(result.errors.some((e) => e.message.includes("does not exist"))).toBe(true)
     })
 
     test("should handle constraint without columns property", () => {
@@ -543,7 +603,7 @@ describe("ConstraintManagementService", () => {
       const result = constraintService.validateConstraint(constraint, ["id"], mockConnection)
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.some(e => e.field === "columns")).toBe(true)
+      expect(result.errors.some((e) => e.field === "columns")).toBe(true)
     })
   })
 })
