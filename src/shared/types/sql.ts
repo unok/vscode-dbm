@@ -30,9 +30,9 @@ export interface QueryExecutionOptions {
 // Database Schema Types
 export interface DatabaseSchema {
   tables: TableSchema[]
-  views: ViewSchema[]
-  functions: FunctionSchema[]
-  procedures: ProcedureSchema[]
+  views?: ViewSchema[]
+  functions?: (FunctionSchema | string)[]
+  procedures?: ProcedureSchema[]
 }
 
 export interface TableSchema {
@@ -354,7 +354,7 @@ export interface DatabaseConnection {
   type: "mysql" | "postgresql" | "sqlite" | "mssql" | "oracle"
   host?: string
   port?: number
-  database: string
+  database?: string
   username?: string
   password?: string
   ssl?: boolean
@@ -370,6 +370,7 @@ export interface QueryExecutionContext {
   transaction?: boolean
   autoCommit?: boolean
   isolation?: "READ_UNCOMMITTED" | "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE"
+  user?: string
 }
 
 // SQL Dialect Types

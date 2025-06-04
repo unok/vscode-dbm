@@ -104,7 +104,7 @@ export class CursorAIService implements AIServiceInterface {
 
     const cacheKey = `defaults_${JSON.stringify(options)}`
     const cached = this.getFromCache(cacheKey)
-    if (cached && typeof cached === 'object' && !Array.isArray(cached) && cached !== null) {
+    if (cached && typeof cached === "object" && !Array.isArray(cached) && cached !== null) {
       return cached as Record<string, CellValue>
     }
 
@@ -130,7 +130,7 @@ export class CursorAIService implements AIServiceInterface {
 
     const cacheKey = `sql_${description}_${JSON.stringify(schema.tables.map((t) => t.name))}`
     const cached = this.getFromCache(cacheKey)
-    if (cached && typeof cached === 'string') {
+    if (cached && typeof cached === "string") {
       return cached
     }
 

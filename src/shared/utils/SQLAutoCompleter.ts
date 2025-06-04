@@ -172,7 +172,7 @@ export class SQLAutoCompleter {
     }
 
     // Add all views
-    for (const view of this.schema.views) {
+    for (const view of this.schema.views || []) {
       completions.push({
         label: view.name,
         kind: CompletionItemKind.Table,
