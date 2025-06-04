@@ -5,13 +5,16 @@ import { SQLiteDriver } from "../database/drivers/SQLiteDriver"
 import type { DatabaseConnection as DatabaseConnectionConfig } from "../types/sql"
 import type { DDLResult, TableDefinition } from "../types/table-management"
 import { TableManagementService } from "./TableManagementService"
+import { ConstraintManagementService } from "./ConstraintManagementService"
 
 export class DDLExecutionService {
   private tableService: TableManagementService
+  private constraintService: ConstraintManagementService
   private connectionCache: Map<string, DatabaseDriver> = new Map()
 
   constructor() {
     this.tableService = new TableManagementService()
+    this.constraintService = new ConstraintManagementService()
   }
 
   /**
@@ -220,10 +223,26 @@ export class DDLExecutionService {
   async addConstraint(
     tableName: string,
     constraint: any,
-    connection: DatabaseConnectionConfig
+    connection: DatabaseConnectionConfig,
+    availableColumns: string[] = []
   ): Promise<DDLResult> {
     try {
-      const sql = await this.tableService.generateAddConstraintSQL(
+      // Validate constraint first
+      const validation = this.constraintService.validateConstraint(
+        constraint,
+        availableColumns,
+        connection
+      )
+      
+      if (!validation.isValid) {
+        const errorMessages = validation.errors.map(e => e.message).join("; ")
+        return {
+          success: false,
+          error: `Constraint validation failed: ${errorMessages}`,
+        }
+      }
+
+      const sql = this.constraintService.generateAddConstraintSQL(
         tableName,
         constraint,
         connection
@@ -246,7 +265,7 @@ export class DDLExecutionService {
     connection: DatabaseConnectionConfig
   ): Promise<DDLResult> {
     try {
-      const sql = await this.tableService.generateDropConstraintSQL(
+      const sql = this.constraintService.generateDropConstraintSQL(
         tableName,
         constraintName,
         connection
@@ -457,5 +476,113 @@ export class DDLExecutionService {
     }
 
     return connection.getConnectionStatus()
+  }
+
+  /**
+   * Validate constraint definition
+   */
+  validateConstraint(
+    constraint: any,
+    availableColumns: string[],
+    connection: DatabaseConnectionConfig
+  ) {
+    return this.constraintService.validateConstraint(constraint, availableColumns, connection)
+  }
+
+  /**
+   * Analyze constraint dependencies
+   */
+  analyzeConstraintDependencies(constraints: any[]) {
+    return this.constraintService.analyzeConstraintDependencies(constraints)
+  }
+
+  /**
+   * Get constraint creation order
+   */
+  getConstraintCreationOrder(constraints: any[]) {
+    return this.constraintService.getConstraintCreationOrder(constraints)
+  }
+
+  /**
+   * Get existing constraints for a table
+   */
+  async getTableConstraints(tableName: string, connection: DatabaseConnectionConfig) {
+    return await this.constraintService.getTableConstraints(tableName, connection)
+  }
+
+  /**
+   * Batch constraint operations
+   */
+  async batchConstraintOperations(
+    operations: Array<{
+      type: "add" | "drop"
+      tableName: string
+      constraint?: any
+      constraintName?: string
+      availableColumns?: string[]
+    }>,
+    connection: DatabaseConnectionConfig
+  ): Promise<DDLResult[]> {
+    const results: DDLResult[] = []
+
+    try {
+      const driver = await this.getConnection(connection)
+
+      // Start transaction
+      await driver.query("BEGIN")
+
+      try {
+        for (const operation of operations) {
+          let result: DDLResult
+
+          if (operation.type === "add" && operation.constraint) {
+            result = await this.addConstraint(
+              operation.tableName,
+              operation.constraint,
+              connection,
+              operation.availableColumns
+            )
+          } else if (operation.type === "drop" && operation.constraintName) {
+            result = await this.dropConstraint(
+              operation.tableName,
+              operation.constraintName,
+              connection
+            )
+          } else {
+            result = {
+              success: false,
+              error: "Invalid constraint operation",
+            }
+          }
+
+          results.push(result)
+
+          if (!result.success) {
+            throw new Error(`Constraint operation failed: ${result.error}`)
+          }
+        }
+
+        // Commit transaction
+        await driver.query("COMMIT")
+
+        return results
+      } catch (error) {
+        // Rollback transaction
+        await driver.query("ROLLBACK")
+        throw error
+      }
+    } catch (error) {
+      // Add error result for any remaining operations
+      const errorResult: DDLResult = {
+        success: false,
+        error: error instanceof Error ? error.message : "Transaction failed",
+      }
+
+      while (results.length < operations.length) {
+        results.push(errorResult)
+      }
+
+      return results
+    }
   }
 }

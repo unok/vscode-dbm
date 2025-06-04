@@ -67,6 +67,27 @@ export interface TableValidationResult {
   warnings: TableValidationError[]
 }
 
+// Constraint Management Types
+export interface ConstraintValidationError {
+  type: "validation" | "database" | "security"
+  field: string
+  message: string
+  severity: "error" | "warning" | "info"
+}
+
+export interface ConstraintValidationResult {
+  isValid: boolean
+  errors: ConstraintValidationError[]
+  warnings: ConstraintValidationError[]
+}
+
+export interface ConstraintManagementResult {
+  dependencies: Record<string, string[]>
+  circularDependencies: string[]
+  warnings: string[]
+  canApply: boolean
+}
+
 // Data type mappings for different databases
 export interface DataTypeMapping {
   mysql: Record<string, string>
