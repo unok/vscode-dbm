@@ -41,6 +41,7 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
         <h3 className='text-lg font-medium text-gray-900'>Preview</h3>
         <div className='flex space-x-1 mt-2'>
           <button
+            type='button'
             onClick={() => setActiveTab("summary")}
             className={`px-3 py-1 text-sm rounded ${
               activeTab === "summary"
@@ -51,6 +52,7 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
             Summary
           </button>
           <button
+            type='button'
             onClick={() => setActiveTab("sql")}
             className={`px-3 py-1 text-sm rounded ${
               activeTab === "sql"
@@ -94,8 +96,8 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                 <p className='text-sm text-gray-500'>No columns defined</p>
               ) : (
                 <div className='space-y-2'>
-                  {tableDefinition.columns.map((column, index) => (
-                    <div key={index} className='text-xs bg-gray-50 p-2 rounded'>
+                  {tableDefinition.columns.map((column) => (
+                    <div key={column.name} className='text-xs bg-gray-50 p-2 rounded'>
                       <div className='font-medium text-gray-900'>
                         {column.name}
                         {column.isPrimaryKey && (
@@ -137,8 +139,8 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                   Foreign Keys ({foreignKeyConstraints.length})
                 </h4>
                 <div className='space-y-2'>
-                  {foreignKeyConstraints.map((fk, index) => (
-                    <div key={index} className='text-xs bg-gray-50 p-2 rounded'>
+                  {foreignKeyConstraints.map((fk) => (
+                    <div key={fk.name} className='text-xs bg-gray-50 p-2 rounded'>
                       <div className='font-medium text-gray-900'>{fk.name}</div>
                       <div className='text-gray-600'>
                         {fk.columns?.join(", ")} → {fk.referencedTable}(
@@ -160,8 +162,8 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                   Unique Constraints ({uniqueConstraints.length})
                 </h4>
                 <div className='space-y-1'>
-                  {uniqueConstraints.map((uc, index) => (
-                    <div key={index} className='text-xs bg-gray-50 p-2 rounded'>
+                  {uniqueConstraints.map((uc) => (
+                    <div key={uc.name} className='text-xs bg-gray-50 p-2 rounded'>
                       <div className='font-medium text-gray-900'>{uc.name}</div>
                       <div className='text-gray-600'>{uc.columns?.join(", ")}</div>
                     </div>
@@ -177,8 +179,8 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                   Check Constraints ({checkConstraints.length})
                 </h4>
                 <div className='space-y-1'>
-                  {checkConstraints.map((cc, index) => (
-                    <div key={index} className='text-xs bg-gray-50 p-2 rounded'>
+                  {checkConstraints.map((cc) => (
+                    <div key={cc.name} className='text-xs bg-gray-50 p-2 rounded'>
                       <div className='font-medium text-gray-900'>{cc.name}</div>
                       <div className='text-gray-600 font-mono'>{cc.checkExpression}</div>
                     </div>
@@ -194,8 +196,8 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                   Indexes ({uniqueIndexes.length + regularIndexes.length})
                 </h4>
                 <div className='space-y-2'>
-                  {uniqueIndexes.map((idx, index) => (
-                    <div key={`unique-${index}`} className='text-xs bg-gray-50 p-2 rounded'>
+                  {uniqueIndexes.map((idx) => (
+                    <div key={idx.name} className='text-xs bg-gray-50 p-2 rounded'>
                       <div className='font-medium text-gray-900'>
                         {idx.name}
                         <span className='ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
@@ -208,8 +210,8 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                       )}
                     </div>
                   ))}
-                  {regularIndexes.map((idx, index) => (
-                    <div key={`regular-${index}`} className='text-xs bg-gray-50 p-2 rounded'>
+                  {regularIndexes.map((idx) => (
+                    <div key={idx.name} className='text-xs bg-gray-50 p-2 rounded'>
                       <div className='font-medium text-gray-900'>{idx.name}</div>
                       <div className='text-gray-600'>{idx.columns.join(", ")}</div>
                       {idx.where && (
@@ -229,6 +231,7 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
               <h4 className='text-sm font-medium text-gray-900'>Generated SQL</h4>
               <div className='flex space-x-2'>
                 <button
+                  type='button'
                   onClick={onRegenerate}
                   disabled={isGenerating}
                   className='px-2 py-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50'
@@ -236,6 +239,7 @@ export const TablePreview: React.FC<TablePreviewProps> = ({
                   {isGenerating ? "Generating..." : "Regenerate"}
                 </button>
                 <button
+                  type='button'
                   onClick={() => copyToClipboard(generatedSQL)}
                   className='px-2 py-1 text-xs text-gray-600 hover:text-gray-800'
                 >

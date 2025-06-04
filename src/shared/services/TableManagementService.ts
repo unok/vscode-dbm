@@ -40,11 +40,11 @@ export class TableManagementService {
     }
 
     // その他の制約
-    constraints.forEach((constraint) => {
+    for (const constraint of constraints) {
       if (constraint.type !== "PRIMARY_KEY") {
         columnDefinitions.push(`  ${this.generateConstraintDefinition(constraint)}`)
       }
-    })
+    }
 
     sql += `${columnDefinitions.join(",\n")}\n`
     sql += ")"

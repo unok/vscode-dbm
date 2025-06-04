@@ -3,7 +3,16 @@ import { MySQLDriver } from "../database/drivers/MySQLDriver"
 import { PostgreSQLDriver } from "../database/drivers/PostgreSQLDriver"
 import { SQLiteDriver } from "../database/drivers/SQLiteDriver"
 import type { DatabaseConnection as DatabaseConnectionConfig } from "../types/sql"
-import type { DDLResult, TableDefinition } from "../types/table-management"
+import type {
+  ColumnDefinition,
+  ConstraintDefinition,
+  DDLResult,
+  IndexDefinition,
+  IndexManagementResult,
+  IndexOptimizationSuggestion,
+  IndexPerformanceAnalysis,
+  TableDefinition,
+} from "../types/table-management"
 import { ConstraintManagementService } from "./ConstraintManagementService"
 import { IndexManagementService } from "./IndexManagementService"
 import { TableManagementService } from "./TableManagementService"
@@ -60,7 +69,10 @@ export class DDLExecutionService {
     const cacheKey = config.id
 
     if (this.connectionCache.has(cacheKey)) {
-      const connection = this.connectionCache.get(cacheKey)!
+      const connection = this.connectionCache.get(cacheKey)
+      if (!connection) {
+        throw new Error(`Connection not found in cache: ${cacheKey}`)
+      }
       if (connection.isConnected()) {
         return connection
       }
@@ -139,7 +151,7 @@ export class DDLExecutionService {
    */
   async addColumn(
     tableName: string,
-    columnDefinition: any,
+    columnDefinition: ColumnDefinition,
     connection: DatabaseConnectionConfig
   ): Promise<DDLResult> {
     try {
@@ -162,8 +174,8 @@ export class DDLExecutionService {
    */
   async modifyColumn(
     tableName: string,
-    oldColumn: any,
-    newColumn: any,
+    oldColumn: ColumnDefinition,
+    newColumn: ColumnDefinition,
     connection: DatabaseConnectionConfig
   ): Promise<DDLResult> {
     try {
@@ -225,7 +237,7 @@ export class DDLExecutionService {
    */
   async addConstraint(
     tableName: string,
-    constraint: any,
+    constraint: ConstraintDefinition,
     connection: DatabaseConnectionConfig,
     availableColumns: string[] = []
   ): Promise<DDLResult> {
@@ -282,10 +294,10 @@ export class DDLExecutionService {
    * Create index
    */
   async createIndex(
-    indexDefinition: any,
+    indexDefinition: IndexDefinition,
     connection: DatabaseConnectionConfig,
     availableColumns: string[] = [],
-    existingIndexes: any[] = []
+    existingIndexes: IndexDefinition[] = []
   ): Promise<DDLResult> {
     try {
       // Validate index first
@@ -432,7 +444,7 @@ export class DDLExecutionService {
       const driver = await this.getConnection(connection)
 
       if ("getTables" in driver) {
-        return await (driver as any).getTables()
+        return await (driver as MySQLDriver | PostgreSQLDriver | SQLiteDriver).getTables()
       }
 
       throw new Error("Database metadata not supported for this driver")
@@ -503,7 +515,7 @@ export class DDLExecutionService {
    * Validate constraint definition
    */
   validateConstraint(
-    constraint: any,
+    constraint: ConstraintDefinition,
     availableColumns: string[],
     connection: DatabaseConnectionConfig
   ) {
@@ -513,14 +525,14 @@ export class DDLExecutionService {
   /**
    * Analyze constraint dependencies
    */
-  analyzeConstraintDependencies(constraints: any[]) {
+  analyzeConstraintDependencies(constraints: ConstraintDefinition[]) {
     return this.constraintService.analyzeConstraintDependencies(constraints)
   }
 
   /**
    * Get constraint creation order
    */
-  getConstraintCreationOrder(constraints: any[]) {
+  getConstraintCreationOrder(constraints: ConstraintDefinition[]) {
     return this.constraintService.getConstraintCreationOrder(constraints)
   }
 
@@ -538,7 +550,7 @@ export class DDLExecutionService {
     operations: Array<{
       type: "add" | "drop"
       tableName: string
-      constraint?: any
+      constraint?: ConstraintDefinition
       constraintName?: string
       availableColumns?: string[]
     }>,
@@ -611,10 +623,10 @@ export class DDLExecutionService {
    * Validate index definition
    */
   validateIndex(
-    index: any,
+    index: IndexDefinition,
     availableColumns: string[],
     connection: DatabaseConnectionConfig,
-    existingIndexes: any[] = []
+    existingIndexes: IndexDefinition[] = []
   ) {
     return this.indexService.validateIndex(index, availableColumns, connection, existingIndexes)
   }
@@ -622,21 +634,27 @@ export class DDLExecutionService {
   /**
    * Analyze index performance
    */
-  analyzeIndexPerformance(index: any, availableColumns: string[] = []) {
+  analyzeIndexPerformance(
+    index: IndexDefinition,
+    availableColumns: string[] = []
+  ): IndexPerformanceAnalysis {
     return this.indexService.analyzeIndexPerformance(index, availableColumns)
   }
 
   /**
    * Get optimization suggestions for indexes
    */
-  getIndexOptimizationSuggestions(indexes: any[], tableColumns: string[]) {
+  getIndexOptimizationSuggestions(
+    indexes: IndexDefinition[],
+    tableColumns: string[]
+  ): IndexOptimizationSuggestion[] {
     return this.indexService.getOptimizationSuggestions(indexes, tableColumns)
   }
 
   /**
    * Analyze index maintenance requirements
    */
-  analyzeIndexMaintenance(indexes: any[]) {
+  analyzeIndexMaintenance(indexes: IndexDefinition[]): IndexManagementResult {
     return this.indexService.analyzeIndexMaintenance(indexes)
   }
 
@@ -646,10 +664,10 @@ export class DDLExecutionService {
   async batchIndexOperations(
     operations: Array<{
       type: "create" | "drop"
-      indexDefinition?: any
+      indexDefinition?: IndexDefinition
       indexName?: string
       availableColumns?: string[]
-      existingIndexes?: any[]
+      existingIndexes?: IndexDefinition[]
       ifExists?: boolean
     }>,
     connection: DatabaseConnectionConfig
@@ -717,10 +735,10 @@ export class DDLExecutionService {
    * Rebuild index (drop and recreate)
    */
   async rebuildIndex(
-    indexDefinition: any,
+    indexDefinition: IndexDefinition,
     connection: DatabaseConnectionConfig,
     availableColumns: string[] = [],
-    existingIndexes: any[] = []
+    existingIndexes: IndexDefinition[] = []
   ): Promise<DDLResult[]> {
     const operations = [
       {
@@ -744,16 +762,16 @@ export class DDLExecutionService {
    */
   async optimizeTableIndexes(
     tableName: string,
-    currentIndexes: any[],
+    currentIndexes: IndexDefinition[],
     tableColumns: string[],
     _connection: DatabaseConnectionConfig
   ): Promise<{
-    analysis: any
-    recommendations: any[]
+    analysis: IndexManagementResult
+    recommendations: IndexOptimizationSuggestion[]
     suggestedOperations: Array<{
       type: "create" | "drop" | "modify"
       description: string
-      indexDefinition?: any
+      indexDefinition?: IndexDefinition
       indexName?: string
     }>
   }> {
@@ -763,7 +781,7 @@ export class DDLExecutionService {
     const suggestedOperations: Array<{
       type: "create" | "drop" | "modify"
       description: string
-      indexDefinition?: any
+      indexDefinition?: IndexDefinition
       indexName?: string
     }> = []
 
@@ -782,7 +800,7 @@ export class DDLExecutionService {
               columns: [columnName],
               unique: false,
               type: "BTREE",
-            },
+            } as IndexDefinition,
           })
         }
       } else if (recommendation.message.includes("redundant")) {

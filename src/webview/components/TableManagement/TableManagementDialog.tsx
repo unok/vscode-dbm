@@ -192,6 +192,7 @@ export const TableManagementDialog: React.FC<TableManagementDialogProps> = ({
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                type='button'
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id

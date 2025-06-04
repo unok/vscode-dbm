@@ -1,7 +1,7 @@
 import { DDLExecutionService } from "@/shared/services/DDLExecutionService"
 import type { DatabaseConnection } from "@/shared/types/sql"
 import type { ConstraintDefinition, TableDefinition } from "@/shared/types/table-management"
-import { beforeEach, describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 describe("DDL Execution Service - Constraint Management Integration", () => {
   let ddlService: DDLExecutionService

@@ -375,17 +375,20 @@ export class QueryHistoryManager {
   }
 
   private isValidHistoryEntry(entry: unknown): entry is QueryHistoryEntry {
+    if (typeof entry !== "object" || entry === null) {
+      return false
+    }
+
+    const obj = entry as Record<string, unknown>
     return (
-      typeof entry === "object" &&
-      entry !== null &&
-      typeof (entry as any).id === "string" &&
-      typeof (entry as any).sql === "string" &&
-      (entry as any).executedAt instanceof Date &&
-      typeof (entry as any).success === "boolean" &&
-      typeof (entry as any).database === "string" &&
-      typeof (entry as any).connection === "string" &&
-      typeof (entry as any).user === "string" &&
-      typeof (entry as any).isFavorite === "boolean"
+      typeof obj.id === "string" &&
+      typeof obj.sql === "string" &&
+      obj.executedAt instanceof Date &&
+      typeof obj.success === "boolean" &&
+      typeof obj.database === "string" &&
+      typeof obj.connection === "string" &&
+      typeof obj.user === "string" &&
+      typeof obj.isFavorite === "boolean"
     )
   }
 

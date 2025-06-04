@@ -1,7 +1,7 @@
 import { DDLExecutionService } from "@/shared/services/DDLExecutionService"
 import type { DatabaseConnection } from "@/shared/types/sql"
 import type { TableDefinition } from "@/shared/types/table-management"
-import { beforeEach, describe, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 describe("DDLExecutionService", () => {
   let ddlService: DDLExecutionService
