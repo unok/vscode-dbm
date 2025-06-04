@@ -80,12 +80,39 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _getProdHtml(webview: vscode.Webview) {
-    // Production HTML with built assets
+    // Production HTML with built assets from Vite
     const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
-    const _indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
+    const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
 
-    // For now, return basic HTML structure
-    // This will be improved when we have actual built assets
+    try {
+      // Try to read the built index.html file from Vite
+      const fs = require("node:fs")
+      if (fs.existsSync(indexPath.fsPath)) {
+        let htmlContent = fs.readFileSync(indexPath.fsPath, "utf8")
+
+        // Transform asset paths to webview URIs
+        htmlContent = htmlContent.replace(
+          /href="\.\/assets\//g,
+          `href="${webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets"))}/`
+        )
+        htmlContent = htmlContent.replace(
+          /src="\.\/assets\//g,
+          `src="${webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets"))}/`
+        )
+
+        // Update CSP for webview
+        htmlContent = htmlContent.replace(
+          /<meta http-equiv="Content-Security-Policy"[^>]*>/g,
+          `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https:; script-src ${webview.cspSource}; font-src ${webview.cspSource};">`
+        )
+
+        return htmlContent
+      }
+    } catch (error) {
+      console.warn("Failed to read built HTML, falling back to static template:", error)
+    }
+
+    // Fallback to static HTML structure if built file is not available
     const styleSrc = webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets", "index.css"))
     const scriptSrc = webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets", "index.js"))
 
@@ -94,7 +121,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https:; script-src ${webview.cspSource};">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https:; script-src ${webview.cspSource}; font-src ${webview.cspSource};">
     <title>Database DataGrid Manager</title>
     <link rel="stylesheet" href="${styleSrc}">
     <style>
@@ -105,10 +132,22 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             color: var(--vscode-editor-foreground);
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
+            overflow: hidden;
         }
         #root {
             width: 100vw;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* VSCode theme variables */
+        :root {
+            --vscode-primary: var(--vscode-button-background);
+            --vscode-primary-hover: var(--vscode-button-hoverBackground);
+            --vscode-secondary: var(--vscode-button-secondaryBackground);
+            --vscode-border: var(--vscode-panel-border);
+            --vscode-input-bg: var(--vscode-input-background);
+            --vscode-input-border: var(--vscode-input-border);
         }
     </style>
 </head>

@@ -296,7 +296,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
               <input
                 id='ssl'
                 type='checkbox'
-                checked={typeof config.ssl === 'boolean' ? config.ssl : false}
+                checked={typeof config.ssl === "boolean" ? config.ssl : false}
                 onChange={handleInputChange("ssl")}
                 className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
               />

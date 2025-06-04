@@ -180,6 +180,12 @@ export interface Position {
 }
 
 // Validation Types
+export interface ValidationResult {
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
 export interface ValidationError {
   type: "syntax" | "schema" | "security" | "performance"
   message: string
