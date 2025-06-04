@@ -13,6 +13,7 @@ import type {
   EditableCell,
   PasteOptions,
   PasteResult,
+  PerformanceMetrics,
   RowState,
   TableData,
   ValidationContext,
@@ -32,9 +33,9 @@ export class AdvancedDataGridService {
   private aiIntegration: CursorAIIntegration
   private activeCellEdits: Map<string, EditableCell> = new Map()
   private validationCache: Map<string, ValidationResult> = new Map()
-  private performanceCallbacks: Array<(metric: any) => void> = []
-  private validationCallbacks: Array<(result: any) => void> = []
-  private dataLoader: ((offset: number, limit: number) => Promise<any>) | null = null
+  private performanceCallbacks: Array<(metric: PerformanceMetrics) => void> = []
+  private validationCallbacks: Array<(result: ValidationResult) => void> = []
+  private dataLoader: ((offset: number, limit: number) => Promise<TableData>) | null = null
 
   constructor(initialData?: TableData) {
     this.tableData = initialData || null
@@ -117,7 +118,8 @@ export class AdvancedDataGridService {
 
     // Check cache first
     if (this.validationCache.has(cacheKey)) {
-      return this.validationCache.get(cacheKey)!
+      const cached = this.validationCache.get(cacheKey)
+      return cached ?? { isValid: false, errors: ["Cache error"] }
     }
 
     if (!this.tableData) {
@@ -612,7 +614,7 @@ export class AdvancedDataGridService {
     async (rowIndex: number, columnId: string, value: CellValue) => {
       const validation = await this.validateCellValue(rowIndex, columnId, value)
 
-      this.validationCallbacks.forEach((callback) => {
+      for (const callback of this.validationCallbacks) {
         callback({
           rowIndex,
           columnId,
@@ -620,29 +622,31 @@ export class AdvancedDataGridService {
           isValid: validation.isValid,
           errors: validation.errors,
         })
-      })
+      }
     },
     250
-  )
+  ) as (rowIndex: number, columnId: string, value: CellValue) => Promise<void>
 
-  private debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  private debounce<T extends (...args: never[]) => unknown>(func: T, wait: number): T {
     let timeout: NodeJS.Timeout
-    return ((...args: any[]) => {
+    return ((...args: Parameters<T>) => {
       clearTimeout(timeout)
       timeout = setTimeout(() => func.apply(this, args), wait)
     }) as T
   }
 
-  onValidationChange(callback: (result: any) => void): void {
+  onValidationChange(callback: (result: ValidationResult) => void): void {
     this.validationCallbacks.push(callback)
   }
 
-  onPerformanceMetric(callback: (metric: any) => void): void {
+  onPerformanceMetric(callback: (metric: PerformanceMetrics) => void): void {
     this.performanceCallbacks.push(callback)
   }
 
-  private notifyPerformanceMetric(metric: any): void {
-    this.performanceCallbacks.forEach((callback) => callback(metric))
+  private notifyPerformanceMetric(metric: PerformanceMetrics): void {
+    for (const callback of this.performanceCallbacks) {
+      callback(metric)
+    }
   }
 
   getChangeTracker(): DataChangeTracker {
@@ -656,7 +660,7 @@ export class AdvancedDataGridService {
   /**
    * Lazy Loading
    */
-  setDataLoader(loader: (offset: number, limit: number) => Promise<any>): void {
+  setDataLoader(loader: (offset: number, limit: number) => Promise<TableData>): void {
     this.dataLoader = loader
   }
 

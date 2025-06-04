@@ -104,6 +104,8 @@
     "package": "npx @vscode/vsce package",
     "vscode:prepublish": "npm run build",
     "precommit": "npm run lint:check && npm run type-check && npm run build",
+    "ci:check": "npm run lint:fix || echo 'Some lint issues remain' && npm run lint:check && npm run type-check && npm run build",
+    "ci:local": "npm run ci:check",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -19,7 +19,7 @@ export abstract class DatabaseConnection {
 
   abstract connect(timeout?: number): Promise<void>
   abstract disconnect(): Promise<void>
-  abstract query(sql: string, params?: any[]): Promise<QueryResult>
+  abstract query(sql: string, params?: unknown[]): Promise<QueryResult>
 
   isConnected(): boolean {
     return this.connected
@@ -50,7 +50,7 @@ export abstract class DatabaseConnection {
     this.maxPoolSize = options.max
   }
 
-  async getPoolConnection(): Promise<any> {
+  async getPoolConnection(): Promise<unknown> {
     if (this.activeConnections >= this.maxPoolSize) {
       throw new Error("Pool exhausted")
     }

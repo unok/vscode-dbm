@@ -39,18 +39,22 @@ export class DatabaseMetadataService {
     const tables: TableMetadata[] = []
 
     for (const tableRow of tablesResult.rows) {
-      const tableMetadata = await this.getTableMetadata(connection, tableRow.name, tableRow.schema)
+      const tableMetadata = await this.getTableMetadata(
+        connection,
+        String(tableRow.name),
+        String(tableRow.schema || "")
+      )
       tables.push(tableMetadata)
     }
 
     // Get views
     const viewsResult = await connection.query(queries.getViews())
     const views: ViewMetadata[] = viewsResult.rows.map((row) => ({
-      name: row.name,
-      schema: row.schema,
-      definition: row.definition || "",
+      name: String(row.name),
+      schema: String(row.schema || ""),
+      definition: String(row.definition || ""),
       columns: [], // Will be populated separately if needed
-      comment: row.comment,
+      comment: String(row.comment || ""),
     }))
 
     const schema: DatabaseSchema = {
@@ -61,7 +65,8 @@ export class DatabaseMetadataService {
     // Cache the result
     this.cache.set(connectionId, {
       connectionId,
-      databaseName: (tablesResult.rows[0] as any)?.schema || "default",
+      databaseName:
+        ((tablesResult.rows[0] as Record<string, unknown>)?.schema as string) || "default",
       schema,
       lastUpdated: new Date(),
       isStale: false,
@@ -88,23 +93,23 @@ export class DatabaseMetadataService {
     }
 
     const columns: ColumnMetadata[] = columnsResult.rows.map((row) => ({
-      name: row.name,
-      type: row.type,
+      name: String(row.name),
+      type: String(row.type),
       nullable: row.nullable !== false,
-      defaultValue: row.default_value,
+      defaultValue: row.default_value as string | null,
       isPrimaryKey: row.is_primary_key === true,
       isForeignKey: Boolean(row.foreign_key_table),
       isUnique: row.is_unique === true,
       isAutoIncrement: row.is_auto_increment === true,
-      maxLength: row.max_length,
-      precision: row.precision,
-      scale: row.scale,
-      comment: row.comment,
+      maxLength: row.max_length as number | undefined,
+      precision: row.precision as number | undefined,
+      scale: row.scale as number | undefined,
+      comment: String(row.comment || ""),
       foreignKeyTarget: row.foreign_key_table
         ? {
-            table: row.foreign_key_table,
-            column: row.foreign_key_column,
-            schema: row.foreign_key_schema,
+            table: String(row.foreign_key_table),
+            column: String(row.foreign_key_column),
+            schema: String(row.foreign_key_schema || ""),
           }
         : undefined,
     }))
@@ -133,7 +138,7 @@ export class DatabaseMetadataService {
     const queries = this.queryBuilder.getQueries(dbType)
 
     const result = await connection.query(queries.getRowCount(tableName, schema))
-    return Number.parseInt(result.rows[0]?.count || "0", 10)
+    return Number.parseInt(String(result.rows[0]?.count || "0"), 10)
   }
 
   /**

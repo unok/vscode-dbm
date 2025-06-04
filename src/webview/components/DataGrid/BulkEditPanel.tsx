@@ -200,15 +200,16 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
     <div className='bulk-edit-panel'>
       <div className='panel-header'>
         <h3>Bulk Edit Operations</h3>
-        <button className='close-button' onClick={onClose}>
+        <button type='button' className='close-button' onClick={onClose}>
           ✕
         </button>
       </div>
 
       <div className='panel-content'>
         <div className='operation-selection'>
-          <label>Operation Type:</label>
+          <label htmlFor='operation-type'>Operation Type:</label>
           <select
+            id='operation-type'
             value={operationType}
             onChange={(e) => setOperationType(e.target.value as BulkOperationType)}
           >
@@ -220,8 +221,12 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
 
         {operationType !== "delete" && (
           <div className='column-selection'>
-            <label>Target Column:</label>
-            <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)}>
+            <label htmlFor='target-column'>Target Column:</label>
+            <select
+              id='target-column'
+              value={selectedColumn}
+              onChange={(e) => setSelectedColumn(e.target.value)}
+            >
               <option value=''>Select Column...</option>
               {editableColumns.map((column) => (
                 <option key={column.id} value={column.id}>
@@ -234,8 +239,9 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
 
         {operationType === "update" && (
           <div className='value-input'>
-            <label>New Value:</label>
+            <label htmlFor='new-value'>New Value:</label>
             <input
+              id='new-value'
               type='text'
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
@@ -247,8 +253,9 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
         {operationType === "find-replace" && (
           <div className='find-replace-inputs'>
             <div className='input-group'>
-              <label>Find:</label>
+              <label htmlFor='find-value'>Find:</label>
               <input
+                id='find-value'
                 type='text'
                 value={findValue}
                 onChange={(e) => setFindValue(e.target.value)}
@@ -256,8 +263,9 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
               />
             </div>
             <div className='input-group'>
-              <label>Replace with:</label>
+              <label htmlFor='replace-value'>Replace with:</label>
               <input
+                id='replace-value'
                 type='text'
                 value={replaceValue}
                 onChange={(e) => setReplaceValue(e.target.value)}
@@ -291,7 +299,11 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
 
               <select
                 value={conditionOperator}
-                onChange={(e) => setConditionOperator(e.target.value as any)}
+                onChange={(e) =>
+                  setConditionOperator(
+                    e.target.value as "=" | "!=" | ">" | "<" | "contains" | "starts_with"
+                  )
+                }
               >
                 <option value='='>=</option>
                 <option value='!='>!=</option>
@@ -328,8 +340,11 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
           <div className='preview-section'>
             <h4>Preview Changes:</h4>
             <div className='preview-changes'>
-              {preview.changes.slice(0, 10).map((change, index) => (
-                <div key={index} className='preview-change'>
+              {preview.changes.slice(0, 10).map((change) => (
+                <div
+                  key={`change-${change.rowIndex}-${change.columnId || "bulk"}-${Date.now()}`}
+                  className='preview-change'
+                >
                   <span className='row-index'>Row {change.rowIndex}:</span>
                   <span className='change-value'>
                     {String(change.currentValue)} → {String(change.newValue)}
@@ -354,11 +369,17 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
       </div>
 
       <div className='panel-actions'>
-        <button className='preview-button' onClick={handlePreview} disabled={!isValidOperation()}>
+        <button
+          type='button'
+          className='preview-button'
+          onClick={handlePreview}
+          disabled={!isValidOperation()}
+        >
           Preview Changes
         </button>
 
         <button
+          type='button'
           className='execute-button'
           onClick={handleExecute}
           disabled={!isValidOperation() || isExecuting}
@@ -366,7 +387,7 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
           {isExecuting ? "Executing..." : "Execute Operation"}
         </button>
 
-        <button className='cancel-button' onClick={onClose}>
+        <button type='button' className='cancel-button' onClick={onClose}>
           Cancel
         </button>
       </div>

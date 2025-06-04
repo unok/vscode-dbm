@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { DatabaseWebViewPanelProvider } from "./WebViewPanelProvider"
+import { createOrShow } from "./WebViewPanelProvider"
 import { DatabaseWebViewProvider } from "./WebViewProvider"
 
 export function activate(context: vscode.ExtensionContext) {
@@ -11,20 +11,20 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Commands
   const openConnectionCommand = vscode.commands.registerCommand("vscode-dbm.openConnection", () => {
-    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "dashboard")
+    createOrShow(context.extensionUri, "dashboard")
   })
 
   const newQueryCommand = vscode.commands.registerCommand("vscode-dbm.newQuery", () => {
-    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "sql")
+    createOrShow(context.extensionUri, "sql")
   })
 
   // Additional commands for different views
   const openDataGridCommand = vscode.commands.registerCommand("vscode-dbm.openDataGrid", () => {
-    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "datagrid")
+    createOrShow(context.extensionUri, "datagrid")
   })
 
   const openDashboardCommand = vscode.commands.registerCommand("vscode-dbm.openDashboard", () => {
-    DatabaseWebViewPanelProvider.createOrShow(context.extensionUri, "dashboard")
+    createOrShow(context.extensionUri, "dashboard")
   })
 
   context.subscriptions.push(
@@ -39,7 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Development mode detection
   if (process.env.NODE_ENV === "development") {
+    // Development-specific initialization can be added here
   }
 }
 
-export function deactivate() {}
+export function deactivate() {
+  // Cleanup code can be added here
+}

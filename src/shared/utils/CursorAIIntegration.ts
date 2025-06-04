@@ -10,7 +10,7 @@ import type {
 } from "../types/datagrid"
 
 export interface CursorAIResponse {
-  suggestions: Array<{
+  suggestions?: Array<{
     column: string
     value: CellValue
     confidence: number
@@ -22,6 +22,17 @@ export interface CursorAIResponse {
     model: string
     context: string
   }
+}
+
+interface ValidationApiResponse {
+  issues?: string[]
+  confidence?: number
+  suggestions?: string[]
+}
+
+interface TransformationApiResponse {
+  transformation?: (value: unknown) => CellValue
+  preview?: Array<{ original: CellValue; transformed: CellValue }>
 }
 
 export interface CursorAIConfig {
@@ -36,7 +47,7 @@ export interface CursorAIConfig {
 
 export class CursorAIIntegration {
   private config: CursorAIConfig
-  private cache: Map<string, any> = new Map()
+  private cache: Map<string, unknown> = new Map()
   private rateLimiter: Map<string, number> = new Map()
 
   constructor(config?: Partial<CursorAIConfig>) {
@@ -58,7 +69,7 @@ export class CursorAIIntegration {
     const cacheKey = this.getCacheKey("defaults", options)
 
     if (this.config.cacheEnabled && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)
+      return this.cache.get(cacheKey) as Record<string, CellValue>
     }
 
     try {
@@ -67,7 +78,9 @@ export class CursorAIIntegration {
 
       const defaults: Record<string, CellValue> = {}
 
-      for (const suggestion of response.suggestions) {
+      const typedResponse = response as CursorAIResponse
+      const suggestions = typedResponse.suggestions || []
+      for (const suggestion of suggestions) {
         if (suggestion.confidence >= this.config.confidenceThreshold) {
           defaults[suggestion.column] = suggestion.value
         }
@@ -94,7 +107,7 @@ export class CursorAIIntegration {
     const cacheKey = this.getCacheKey("patterns", { rows: rows.slice(0, 5), columns })
 
     if (this.config.cacheEnabled && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)
+      return this.cache.get(cacheKey) as Record<string, CursorAIPattern>
     }
 
     try {
@@ -134,16 +147,18 @@ export class CursorAIIntegration {
     const cacheKey = this.getCacheKey("suggestions", { partialValue, columnId })
 
     if (this.config.cacheEnabled && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)
+      return this.cache.get(cacheKey) as string[]
     }
 
     try {
       const prompt = this.buildSuggestionPrompt(partialValue, columnId, existingData)
       const response = await this.callCursorAPI(prompt, "get-suggestions")
 
-      const suggestions = response.suggestions
-        .filter((s: any) => s.confidence >= this.config.confidenceThreshold)
-        .map((s: any) => s.value as string)
+      const typedResponse = response as CursorAIResponse
+      const responseSuggestions = typedResponse.suggestions || []
+      const suggestions = responseSuggestions
+        .filter((s: { confidence: number }) => s.confidence >= this.config.confidenceThreshold)
+        .map((s) => String(s.value))
         .slice(0, 10) // Limit to top 10 suggestions
 
       if (this.config.cacheEnabled) {
@@ -168,10 +183,11 @@ export class CursorAIIntegration {
       const prompt = this.buildValidationPrompt(data)
       const response = await this.callCursorAPI(prompt, "validate-quality")
 
+      const typedResponse = response as ValidationApiResponse
       return {
-        issues: response.issues || [],
-        confidence: response.confidence || 0.5,
-        suggestions: response.suggestions || [],
+        issues: typedResponse.issues || [],
+        confidence: typedResponse.confidence || 0.5,
+        suggestions: typedResponse.suggestions || [],
       }
     } catch (error) {
       console.warn("AI validation failed:", error)
@@ -239,15 +255,17 @@ export class CursorAIIntegration {
       return {
         sourceColumn: options.sourceColumn,
         targetColumn: options.targetColumn,
-        function: response.transformation || ((x: any) => x),
-        preview: response.preview || [],
+        function:
+          (response as TransformationApiResponse).transformation ||
+          ((x: unknown) => x as CellValue),
+        preview: ((response as TransformationApiResponse).preview || []).map((p) => p.transformed),
       }
     } catch (error) {
       console.warn("Transformation suggestion failed:", error)
       return {
         sourceColumn: options.sourceColumn,
         targetColumn: options.targetColumn,
-        function: (x: any) => x,
+        function: (x: unknown) => x as CellValue,
         preview: [],
       }
     }
@@ -256,7 +274,7 @@ export class CursorAIIntegration {
   /**
    * Private methods for API interaction
    */
-  private async callCursorAPI(prompt: string, operation: string): Promise<any> {
+  private async callCursorAPI(prompt: string, operation: string): Promise<Record<string, unknown>> {
     // Check rate limiting
     const now = Date.now()
     const lastCall = this.rateLimiter.get(operation) || 0
@@ -272,7 +290,7 @@ export class CursorAIIntegration {
     return this.getMockAIResponse(prompt, operation)
   }
 
-  private getMockAIResponse(prompt: string, operation: string): any {
+  private getMockAIResponse(prompt: string, operation: string): Record<string, unknown> {
     // Mock implementation - in real scenario, this would call the actual Cursor AI API
     switch (operation) {
       case "generate-defaults":
@@ -558,7 +576,7 @@ Common transformations: extract initials, format phone numbers, standardize date
       .slice(0, 5)
   }
 
-  private getCacheKey(operation: string, data: any): string {
+  private getCacheKey(operation: string, data: unknown): string {
     return `${operation}:${JSON.stringify(data)}`
   }
 

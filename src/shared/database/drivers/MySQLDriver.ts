@@ -20,7 +20,7 @@ export class MySQLDriver extends DatabaseConnection {
           user: this.config.username,
           password: this.config.password,
           database: this.config.database,
-          ssl: this.config.ssl === true ? {} : (this.config.ssl as any) || undefined,
+          ssl: this.config.ssl === true ? {} : (this.config.ssl as object) || undefined,
         })
 
         this.setConnected(true)
@@ -39,7 +39,7 @@ export class MySQLDriver extends DatabaseConnection {
     this.setConnected(false)
   }
 
-  async query(sql: string, params?: any[]): Promise<QueryResult> {
+  async query(sql: string, params?: unknown[]): Promise<QueryResult> {
     if (!this.connection) {
       return {
         rows: [],
@@ -56,17 +56,20 @@ export class MySQLDriver extends DatabaseConnection {
       const executionTime = Date.now() - startTime
 
       // INSERT/UPDATE/DELETE の場合
-      if (Array.isArray(rows) && typeof (rows as any).affectedRows === "number") {
+      if (
+        Array.isArray(rows) &&
+        typeof (rows as unknown as { affectedRows: number }).affectedRows === "number"
+      ) {
         return {
           rows: [],
-          rowCount: (rows as any).affectedRows,
+          rowCount: (rows as unknown as { affectedRows: number }).affectedRows,
           executionTime,
         }
       }
 
       // SELECT の場合
       return {
-        rows: Array.isArray(rows) ? (rows as any[]) : [],
+        rows: Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [],
         rowCount: Array.isArray(rows) ? rows.length : 0,
         executionTime,
       }
@@ -82,15 +85,15 @@ export class MySQLDriver extends DatabaseConnection {
 
   async getDatabases(): Promise<string[]> {
     const result = await this.query("SHOW DATABASES")
-    return result.rows.map((row: any) => row.Database)
+    return result.rows.map((row: Record<string, unknown>) => row.Database as string)
   }
 
   async getTables(): Promise<{ name: string; type: string }[]> {
     const result = await this.query("SHOW TABLES")
     const tableKey = `Tables_in_${this.config.database}`
 
-    return result.rows.map((row: any) => ({
-      name: row[tableKey],
+    return result.rows.map((row: Record<string, unknown>) => ({
+      name: row[tableKey] as string,
       type: "table",
     }))
   }
@@ -101,11 +104,11 @@ export class MySQLDriver extends DatabaseConnection {
       [tableName, this.config.database]
     )
 
-    const columns: ColumnSchema[] = columnsResult.rows.map((row: any) => ({
-      name: row.COLUMN_NAME,
-      type: row.COLUMN_TYPE,
+    const columns: ColumnSchema[] = columnsResult.rows.map((row: Record<string, unknown>) => ({
+      name: String(row.COLUMN_NAME),
+      type: String(row.COLUMN_TYPE),
       nullable: row.IS_NULLABLE === "YES",
-      defaultValue: row.COLUMN_DEFAULT,
+      defaultValue: row.COLUMN_DEFAULT === null ? undefined : String(row.COLUMN_DEFAULT),
       isPrimaryKey: row.COLUMN_KEY === "PRI",
       isForeignKey: row.COLUMN_KEY === "MUL",
       isUnique: row.COLUMN_KEY === "UNI",
@@ -117,17 +120,17 @@ export class MySQLDriver extends DatabaseConnection {
     const indexes: IndexSchema[] = []
 
     const indexMap = new Map<string, IndexSchema>()
-    indexResult.rows.forEach((row: any) => {
-      if (!indexMap.has(row.Key_name)) {
-        indexMap.set(row.Key_name, {
-          name: row.Key_name,
+    for (const row of indexResult.rows as Record<string, unknown>[]) {
+      if (!indexMap.has(row.Key_name as string)) {
+        indexMap.set(row.Key_name as string, {
+          name: row.Key_name as string,
           columns: [],
           unique: row.Non_unique === 0,
           type: "BTREE",
         })
       }
-      indexMap.get(row.Key_name)?.columns.push(row.Column_name)
-    })
+      indexMap.get(row.Key_name as string)?.columns.push(row.Column_name as string)
+    }
 
     indexes.push(...indexMap.values())
 

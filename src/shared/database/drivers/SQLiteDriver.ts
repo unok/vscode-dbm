@@ -31,7 +31,7 @@ export class SQLiteDriver extends DatabaseConnection {
     this.setConnected(false)
   }
 
-  async query(sql: string, params?: any[]): Promise<QueryResult> {
+  async query(sql: string, params?: unknown[]): Promise<QueryResult> {
     if (!this.db) {
       return {
         rows: [],
@@ -52,7 +52,7 @@ export class SQLiteDriver extends DatabaseConnection {
         const rows = stmt.all(params || [])
 
         return {
-          rows: rows as any[],
+          rows: rows as Record<string, unknown>[],
           rowCount: rows.length,
           executionTime: Date.now() - startTime,
         }
@@ -102,15 +102,15 @@ export class SQLiteDriver extends DatabaseConnection {
     // テーブル情報取得
     const pragmaResult = await this.query(`PRAGMA table_info(${tableName})`)
 
-    const columns: ColumnSchema[] = pragmaResult.rows.map((row: any) => ({
-      name: row.name,
-      type: row.type,
+    const columns: ColumnSchema[] = pragmaResult.rows.map((row: Record<string, unknown>) => ({
+      name: String(row.name),
+      type: String(row.type),
       nullable: row.notnull === 0,
-      defaultValue: row.dflt_value,
+      defaultValue: row.dflt_value === null ? undefined : String(row.dflt_value),
       isPrimaryKey: row.pk === 1,
       isForeignKey: false, // TODO: 外部キー判定の実装
       isUnique: false, // TODO: ユニーク制約判定の実装
-      autoIncrement: row.pk === 1 && row.type.toLowerCase().includes("integer"),
+      autoIncrement: row.pk === 1 && String(row.type).toLowerCase().includes("integer"),
     }))
 
     // 主キー一覧
@@ -133,10 +133,12 @@ export class SQLiteDriver extends DatabaseConnection {
     for (const indexInfo of indexListResult.rows) {
       const indexDetailResult = await this.query(`PRAGMA index_info(${indexInfo.name})`)
 
-      const columns = indexDetailResult.rows.map((row: any) => row.name)
+      const columns = indexDetailResult.rows.map(
+        (row: Record<string, unknown>) => row.name as string
+      )
 
       indexes.push({
-        name: indexInfo.name,
+        name: String(indexInfo.name),
         columns,
         unique: indexInfo.unique === 1,
         type: "BTREE",

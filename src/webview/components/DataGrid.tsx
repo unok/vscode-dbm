@@ -15,6 +15,7 @@ import { startTransition, useCallback, useEffect, useMemo, useState } from "reac
 import { DataGridService } from "../../shared/services/DataGridService"
 import type {
   CellValue,
+  ColumnDefinition,
   DataGridColumn,
   DataGridConfig,
   EditableCell,
@@ -73,14 +74,14 @@ const DataGrid: React.FC<DataGridProps> = ({
   const dataGridService = useMemo(() => new DataGridService(), [])
   const _uuidGenerator = useMemo(() => new UUIDGenerator(), [])
   const vscodeApi = useVSCodeAPI()
-  const finalConfig = { ...defaultConfig, ...config }
+  const finalConfig = useMemo(() => ({ ...defaultConfig, ...config }), [config])
 
   // Load data effect
   useEffect(() => {
     if (tableName && !initialData) {
       loadTableData()
     }
-  }, [tableName])
+  }, [tableName, initialData])
 
   // Load table data
   const loadTableData = useCallback(async () => {
@@ -118,39 +119,59 @@ const DataGrid: React.FC<DataGridProps> = ({
   ])
 
   // Process columns for TanStack Table
-  const columns = useMemo<DataGridColumn[]>(() => {
+  const columns = useMemo<ColumnDef<Record<string, CellValue>>[]>(() => {
     if (!tableData) return []
 
-    return dataGridService.processColumnDefinitions(tableData.columns).map((col) => ({
-      ...col,
-      cell: ({ getValue, row, column, table }) => (
-        <DataGridCell
-          value={getValue()}
-          row={row.original}
-          column={col}
-          rowIndex={row.index}
-          isEditing={editingCell?.rowIndex === row.index && editingCell?.columnId === column.id}
-          onEdit={handleCellEdit}
-          onCommit={handleCellCommit}
-          onCancel={handleCellCancel}
-          config={finalConfig}
-        />
-      ),
-      header: ({ column }) => (
-        <DataGridHeader
-          column={col}
-          sorting={sorting}
-          onSort={finalConfig.enableSorting ? handleSort : undefined}
-          onFilter={finalConfig.enableFiltering ? handleFilter : undefined}
-        />
-      ),
-    }))
-  }, [tableData, editingCell, sorting, finalConfig])
+    return dataGridService
+      .processColumnDefinitions(tableData.columns)
+      .map((col): ColumnDef<Record<string, CellValue>> => {
+        const columnId = col.id || `col_${Math.random().toString(36).substr(2, 9)}`
+        return {
+          id: columnId,
+          accessorKey: columnId,
+          cell: ({ getValue, row }) => (
+            <DataGridCell
+              value={getValue() as CellValue}
+              row={row.original}
+              column={{
+                id: columnId,
+                name: col.meta?.columnDef.name || columnId,
+                type: col.meta?.columnDef.type || "text",
+                nullable: col.meta?.columnDef.nullable || false,
+                isPrimaryKey: col.meta?.columnDef.isPrimaryKey || false,
+                isAutoIncrement: col.meta?.columnDef.isAutoIncrement || false,
+              }}
+              rowIndex={row.index}
+              isEditing={editingCell?.rowIndex === row.index && editingCell?.columnId === columnId}
+              onEdit={handleCellEdit}
+              onCommit={handleCellCommit}
+              onCancel={handleCellCancel}
+            />
+          ),
+          header: () => (
+            <DataGridHeader
+              column={{
+                id: columnId,
+                name: col.meta?.columnDef.name || columnId,
+                type: col.meta?.columnDef.type || "text",
+                nullable: col.meta?.columnDef.nullable || false,
+                isPrimaryKey: col.meta?.columnDef.isPrimaryKey || false,
+                isAutoIncrement: col.meta?.columnDef.isAutoIncrement || false,
+              }}
+              sorting={sorting}
+              onSort={finalConfig.enableSorting ? handleSort : undefined}
+              onFilter={finalConfig.enableFiltering ? handleFilter : undefined}
+            />
+          ),
+          meta: col.meta,
+        }
+      })
+  }, [tableData, editingCell, sorting, finalConfig, dataGridService])
 
   // TanStack Table instance
   const table = useReactTable({
     data: tableData?.rows || [],
-    columns: columns as any,
+    columns,
     state: {
       sorting,
       columnFilters,
@@ -313,7 +334,7 @@ const DataGrid: React.FC<DataGridProps> = ({
       <div className='data-grid-error'>
         <div className='p-8 text-center'>
           <div className='text-red-400 mb-4'>Error: {error}</div>
-          <button onClick={handleRefresh} className='btn-primary'>
+          <button type='button' onClick={handleRefresh} className='btn-primary'>
             Retry
           </button>
         </div>
@@ -328,7 +349,7 @@ const DataGrid: React.FC<DataGridProps> = ({
         <div className='p-8 text-center'>
           <div className='text-gray-400 mb-4'>No data available</div>
           {finalConfig.allowAddRows && (
-            <button onClick={handleAddRow} className='btn-primary'>
+            <button type='button' onClick={handleAddRow} className='btn-primary'>
               Add First Row
             </button>
           )}
@@ -396,6 +417,7 @@ const DataGrid: React.FC<DataGridProps> = ({
                 {finalConfig.allowDeleteRows && (
                   <td className='data-grid-cell w-10'>
                     <button
+                      type='button'
                       onClick={() => handleDeleteRow(row.index)}
                       className='text-red-400 hover:text-red-300 p-1'
                       title='Delete row'
@@ -424,8 +446,20 @@ const DataGrid: React.FC<DataGridProps> = ({
 }
 
 // Sub-components will be defined in separate files
-const DataGridCell: React.FC<any> = ({
+interface DataGridCellProps {
+  value: CellValue
+  row: Record<string, CellValue>
+  column: ColumnDefinition
+  rowIndex: number
+  isEditing: boolean
+  onEdit: (rowIndex: number, columnId: string) => void
+  onCommit: (rowIndex: number, columnId: string, value: CellValue) => void
+  onCancel: () => void
+}
+
+const DataGridCell: React.FC<DataGridCellProps> = ({
   value,
+  row: _row,
   isEditing,
   onEdit,
   onCommit,
@@ -440,9 +474,7 @@ const DataGridCell: React.FC<any> = ({
   }, [value])
 
   const handleDoubleClick = () => {
-    if (column.meta?.editable) {
-      onEdit(rowIndex, column.id)
-    }
+    onEdit(rowIndex, column.id)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -457,7 +489,7 @@ const DataGridCell: React.FC<any> = ({
     return (
       <input
         type='text'
-        value={editValue || ""}
+        value={String(editValue || "")}
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={() => onCommit(rowIndex, column.id, editValue)}
         onKeyDown={handleKeyDown}
@@ -467,28 +499,40 @@ const DataGridCell: React.FC<any> = ({
   }
 
   return (
-    <div
-      className={`data-grid-cell-content ${column.meta?.editable ? "editable" : ""}`}
-      onDoubleClick={handleDoubleClick}
-    >
+    <div className='data-grid-cell-content editable' onDoubleClick={handleDoubleClick}>
       {value === null ? <span className='text-gray-400'>NULL</span> : String(value)}
     </div>
   )
 }
 
-const DataGridHeader: React.FC<any> = ({ column, sorting, onSort, onFilter }) => {
-  const sortState = sorting.find((s: any) => s.id === column.id)
+interface DataGridHeaderProps {
+  column: ColumnDefinition
+  sorting: SortingState
+  onSort?: (columnId: string) => void
+  onFilter?: (columnId: string, value: string) => void
+}
+
+const DataGridHeader: React.FC<DataGridHeaderProps> = ({ column, sorting, onSort }) => {
+  const sortState = sorting.find((s) => s.id === column.id)
 
   return (
     <div className='data-grid-header-content'>
       <div
         className={`data-grid-header-label ${onSort ? "sortable" : ""}`}
         onClick={() => onSort?.(column.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onSort?.(column.id)
+          }
+        }}
+        tabIndex={onSort ? 0 : -1}
+        role={onSort ? "button" : undefined}
       >
-        {column.header}
+        {column.name}
         {sortState && <span className='ml-1'>{sortState.desc ? "↓" : "↑"}</span>}
       </div>
-      {column.meta?.isPrimaryKey && (
+      {column.isPrimaryKey && (
         <span className='data-grid-primary-key-indicator' title='Primary Key'>
           🔑
         </span>
@@ -497,7 +541,20 @@ const DataGridHeader: React.FC<any> = ({ column, sorting, onSort, onFilter }) =>
   )
 }
 
-const DataGridToolbar: React.FC<any> = ({
+interface DataGridToolbarProps {
+  tableName: string
+  rowCount: number
+  hasChanges: boolean
+  onAddRow?: () => void
+  onSave: () => void
+  onRollback: () => void
+  onRefresh: () => void
+  globalFilter: string
+  onGlobalFilterChange: (value: string) => void
+  isLoading: boolean
+}
+
+const DataGridToolbar: React.FC<DataGridToolbarProps> = ({
   tableName,
   rowCount,
   hasChanges,
@@ -528,21 +585,41 @@ const DataGridToolbar: React.FC<any> = ({
         />
 
         {onAddRow && (
-          <button onClick={onAddRow} className='btn-primary text-sm' disabled={isLoading}>
+          <button
+            type='button'
+            onClick={onAddRow}
+            className='btn-primary text-sm'
+            disabled={isLoading}
+          >
             Add Row
           </button>
         )}
 
-        <button onClick={onRefresh} className='btn-secondary text-sm' disabled={isLoading}>
+        <button
+          type='button'
+          onClick={onRefresh}
+          className='btn-secondary text-sm'
+          disabled={isLoading}
+        >
           Refresh
         </button>
 
         {hasChanges && (
           <>
-            <button onClick={onSave} className='btn-primary text-sm' disabled={isLoading}>
+            <button
+              type='button'
+              onClick={onSave}
+              className='btn-primary text-sm'
+              disabled={isLoading}
+            >
               Save
             </button>
-            <button onClick={onRollback} className='btn-secondary text-sm' disabled={isLoading}>
+            <button
+              type='button'
+              onClick={onRollback}
+              className='btn-secondary text-sm'
+              disabled={isLoading}
+            >
               Rollback
             </button>
           </>
@@ -552,7 +629,19 @@ const DataGridToolbar: React.FC<any> = ({
   )
 }
 
-const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoading }) => {
+interface DataGridPaginationProps {
+  table: ReturnType<typeof useReactTable<Record<string, CellValue>>>
+  pagination: PaginationState
+  totalRows: number
+  isLoading: boolean
+}
+
+const DataGridPagination: React.FC<DataGridPaginationProps> = ({
+  table,
+  pagination,
+  totalRows,
+  isLoading,
+}) => {
   const totalPages = Math.ceil(totalRows / pagination.pageSize)
 
   return (
@@ -564,6 +653,7 @@ const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoa
 
       <div className='flex items-center gap-2'>
         <button
+          type='button'
           onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage() || isLoading}
           className='btn-secondary text-sm'
@@ -571,6 +661,7 @@ const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoa
           First
         </button>
         <button
+          type='button'
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage() || isLoading}
           className='btn-secondary text-sm'
@@ -583,6 +674,7 @@ const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoa
         </span>
 
         <button
+          type='button'
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage() || isLoading}
           className='btn-secondary text-sm'
@@ -590,6 +682,7 @@ const DataGridPagination: React.FC<any> = ({ table, pagination, totalRows, isLoa
           Next
         </button>
         <button
+          type='button'
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage() || isLoading}
           className='btn-secondary text-sm'

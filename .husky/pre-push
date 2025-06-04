@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push CI checks..."
+
+# Run the same checks as CI
+echo "🔍 Running lint with auto-fix..."
+npm run lint:fix || echo "⚠️ Some lint issues remain after auto-fix"
+
+echo "📊 Checking final lint status..."
+npm run lint:check && echo "✅ All lint issues resolved" || {
+  echo "❌ Lint issues found. Please review and fix:"
+  npm run lint:check
+  exit 1
+}
+
+echo "🔍 Running TypeScript type check..."
+npm run type-check && echo "✅ TypeScript check passed" || {
+  echo "❌ TypeScript type errors found. Fix these before pushing."
+  exit 1
+}
+
+echo "🏗️ Testing build process..."
+npm run build && echo "✅ Build successful" || {
+  echo "❌ Build failed. Fix build errors before pushing."
+  exit 1
+}
+
+echo ""
+echo "🎉 All pre-push checks passed! Ready to push."

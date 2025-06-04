@@ -7,11 +7,13 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  // 各E2Eテスト前の初期化
+  // E2E test initialization - setup code will be added here
 })
 
 afterEach(() => {
-  // 各E2Eテスト後のクリーンアップ
+  // E2E test cleanup - cleanup code will be added here
 })
 
-afterAll(async () => {})
+afterAll(async () => {
+  // E2E cleanup will be added here
+})

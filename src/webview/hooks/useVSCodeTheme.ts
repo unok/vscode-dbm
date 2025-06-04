@@ -28,10 +28,11 @@ export const useVSCodeTheme = (): Theme => {
 
     // Listen for theme changes from VSCode API
     vscodeApi.onMessage("themeChanged", (data) => {
-      if (data.kind) {
-        setTheme(data.kind)
+      const themeData = data as { kind?: "light" | "dark" }
+      if (themeData.kind) {
+        setTheme(themeData.kind)
         document.body.classList.remove("light", "dark")
-        document.body.classList.add(data.kind)
+        document.body.classList.add(themeData.kind)
       }
     })
 

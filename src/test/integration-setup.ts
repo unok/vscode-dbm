@@ -7,11 +7,13 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  // 各テスト前の初期化
+  // Test initialization - setup code will be added here
 })
 
 afterEach(() => {
-  // 各テスト後のクリーンアップ
+  // Test cleanup - cleanup code will be added here
 })
 
-afterAll(async () => {})
+afterAll(async () => {
+  // Integration test cleanup will be added here
+})

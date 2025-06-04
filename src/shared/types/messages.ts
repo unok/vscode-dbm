@@ -2,7 +2,7 @@
 
 export interface BaseMessage {
   type: string
-  data?: any
+  data?: unknown
 }
 
 // Extension to WebView messages
@@ -141,7 +141,7 @@ export interface ConnectionInfo {
 
 export interface QueryResult {
   columns: string[]
-  rows: any[][]
+  rows: unknown[][]
   affectedRows?: number
   insertId?: number
 }

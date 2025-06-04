@@ -212,7 +212,9 @@ describe("SQLEditorService", () => {
         'UPDATE users SET name = "John" WHERE id = 1',
       ]
 
-      queries.forEach((query) => sqlEditor.addToHistory(query))
+      for (const query of queries) {
+        sqlEditor.addToHistory(query)
+      }
 
       const selectQueries = sqlEditor.searchHistory("SELECT")
       expect(selectQueries).toHaveLength(2)
@@ -304,7 +306,9 @@ describe("SQLEditorService", () => {
         },
       ]
 
-      bookmarks.forEach((b) => sqlEditor.saveBookmark(b))
+      for (const b of bookmarks) {
+        sqlEditor.saveBookmark(b)
+      }
 
       const userBookmarks = sqlEditor.searchBookmarks("users")
       expect(userBookmarks).toHaveLength(1)
@@ -491,10 +495,10 @@ describe("SQLQueryValidator", () => {
         "DELETE FROM users WHERE id = 1",
       ]
 
-      validQueries.forEach((query) => {
+      for (const query of validQueries) {
         const errors = validator.validateSyntax(query)
         expect(errors).toHaveLength(0)
-      })
+      }
     })
 
     test("should detect syntax errors", () => {
@@ -506,11 +510,11 @@ describe("SQLQueryValidator", () => {
         "DELETE WHERE id = 1", // Missing FROM clause
       ]
 
-      invalidQueries.forEach((query) => {
+      for (const query of invalidQueries) {
         const errors = validator.validateSyntax(query)
         expect(errors.length).toBeGreaterThan(0)
         expect(errors[0].type).toBe("syntax")
-      })
+      }
     })
 
     test("should detect missing semicolon in multi-statement queries", () => {
@@ -569,11 +573,11 @@ describe("SQLQueryValidator", () => {
         "SELECT * FROM users WHERE id = 1 UNION SELECT password FROM admin",
       ]
 
-      suspiciousQueries.forEach((query) => {
+      for (const query of suspiciousQueries) {
         const errors = validator.validateSecurity(query)
         expect(errors.length).toBeGreaterThan(0)
         expect(errors[0].type).toBe("security")
-      })
+      }
     })
 
     test("should detect dangerous operations", () => {
@@ -584,11 +588,11 @@ describe("SQLQueryValidator", () => {
         "DELETE FROM users", // Without WHERE clause
       ]
 
-      dangerousQueries.forEach((query) => {
+      for (const query of dangerousQueries) {
         const errors = validator.validateSecurity(query)
         expect(errors.length).toBeGreaterThan(0)
         expect(errors.some((e) => e.severity === "error")).toBe(true)
-      })
+      }
     })
 
     test("should allow safe operations", () => {
@@ -600,10 +604,10 @@ describe("SQLQueryValidator", () => {
         "DELETE FROM users WHERE id = 1",
       ]
 
-      safeQueries.forEach((query) => {
+      for (const query of safeQueries) {
         const errors = validator.validateSecurity(query)
         expect(errors.filter((e) => e.severity === "error")).toHaveLength(0)
-      })
+      }
     })
   })
 
@@ -611,12 +615,12 @@ describe("SQLQueryValidator", () => {
     test("should detect missing WHERE clause in UPDATE/DELETE", () => {
       const queries = ['UPDATE users SET email = "test@example.com"', "DELETE FROM users"]
 
-      queries.forEach((query) => {
+      for (const query of queries) {
         const errors = validator.validatePerformance(query)
         expect(errors.length).toBeGreaterThan(0)
         expect(errors[0].type).toBe("performance")
         expect(errors[0].message).toContain("WHERE clause")
-      })
+      }
     })
 
     test("should detect SELECT * usage", () => {

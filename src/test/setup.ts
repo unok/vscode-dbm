@@ -11,26 +11,48 @@ beforeAll(() => {
       matches: false,
       media: query,
       onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => {},
+      addListener: () => {
+        /* MediaQueryList mock */
+      },
+      removeListener: () => {
+        /* MediaQueryList mock */
+      },
+      addEventListener: () => {
+        /* MediaQueryList mock */
+      },
+      removeEventListener: () => {
+        /* MediaQueryList mock */
+      },
+      dispatchEvent: () => {
+        /* MediaQueryList mock */
+      },
     }),
   })
 
   // ResizeObserver モック
   global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() {
+      /* ResizeObserver mock */
+    }
+    unobserve() {
+      /* ResizeObserver mock */
+    }
+    disconnect() {
+      /* ResizeObserver mock */
+    }
   }
 
   // IntersectionObserver モック
   global.IntersectionObserver = class IntersectionObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() {
+      /* IntersectionObserver mock */
+    }
+    unobserve() {
+      /* IntersectionObserver mock */
+    }
+    disconnect() {
+      /* IntersectionObserver mock */
+    }
     takeRecords() {
       return []
     }

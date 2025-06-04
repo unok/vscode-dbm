@@ -1,5 +1,10 @@
 import * as path from "node:path"
 import * as vscode from "vscode"
+import type {
+  BaseMessage,
+  ExecuteQueryMessage,
+  OpenConnectionMessage,
+} from "../shared/types/messages"
 
 export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dbManager.webview"
@@ -138,7 +143,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     })
   }
 
-  private _handleOpenConnection(data: any) {
+  private _handleOpenConnection(data: OpenConnectionMessage["data"]) {
     // Handle database connection request
     vscode.window.showInformationMessage(`Opening connection to: ${data.type}`)
 
@@ -155,7 +160,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private _handleExecuteQuery(data: any) {
+  private _handleExecuteQuery(data: ExecuteQueryMessage["data"]) {
     // Handle SQL query execution
     vscode.window.showInformationMessage(`Executing query: ${data.query}`)
 
@@ -173,7 +178,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   // Public methods for external communication
-  public postMessage(message: any) {
+  public postMessage(message: BaseMessage) {
     if (this._view) {
       this._view.webview.postMessage(message)
     }

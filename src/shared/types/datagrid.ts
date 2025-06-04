@@ -1,9 +1,12 @@
 import type {
+  CellContext,
   ColumnDef,
   ColumnFiltersState,
+  HeaderContext,
   PaginationState,
   SortingState,
 } from "@tanstack/react-table"
+import type { ReactNode } from "react"
 
 // Core data types
 export interface TableData {
@@ -39,8 +42,8 @@ export type CellValue = string | number | boolean | Date | null | undefined
 export interface DataGridColumn {
   id?: string
   accessorKey?: string
-  header?: string | ((props: any) => any)
-  cell?: (props: any) => any
+  header?: string | ((props: HeaderContext<Record<string, CellValue>, unknown>) => ReactNode)
+  cell?: (props: CellContext<Record<string, CellValue>, unknown>) => ReactNode
   meta?: {
     columnDef: ColumnDefinition
     cellType: CellType
@@ -214,7 +217,7 @@ export interface DataCommitEvent {
 // Validation
 export interface ValidationRule {
   type: "required" | "minLength" | "maxLength" | "pattern" | "custom"
-  value?: any
+  value?: string | number | RegExp
   message: string
   validator?: (value: CellValue, row: Record<string, CellValue>) => boolean
 }
@@ -276,18 +279,21 @@ export interface ImportOptions {
 
 // Performance monitoring
 export interface PerformanceMetrics {
-  renderTime: number
-  dataLoadTime: number
-  scrollPerformance: number
-  memoryUsage: number
-  operationsPerSecond: number
+  operation?: string
+  renderTime?: number
+  dataLoadTime?: number
+  scrollPerformance?: number
+  memoryUsage?: number
+  operationsPerSecond?: number
+  duration?: number
+  rowsAffected?: number
 }
 
 // Context menu
 export interface ContextMenuAction {
   id: string
   label: string
-  icon?: React.ReactNode
+  icon?: ReactNode
   shortcut?: string
   disabled?: boolean
   separator?: boolean
@@ -461,6 +467,9 @@ export interface ValidationResult {
   errors: string[]
   warnings?: string[]
   suggestions?: string[]
+  rowIndex?: number
+  columnId?: string
+  value?: CellValue
 }
 
 export interface VirtualScrollConfig {

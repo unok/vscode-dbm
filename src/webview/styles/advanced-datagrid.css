@@ -117,19 +117,28 @@
 }
 
 .table-row.row-new {
-  background: var(--vscode-gitDecoration-addedResourceForeground);
-  background-opacity: 0.1;
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground),
+    transparent 90%
+  );
 }
 
 .table-row.row-deleted {
-  background: var(--vscode-gitDecoration-deletedResourceForeground);
-  background-opacity: 0.1;
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground),
+    transparent 90%
+  );
   text-decoration: line-through;
 }
 
 .table-row.row-modified {
-  background: var(--vscode-gitDecoration-modifiedResourceForeground);
-  background-opacity: 0.1;
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-modifiedResourceForeground),
+    transparent 90%
+  );
 }
 
 .table-cell {
@@ -150,8 +159,11 @@
 }
 
 .cell-dirty {
-  background: var(--vscode-gitDecoration-modifiedResourceForeground);
-  background-opacity: 0.2;
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-modifiedResourceForeground),
+    transparent 80%
+  );
 }
 
 .cell-dirty::before {
@@ -808,15 +820,21 @@
 }
 
 .old-value {
-  background: var(--vscode-gitDecoration-deletedResourceForeground);
-  background-opacity: 0.2;
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-deletedResourceForeground),
+    transparent 80%
+  );
   padding: 2px 4px;
   border-radius: 2px;
 }
 
 .new-value {
-  background: var(--vscode-gitDecoration-addedResourceForeground);
-  background-opacity: 0.2;
+  background: color-mix(
+    in srgb,
+    var(--vscode-gitDecoration-addedResourceForeground),
+    transparent 80%
+  );
   padding: 2px 4px;
   border-radius: 2px;
 }

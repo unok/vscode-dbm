@@ -25,14 +25,17 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
   const [value, setValue] = useState<string>(String(cell.editedValue || ""))
   const [validation, _setValidation] = useState<ValidationResult | null>(null)
   const [isCommitting, setIsCommitting] = useState(false)
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const selectRef = useRef<HTMLSelectElement>(null)
 
   // Focus on mount
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus()
-      if ("select" in inputRef.current) {
-        inputRef.current.select()
+    const focusElement = inputRef.current || textareaRef.current || selectRef.current
+    if (focusElement) {
+      focusElement.focus()
+      if ("select" in focusElement) {
+        focusElement.select()
       }
     }
   }, [])
@@ -110,25 +113,6 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
     [column.nullable]
   )
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case "Enter":
-        if (!e.shiftKey) {
-          e.preventDefault()
-          handleCommit()
-        }
-        break
-      case "Escape":
-        e.preventDefault()
-        onCancel()
-        break
-      case "Tab":
-        // Allow natural tab behavior, but commit first
-        handleCommit()
-        break
-    }
-  }, [])
-
   const handleCommit = useCallback(async () => {
     if (isCommitting) return
 
@@ -143,6 +127,28 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
     }
   }, [value, column.type, parseValue, onCommit, isCommitting])
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case "Enter":
+          if (!e.shiftKey) {
+            e.preventDefault()
+            handleCommit()
+          }
+          break
+        case "Escape":
+          e.preventDefault()
+          onCancel()
+          break
+        case "Tab":
+          // Allow natural tab behavior, but commit first
+          handleCommit()
+          break
+      }
+    },
+    [onCancel, handleCommit]
+  )
+
   const handleBlur = useCallback(() => {
     // Small delay to allow clicking on validation tooltips or suggestions
     setTimeout(() => {
@@ -152,7 +158,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
 
   const renderInput = () => {
     const baseProps = {
-      ref: inputRef as any,
+      ref: inputRef as React.RefObject<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
       value,
       onChange: (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -168,7 +174,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
     // Special input types based on column type
     if (type.includes("bool")) {
       return (
-        <select {...baseProps} value={String(value)}>
+        <select {...baseProps} ref={selectRef} value={String(value)}>
           <option value=''>Select...</option>
           <option value='true'>True</option>
           <option value='false'>False</option>
@@ -177,23 +183,23 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
     }
 
     if (type.includes("date") && !type.includes("time")) {
-      return <input {...baseProps} type='date' />
+      return <input {...baseProps} ref={inputRef} type='date' />
     }
 
     if (type.includes("datetime") || type.includes("timestamp")) {
-      return <input {...baseProps} type='datetime-local' />
+      return <input {...baseProps} ref={inputRef} type='datetime-local' />
     }
 
     if (type.includes("time")) {
-      return <input {...baseProps} type='time' />
+      return <input {...baseProps} ref={inputRef} type='time' />
     }
 
     if (type.includes("email")) {
-      return <input {...baseProps} type='email' />
+      return <input {...baseProps} ref={inputRef} type='email' />
     }
 
     if (type.includes("url")) {
-      return <input {...baseProps} type='url' />
+      return <input {...baseProps} ref={inputRef} type='url' />
     }
 
     if (
@@ -202,13 +208,21 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
       type.includes("numeric") ||
       type.includes("float")
     ) {
-      return <input {...baseProps} type='number' step={type.includes("int") ? "1" : "any"} />
+      return (
+        <input
+          {...baseProps}
+          ref={inputRef}
+          type='number'
+          step={type.includes("int") ? "1" : "any"}
+        />
+      )
     }
 
     if (type.includes("text") || (column.maxLength && column.maxLength > 255)) {
       return (
         <textarea
           {...baseProps}
+          ref={textareaRef}
           rows={Math.min(Math.max(2, Math.ceil(value.length / 50)), 6)}
           style={{ resize: "vertical", minHeight: "60px" }}
         />
@@ -219,6 +233,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
       return (
         <textarea
           {...baseProps}
+          ref={textareaRef}
           rows={4}
           style={{ resize: "vertical", fontFamily: "monospace" }}
           placeholder='Enter valid JSON...'
@@ -227,7 +242,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
     }
 
     // Default text input
-    return <input {...baseProps} type='text' maxLength={column.maxLength} />
+    return <input {...baseProps} ref={inputRef} type='text' maxLength={column.maxLength} />
   }
 
   return (
@@ -238,8 +253,11 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
       {validation && !validation.isValid && (
         <div className='validation-tooltip'>
           <div className='validation-errors'>
-            {validation.errors.map((error, index) => (
-              <div key={index} className='validation-error'>
+            {validation.errors.map((error) => (
+              <div
+                key={`error-${error}-${Date.now()}-${Math.random()}`}
+                className='validation-error'
+              >
                 ❌ {error}
               </div>
             ))}
@@ -247,14 +265,15 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
           {validation.suggestions && validation.suggestions.length > 0 && (
             <div className='validation-suggestions'>
               <div className='suggestions-title'>💡 Suggestions:</div>
-              {validation.suggestions.map((suggestion, index) => (
-                <div
-                  key={index}
+              {validation.suggestions.map((suggestion) => (
+                <button
+                  type='button'
+                  key={`suggestion-${suggestion}-${Date.now()}-${Math.random()}`}
                   className='validation-suggestion'
                   onClick={() => setValue(suggestion)}
                 >
                   {suggestion}
-                </div>
+                </button>
               ))}
             </div>
           )}

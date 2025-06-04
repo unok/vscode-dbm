@@ -37,7 +37,15 @@ jobs:
         run: node -e "require('./package.json')" && echo "✅ Package.json is valid"
 
       - name: Run lint with auto-fix
-        run: npm run lint:fix && echo "✅ Lint issues auto-fixed"
+        run: |
+          echo "🔍 Running lint with auto-fix..."
+          npm run lint:fix || echo "⚠️ Some lint issues remain after auto-fix"
+          echo "📊 Checking lint status..."
+          npm run lint:check && echo "✅ All lint issues resolved" || {
+            echo "❌ Lint issues found. Please review and fix:"
+            npm run lint:check
+            exit 1
+          }
 
   # Development feedback (non-blocking)
   development-feedback:

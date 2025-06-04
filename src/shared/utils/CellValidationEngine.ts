@@ -45,7 +45,8 @@ export class CellValidationEngine {
 
     // Check cache first for expensive validations
     if (this.validationCache.has(cacheKey)) {
-      return this.validationCache.get(cacheKey)!
+      const cached = this.validationCache.get(cacheKey)
+      return cached ?? { isValid: false, errors: ["Cache error"], warnings: [] }
     }
 
     const errors: string[] = []
@@ -126,7 +127,7 @@ export class CellValidationEngine {
             errors.push("Value must be between -32,768 and 32,767 for SMALLINT")
           } else if (
             columnType.includes("bigint") &&
-            (numValue < -9223372036854775808 || numValue > 9223372036854775807)
+            (numValue < -9223372036854775000 || numValue > 9223372036854775000)
           ) {
             errors.push("Value exceeds BIGINT range")
           }

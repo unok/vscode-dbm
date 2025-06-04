@@ -299,7 +299,12 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
           }
         }
 
-        return { actions, dispose: () => {} }
+        return {
+          actions,
+          dispose: () => {
+            // Cleanup resources if needed
+          },
+        }
       },
     })
 
@@ -347,7 +352,10 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
           source: "sql-validator",
         }))
 
-        monaco.editor.setModelMarkers(editor.getModel()!, "sql-validator", markers)
+        const model = editor.getModel()
+        if (model) {
+          monaco.editor.setModelMarkers(model, "sql-validator", markers)
+        }
       })
     })
 
@@ -382,14 +390,14 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
     return () => {
       editor.dispose()
     }
-  }, [schema, readOnly])
+  }, [readOnly, autoCompleter, validator, sqlEditorService, query])
 
   // Update editor content when initialQuery changes
   useEffect(() => {
     if (monacoEditorRef.current && initialQuery !== query) {
       monacoEditorRef.current.setValue(initialQuery)
     }
-  }, [initialQuery])
+  }, [initialQuery, query])
 
   // Execute query
   const handleExecuteQuery = useCallback(async () => {
@@ -398,9 +406,9 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
     setIsExecuting(true)
 
     try {
-      const selectedText = monacoEditorRef.current
-        ?.getModel()
-        ?.getValueInRange(monacoEditorRef.current.getSelection()!)
+      const selection = monacoEditorRef.current?.getSelection()
+      const selectedText =
+        selection && monacoEditorRef.current?.getModel()?.getValueInRange(selection)
       const queryToExecute = selectedText || query
 
       const result = await sqlEditorService.executeQuery(queryToExecute)
@@ -562,11 +570,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
 
       {/* Results */}
       {queryResults.length > 0 && (
-        <SQLResultsPanel
-          results={queryResults}
-          onExport={handleExportResults}
-          onClear={handleClearResults}
-        />
+        <SQLResultsPanel results={queryResults} onExport={handleExportResults} />
       )}
 
       {/* History Modal */}
@@ -605,7 +609,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
 }
 
 // Toolbar component
-const SQLEditorToolbar: React.FC<{
+interface SQLEditorToolbarProps {
   isExecuting: boolean
   hasQuery: boolean
   validationErrors: ValidationError[]
@@ -617,12 +621,14 @@ const SQLEditorToolbar: React.FC<{
   onShowHistory: () => void
   onShowBookmarks: () => void
   onClearResults: () => void
-}> = ({
+}
+
+const SQLEditorToolbar: React.FC<SQLEditorToolbarProps> = ({
   isExecuting,
   hasQuery,
   validationErrors,
   onExecute,
-  onExecuteWithOptions,
+  onExecuteWithOptions: _onExecuteWithOptions,
   onGetExecutionPlan,
   onFormat,
   onSaveBookmark,
@@ -636,6 +642,7 @@ const SQLEditorToolbar: React.FC<{
     <div className='sql-editor-toolbar flex items-center justify-between p-3 bg-gray-800 border-b border-gray-700'>
       <div className='flex items-center gap-2'>
         <button
+          type='button'
           onClick={onExecute}
           disabled={!hasQuery || isExecuting || hasErrors}
           className='btn-primary text-sm flex items-center gap-2'
@@ -654,6 +661,7 @@ const SQLEditorToolbar: React.FC<{
         </button>
 
         <button
+          type='button'
           onClick={onGetExecutionPlan}
           disabled={!hasQuery || isExecuting}
           className='btn-secondary text-sm'
@@ -661,11 +669,21 @@ const SQLEditorToolbar: React.FC<{
           Explain
         </button>
 
-        <button onClick={onFormat} disabled={!hasQuery} className='btn-secondary text-sm'>
+        <button
+          type='button'
+          onClick={onFormat}
+          disabled={!hasQuery}
+          className='btn-secondary text-sm'
+        >
           Format
         </button>
 
-        <button onClick={onSaveBookmark} disabled={!hasQuery} className='btn-secondary text-sm'>
+        <button
+          type='button'
+          onClick={onSaveBookmark}
+          disabled={!hasQuery}
+          className='btn-secondary text-sm'
+        >
           Bookmark
         </button>
       </div>
@@ -678,15 +696,15 @@ const SQLEditorToolbar: React.FC<{
           </div>
         )}
 
-        <button onClick={onShowHistory} className='btn-secondary text-sm'>
+        <button type='button' onClick={onShowHistory} className='btn-secondary text-sm'>
           History
         </button>
 
-        <button onClick={onShowBookmarks} className='btn-secondary text-sm'>
+        <button type='button' onClick={onShowBookmarks} className='btn-secondary text-sm'>
           Bookmarks
         </button>
 
-        <button onClick={onClearResults} className='btn-secondary text-sm'>
+        <button type='button' onClick={onClearResults} className='btn-secondary text-sm'>
           Clear Results
         </button>
       </div>
@@ -698,8 +716,7 @@ const SQLEditorToolbar: React.FC<{
 const SQLResultsPanel: React.FC<{
   results: QueryResult[]
   onExport: (result: QueryResult, format: string) => void
-  onClear: () => void
-}> = ({ results, onExport, onClear }) => {
+}> = ({ results, onExport }) => {
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
   const selectedResult = results[selectedResultIndex]
 
@@ -713,13 +730,17 @@ const SQLResultsPanel: React.FC<{
             onChange={(e) => setSelectedResultIndex(Number(e.target.value))}
             className='bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white'
           >
-            {results.map((_, index) => (
-              <option key={index} value={index}>
+            {results.map((result, index) => (
+              <option key={`result-${index}-${result.executionTime}`} value={index}>
                 Result {index + 1}
               </option>
             ))}
           </select>
-          <button onClick={() => onExport(selectedResult, "csv")} className='btn-secondary text-sm'>
+          <button
+            type='button'
+            onClick={() => onExport(selectedResult, "csv")}
+            className='btn-secondary text-sm'
+          >
             Export CSV
           </button>
         </div>
@@ -743,7 +764,10 @@ const SQLResultsPanel: React.FC<{
               </thead>
               <tbody>
                 {selectedResult.rows.slice(0, 100).map((row, index) => (
-                  <tr key={index} className='border-b border-gray-800'>
+                  <tr
+                    key={`row-${index}-${Object.values(row).slice(0, 2).join("-")}`}
+                    className='border-b border-gray-800'
+                  >
                     {selectedResult.columns.map((col) => (
                       <td key={col} className='px-3 py-2 text-gray-300'>
                         {row[col] === null ? (
@@ -765,53 +789,139 @@ const SQLResultsPanel: React.FC<{
 }
 
 // Simplified modal components (would be fully implemented)
-const SQLHistoryModal: React.FC<any> = ({ history, onSelect, onClose }) => (
-  <div className='modal-overlay' onClick={onClose}>
-    <div className='modal-content' onClick={(e) => e.stopPropagation()}>
+interface SQLHistoryModalProps {
+  history: string[]
+  onSelect: (query: string) => void
+  onClose: () => void
+}
+
+const SQLHistoryModal: React.FC<SQLHistoryModalProps> = ({ history, onSelect, onClose }) => (
+  <div
+    className='modal-overlay'
+    onClick={onClose}
+    onKeyDown={(e) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }}
+    role='dialog'
+    aria-modal='true'
+  >
+    <div
+      className='modal-content'
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      role='document'
+    >
       <h2>Query History</h2>
       <div className='max-h-96 overflow-auto'>
         {history.map((query: string, index: number) => (
-          <div
-            key={index}
-            className='p-2 hover:bg-gray-700 cursor-pointer'
+          <button
+            type='button'
+            key={`query-${index}-${query.slice(0, 10)}`}
+            className='w-full text-left p-2 hover:bg-gray-700 cursor-pointer'
             onClick={() => onSelect(query)}
           >
             {query.slice(0, 100)}...
-          </div>
+          </button>
         ))}
       </div>
+      <button type='button' onClick={onClose}>
+        Close
+      </button>
     </div>
   </div>
 )
 
-const SQLBookmarksModal: React.FC<any> = ({ bookmarks, onSelect, onDelete, onClose }) => (
-  <div className='modal-overlay' onClick={onClose}>
-    <div className='modal-content' onClick={(e) => e.stopPropagation()}>
+interface SQLBookmarksModalProps {
+  bookmarks: QueryBookmark[]
+  onSelect: (bookmark: QueryBookmark) => void
+  onDelete: (id: string) => void
+  onClose: () => void
+}
+
+const SQLBookmarksModal: React.FC<SQLBookmarksModalProps> = ({
+  bookmarks,
+  onSelect,
+  onDelete,
+  onClose,
+}) => (
+  <div
+    className='modal-overlay'
+    onClick={onClose}
+    onKeyDown={(e) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }}
+    role='dialog'
+    aria-modal='true'
+  >
+    <div
+      className='modal-content'
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      role='document'
+    >
       <h2>Bookmarks</h2>
       <div className='max-h-96 overflow-auto'>
         {bookmarks.map((bookmark: QueryBookmark) => (
           <div key={bookmark.id} className='p-2 hover:bg-gray-700 flex justify-between'>
-            <div className='cursor-pointer' onClick={() => onSelect(bookmark)}>
+            <button
+              type='button'
+              className='text-left flex-1 cursor-pointer'
+              onClick={() => onSelect(bookmark)}
+            >
               <div className='font-medium'>{bookmark.name}</div>
               <div className='text-sm text-gray-400'>{bookmark.query.slice(0, 50)}...</div>
-            </div>
-            <button onClick={() => onDelete(bookmark.id)} className='text-red-400'>
+            </button>
+            <button
+              type='button'
+              onClick={() => onDelete(bookmark.id)}
+              className='text-red-400 ml-2'
+            >
               Delete
             </button>
           </div>
         ))}
       </div>
+      <button type='button' onClick={onClose}>
+        Close
+      </button>
     </div>
   </div>
 )
 
-const SQLExecutionPlanModal: React.FC<any> = ({ plan, onClose }) => (
-  <div className='modal-overlay' onClick={onClose}>
-    <div className='modal-content' onClick={(e) => e.stopPropagation()}>
+interface SQLExecutionPlanModalProps {
+  plan: ExecutionPlan
+  onClose: () => void
+}
+
+const SQLExecutionPlanModal: React.FC<SQLExecutionPlanModalProps> = ({ plan, onClose }) => (
+  <div
+    className='modal-overlay'
+    onClick={onClose}
+    onKeyDown={(e) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }}
+    role='dialog'
+    aria-modal='true'
+  >
+    <div
+      className='modal-content'
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      role='document'
+    >
       <h2>Execution Plan</h2>
       <pre className='bg-gray-900 p-4 rounded text-sm overflow-auto max-h-96'>
         {JSON.stringify(plan, null, 2)}
       </pre>
+      <button type='button' onClick={onClose}>
+        Close
+      </button>
     </div>
   </div>
 )

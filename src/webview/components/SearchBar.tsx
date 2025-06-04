@@ -80,7 +80,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         />
 
         {value && (
-          <button onClick={handleClear} className='search-clear-button' title='Clear search (Esc)'>
+          <button
+            type='button'
+            onClick={handleClear}
+            className='search-clear-button'
+            title='Clear search (Esc)'
+          >
             <ClearIcon />
           </button>
         )}
@@ -143,6 +148,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
         <div className='search-filters'>
           <div className='search-filters-header'>
             <button
+              type='button'
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
               className='search-filters-toggle'
             >

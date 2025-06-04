@@ -11,7 +11,7 @@ export interface SQLQuery {
 
 export interface QueryResult {
   columns: string[]
-  rows: Record<string, any>[]
+  rows: Record<string, unknown>[]
   rowCount: number
   executionTime: number
   query: string
@@ -57,8 +57,11 @@ export interface ColumnSchema {
   type: string
   nullable: boolean
   isPrimaryKey: boolean
+  isForeignKey?: boolean
+  isUnique?: boolean
   isAutoIncrement?: boolean
-  defaultValue?: any
+  autoIncrement?: boolean
+  defaultValue?: string | number | boolean | null
   maxLength?: number
   precision?: number
   scale?: number
@@ -68,9 +71,10 @@ export interface ColumnSchema {
 export interface IndexSchema {
   name: string
   columns: string[]
-  isUnique: boolean
+  unique: boolean
+  isUnique?: boolean
   isPrimary?: boolean
-  type?: string
+  type: string
 }
 
 export interface ConstraintSchema {
@@ -103,7 +107,7 @@ export interface ParameterSchema {
   name: string
   type: string
   mode: "IN" | "OUT" | "INOUT"
-  defaultValue?: any
+  defaultValue?: string | number | boolean | null
 }
 
 // Autocompletion Types
@@ -349,7 +353,7 @@ export interface DatabaseConnection {
   password?: string
   ssl?: boolean
   connectionString?: string
-  options?: Record<string, any>
+  options?: Record<string, unknown>
 }
 
 // Query Execution Context
@@ -457,7 +461,7 @@ export interface SQLDebugger {
   isDebugging: boolean
   breakpoints: SQLBreakpoint[]
   currentLine?: number
-  variables: Record<string, any>
+  variables: Record<string, unknown>
   callStack: SQLStackFrame[]
 }
 
@@ -486,7 +490,7 @@ export interface SQLCodeLens {
 export interface SQLCommand {
   title: string
   command: string
-  arguments?: any[]
+  arguments?: unknown[]
 }
 
 // Semantic Tokens
@@ -515,7 +519,7 @@ export interface SQLTestCase {
   query: string
   expectedResult?: {
     columns: string[]
-    rows: Record<string, any>[]
+    rows: Record<string, unknown>[]
     rowCount?: number
   }
   expectedError?: {

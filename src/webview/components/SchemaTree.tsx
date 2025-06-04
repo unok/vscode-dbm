@@ -74,7 +74,7 @@ export const SchemaTree: React.FC<SchemaTreeProps> = ({
   return (
     <div className={`schema-tree ${className}`}>
       {nodes.map((node) => (
-        <SchemaTreeNode
+        <SchemaTreeNodeComponent
           key={node.id}
           node={node}
           level={0}
@@ -101,7 +101,7 @@ interface SchemaTreeNodeProps {
   onExpand: (nodeId: string, expanded: boolean) => void
 }
 
-const SchemaTreeNode: React.FC<SchemaTreeNodeProps> = ({
+const SchemaTreeNodeComponent: React.FC<SchemaTreeNodeProps> = ({
   node,
   level,
   isExpanded,
@@ -135,10 +135,20 @@ const SchemaTreeNode: React.FC<SchemaTreeNodeProps> = ({
         onClick={(e) => onNodeClick(node, e)}
         onDoubleClick={(e) => onNodeDoubleClick(node, e)}
         onContextMenu={(e) => onNodeContextMenu(node, e)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onNodeClick(node, e as unknown as React.MouseEvent)
+          } else if (e.key === " ") {
+            e.preventDefault()
+            onNodeDoubleClick(node, e as unknown as React.MouseEvent)
+          }
+        }}
+        role='treeitem'
       >
         <div className='schema-tree-item-content'>
           {hasChildren && (
             <button
+              type='button'
               className={`schema-tree-expand-button ${isExpanded ? "expanded" : ""}`}
               onClick={handleToggleExpand}
               aria-label={isExpanded ? "Collapse" : "Expand"}
@@ -162,7 +172,7 @@ const SchemaTreeNode: React.FC<SchemaTreeNodeProps> = ({
       {hasChildren && isExpanded && (
         <div className='schema-tree-children'>
           {node.children?.map((childNode) => (
-            <SchemaTreeNode
+            <SchemaTreeNodeComponent
               key={childNode.id}
               node={childNode}
               level={level + 1}

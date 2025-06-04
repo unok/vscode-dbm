@@ -201,25 +201,25 @@ describe("EncryptionService", () => {
   describe("エラーハンドリングテスト", () => {
     it("nullの暗号化でエラーが発生する", () => {
       expect(() => {
-        encryptionService.encrypt(null as any)
+        encryptionService.encrypt(null as unknown as string)
       }).toThrow()
     })
 
     it("undefinedの暗号化でエラーが発生する", () => {
       expect(() => {
-        encryptionService.encrypt(undefined as any)
+        encryptionService.encrypt(undefined as unknown as string)
       }).toThrow()
     })
 
     it("nullの復号化でエラーが発生する", () => {
       expect(() => {
-        encryptionService.decrypt(null as any)
+        encryptionService.decrypt(null as unknown as string)
       }).toThrow()
     })
 
     it("undefinedの復号化でエラーが発生する", () => {
       expect(() => {
-        encryptionService.decrypt(undefined as any)
+        encryptionService.decrypt(undefined as unknown as string)
       }).toThrow()
     })
   })

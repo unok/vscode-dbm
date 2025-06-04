@@ -109,6 +109,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       <div className='flex justify-between items-center mb-4'>
         <h2>Database Connections</h2>
         <button
+          type='button'
           onClick={onConnectionCreate}
           className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
         >
@@ -120,9 +121,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
           <p>No connections configured</p>
         ) : (
           connections.map((conn) => (
-            <div
+            <button
+              type='button'
               key={conn.id}
-              className={`connection-item p-3 border rounded mb-2 cursor-pointer ${
+              className={`connection-item p-3 border rounded mb-2 cursor-pointer text-left w-full ${
                 activeConnectionId === conn.id ? "bg-blue-100 border-blue-500" : "hover:bg-gray-50"
               }`}
               onClick={() => onConnectionSelect(conn.id)}
@@ -134,6 +136,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                 </div>
                 <div className='flex gap-2'>
                   <button
+                    type='button'
                     onClick={(e) => {
                       e.stopPropagation()
                       onConnectionTest(conn.id)
@@ -143,6 +146,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                     Test
                   </button>
                   <button
+                    type='button'
                     onClick={(e) => {
                       e.stopPropagation()
                       onConnectionEdit(conn.id)
@@ -152,6 +156,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                     Edit
                   </button>
                   <button
+                    type='button'
                     onClick={(e) => {
                       e.stopPropagation()
                       onConnectionDelete(conn.id)
@@ -162,7 +167,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                   </button>
                 </div>
               </div>
-            </div>
+            </button>
           ))
         )}
       </div>

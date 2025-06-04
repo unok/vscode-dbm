@@ -30,16 +30,7 @@ import { ChangeTrackingPanel } from "./ChangeTrackingPanel"
 import { CursorAIPanel } from "./CursorAIPanel"
 import { VirtualScrollContainer } from "./VirtualScrollContainer"
 
-declare module "@tanstack/react-table" {
-  interface TableMeta<TData extends RowData> {
-    updateData: (rowIndex: number, columnId: string, value: CellValue) => void
-    getCellState: (rowIndex: number, columnId: string) => CellState
-    getRowState: (rowIndex: number) => RowState
-    startEdit: (rowIndex: number, columnId: string) => void
-    commitEdit: (rowIndex: number, columnId: string, value: CellValue) => Promise<void>
-    cancelEdit: (rowIndex: number, columnId: string) => void
-  }
-}
+// Note: Advanced table meta functionality can be implemented as needed
 
 interface AdvancedDataGridProps {
   data: TableData
@@ -284,7 +275,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
         getValue,
       }: CellContext<Record<string, CellValue>, unknown>) => {
         const rowIndex = row.index
-        const columnId = tableColumn.id!
+        const columnId = tableColumn.id || `col-${row.index}`
         const value = getValue() as CellValue
         const cellState = getCellState(rowIndex, columnId)
         const isEditing = activeCellEdits.some(
@@ -294,7 +285,8 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
         if (isEditing) {
           const editableCell = activeCellEdits.find(
             (edit) => edit.rowIndex === rowIndex && edit.columnId === columnId
-          )!
+          )
+          if (!editableCell) return null
           return (
             <AdvancedCellEditor
               cell={editableCell}
@@ -311,6 +303,16 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
             className={`cell ${cellState.isDirty ? "cell-dirty" : ""} ${cellState.isValid ? "" : "cell-invalid"}`}
             onClick={() => handleCellSelect(rowIndex, columnId)}
             onDoubleClick={() => startEdit(rowIndex, columnId)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleCellSelect(rowIndex, columnId)
+              } else if (e.key === "F2" || e.key === " ") {
+                e.preventDefault()
+                startEdit(rowIndex, columnId)
+              }
+            }}
+            tabIndex={0}
+            role='gridcell'
           >
             {cellState.visualIndicator && (
               <div className={`visual-indicator ${cellState.visualIndicator}`} />
@@ -381,7 +383,9 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
         }
       } else if (e.key === "Delete" && selectedRows.length > 0) {
         // Delete selected rows
-        selectedRows.forEach((rowIndex) => service.deleteRow(rowIndex))
+        for (const rowIndex of selectedRows) {
+          service.deleteRow(rowIndex)
+        }
         const updatedData = service.getTableData()
         if (updatedData) {
           setTableData({ ...updatedData })
@@ -400,6 +404,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
       <div className='datagrid-toolbar'>
         <div className='toolbar-section'>
           <button
+            type='button'
             className='toolbar-button'
             onClick={() => setShowChangeTracking(!showChangeTracking)}
             title='Show Changes'
@@ -409,6 +414,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
 
           {enableBulkOperations && (
             <button
+              type='button'
               className='toolbar-button'
               onClick={() => setShowBulkPanel(!showBulkPanel)}
               disabled={selectedRows.length === 0}
@@ -420,6 +426,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
 
           {enableAIIntegration && (
             <button
+              type='button'
               className='toolbar-button'
               onClick={() => setShowAIPanel(!showAIPanel)}
               title='AI Assistance'
@@ -499,6 +506,7 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {header.column.getCanSort() && (
                       <button
+                        type='button'
                         className='sort-button'
                         onClick={header.column.getToggleSortingHandler()}
                       >
@@ -554,19 +562,28 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
 
       {/* Pagination */}
       <div className='pagination-controls'>
-        <button onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+        <button
+          type='button'
+          onClick={() => table.setPageIndex(0)}
+          disabled={!table.getCanPreviousPage()}
+        >
           {"<<"}
         </button>
-        <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+        <button
+          type='button'
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
           {"<"}
         </button>
         <span>
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </span>
-        <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+        <button type='button' onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
           {">"}
         </button>
         <button
+          type='button'
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
         >
@@ -577,9 +594,15 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
   )
 
   if (enableVirtualScrolling) {
+    const virtualScrollManager = service.getVirtualScrollManager()
+    if (!virtualScrollManager) {
+      // Fallback to non-virtualized rendering if manager is not available
+      return <TableContent />
+    }
+
     return (
       <VirtualScrollContainer
-        manager={service.getVirtualScrollManager()!}
+        manager={virtualScrollManager}
         totalItems={tableData.totalRows}
         containerHeight={containerHeight}
       >

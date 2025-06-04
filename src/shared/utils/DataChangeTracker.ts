@@ -215,7 +215,10 @@ export class DataChangeTracker {
       if (!rowUpdates.has(cellChange.rowIndex)) {
         rowUpdates.set(cellChange.rowIndex, {})
       }
-      rowUpdates.get(cellChange.rowIndex)![cellChange.columnId] = cellChange.newValue
+      const rowUpdate = rowUpdates.get(cellChange.rowIndex)
+      if (rowUpdate) {
+        rowUpdate[cellChange.columnId] = cellChange.newValue
+      }
     }
 
     for (const [rowIndex, updates] of rowUpdates) {
@@ -241,8 +244,12 @@ export class DataChangeTracker {
     for (const deletedRow of changeRecord.deletedRows) {
       const primaryKeyColumn = this.originalData?.columns.find((col) => col.isPrimaryKey)
       if (primaryKeyColumn) {
+        const deletedRowWithPK = deletedRow as {
+          primaryKeyValue?: CellValue
+          data: Record<string, CellValue>
+        }
         const primaryKeyValue =
-          (deletedRow as any).primaryKeyValue || deletedRow.data[primaryKeyColumn.id]
+          deletedRowWithPK.primaryKeyValue || deletedRow.data[primaryKeyColumn.id]
         const whereClause = `${primaryKeyColumn.id} = ${this.formatSQLValue(primaryKeyValue)}`
         statements.push(`DELETE FROM ${tableName} WHERE ${whereClause}`)
       }

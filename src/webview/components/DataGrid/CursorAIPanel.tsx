@@ -133,16 +133,23 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
   }
 
   const getDataPatterns = () => {
-    const patterns: Record<string, any> = {}
+    const patterns: Record<
+      string,
+      {
+        commonValues: CellValue[]
+        dataType: string
+        nullCount: number
+        uniqueCount: number
+      }
+    > = {}
 
     for (const column of columns) {
       const values = existingData.map((row) => row[column.id]).filter((val) => val != null)
       if (values.length > 0) {
         patterns[column.id] = {
-          uniqueValues: new Set(values).size,
-          totalValues: values.length,
+          commonValues: values.slice(0, 10), // Get top 10 values
+          uniqueCount: new Set(values).size,
           nullCount: existingData.length - values.length,
-          mostCommon: getMostCommonValue(values),
           dataType: typeof values[0],
         }
       }
@@ -151,12 +158,12 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
     return patterns
   }
 
-  const getMostCommonValue = (values: CellValue[]) => {
+  const _getMostCommonValue = (values: CellValue[]) => {
     const counts: Record<string, number> = {}
-    values.forEach((val) => {
+    for (const val of values) {
       const key = String(val)
       counts[key] = (counts[key] || 0) + 1
-    })
+    }
 
     let maxCount = 0
     let mostCommon = null
@@ -174,25 +181,28 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
     <div className='cursor-ai-panel'>
       <div className='panel-header'>
         <h3>🤖 Cursor AI Assistant</h3>
-        <button className='close-button' onClick={onClose}>
+        <button type='button' className='close-button' onClick={onClose}>
           ✕
         </button>
       </div>
 
       <div className='panel-tabs'>
         <button
+          type='button'
           className={`tab ${selectedTab === "generate" ? "active" : ""}`}
           onClick={() => setSelectedTab("generate")}
         >
           Generate Defaults
         </button>
         <button
+          type='button'
           className={`tab ${selectedTab === "patterns" ? "active" : ""}`}
           onClick={() => setSelectedTab("patterns")}
         >
           Data Patterns
         </button>
         <button
+          type='button'
           className={`tab ${selectedTab === "suggestions" ? "active" : ""}`}
           onClick={() => setSelectedTab("suggestions")}
         >
@@ -204,8 +214,9 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
         {selectedTab === "generate" && (
           <div className='generate-tab'>
             <div className='context-section'>
-              <label>Context Description:</label>
+              <label htmlFor='context-description'>Context Description:</label>
               <textarea
+                id='context-description'
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
                 placeholder="Describe the type of data you're adding (e.g., 'Customer information for e-commerce store', 'Employee records for HR system')..."
@@ -215,14 +226,18 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
 
             <div className='column-selection'>
               <div className='selection-header'>
-                <label>Select Columns for AI Generation:</label>
+                <label htmlFor='column-list'>Select Columns for AI Generation:</label>
                 <div className='selection-controls'>
-                  <button onClick={handleSelectAll}>Select All</button>
-                  <button onClick={handleSelectNone}>Select None</button>
+                  <button type='button' onClick={handleSelectAll}>
+                    Select All
+                  </button>
+                  <button type='button' onClick={handleSelectNone}>
+                    Select None
+                  </button>
                 </div>
               </div>
 
-              <div className='column-list'>
+              <div id='column-list' className='column-list'>
                 {editableColumns.map((column) => (
                   <label key={column.id} className='column-checkbox'>
                     <input
@@ -258,6 +273,7 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
 
             <div className='generate-actions'>
               <button
+                type='button'
                 className='generate-button'
                 onClick={handleGenerate}
                 disabled={isGenerating || selectedColumns.length === 0}
@@ -281,12 +297,12 @@ export const CursorAIPanel: React.FC<CursorAIPanelProps> = ({
                       <span className='pattern-type'>({column?.type})</span>
                     </div>
                     <div className='pattern-stats'>
-                      <div className='stat'>Unique: {pattern.uniqueValues}</div>
-                      <div className='stat'>Total: {pattern.totalValues}</div>
+                      <div className='stat'>Unique: {pattern.uniqueCount}</div>
+                      <div className='stat'>Total: {pattern.commonValues.length}</div>
                       <div className='stat'>Nulls: {pattern.nullCount}</div>
-                      {pattern.mostCommon && (
+                      {pattern.commonValues.length > 0 && (
                         <div className='stat'>
-                          Most common: "{pattern.mostCommon.value}" ({pattern.mostCommon.count}x)
+                          Common values: {pattern.commonValues.slice(0, 3).map(String).join(", ")}
                         </div>
                       )}
                     </div>

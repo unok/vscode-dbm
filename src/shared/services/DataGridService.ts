@@ -445,7 +445,10 @@ export class DataGridService {
       if (!rowUpdates.has(cell.rowIndex)) {
         rowUpdates.set(cell.rowIndex, {})
       }
-      rowUpdates.get(cell.rowIndex)![cell.columnId] = cell.editedValue
+      const rowUpdate = rowUpdates.get(cell.rowIndex)
+      if (rowUpdate) {
+        rowUpdate[cell.columnId] = cell.editedValue
+      }
     }
 
     for (const [rowIndex, updates] of rowUpdates) {

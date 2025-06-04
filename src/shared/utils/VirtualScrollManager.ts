@@ -87,7 +87,8 @@ export class VirtualScrollManager {
     if (typeof this.config.itemHeight === "function") {
       // Check cache first
       if (this.itemHeights.has(index)) {
-        return this.itemHeights.get(index)!
+        const height = this.itemHeights.get(index)
+        return height ?? 0
       }
 
       const height = this.config.itemHeight(index)

@@ -14,7 +14,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
       <header className='flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800'>
         <div className='flex items-center space-x-4'>
           <div className='flex items-center space-x-2'>
-            <svg className='w-6 h-6 text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+            <svg
+              className='w-6 h-6 text-blue-400'
+              fill='currentColor'
+              viewBox='0 0 20 20'
+              aria-hidden='true'
+            >
               <path
                 fillRule='evenodd'
                 d='M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z'
@@ -27,6 +32,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
 
         <nav className='flex space-x-2'>
           <button
+            type='button'
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
               currentView === "dashboard"
                 ? "bg-blue-600 text-white"
@@ -37,6 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             Dashboard
           </button>
           <button
+            type='button'
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
               currentView === "explorer"
                 ? "bg-blue-600 text-white"
@@ -47,6 +54,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             Explorer
           </button>
           <button
+            type='button'
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
               currentView === "datagrid"
                 ? "bg-blue-600 text-white"
@@ -57,6 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             DataGrid
           </button>
           <button
+            type='button'
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
               currentView === "sql"
                 ? "bg-blue-600 text-white"

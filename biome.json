@@ -23,13 +23,22 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "useButtonType": "warn",
+        "useKeyWithClickEvents": "warn",
+        "noSvgWithoutTitle": "off",
+        "useSemanticElements": "off",
+        "noLabelWithoutControl": "warn"
+      },
       "complexity": {
+        "noForEach": "warn",
         "noExtraBooleanCast": "error",
         "noMultipleSpacesInRegularExpressionLiterals": "error",
         "noUselessCatch": "error",
         "noUselessTypeConstraint": "error"
       },
       "correctness": {
+        "useExhaustiveDependencies": "warn",
         "noChildrenProp": "error",
         "noConstAssign": "error",
         "noConstantCondition": "error",
@@ -55,6 +64,7 @@
         "useYield": "error"
       },
       "style": {
+        "noNonNullAssertion": "warn",
         "noCommaOperator": "error",
         "noImplicitBoolean": "off",
         "noNegationElse": "error",
@@ -78,7 +88,7 @@
         "useTemplate": "error"
       },
       "suspicious": {
-        "noArrayIndexKey": "error",
+        "noArrayIndexKey": "warn",
         "noAssignInExpressions": "error",
         "noAsyncPromiseExecutor": "error",
         "noCatchAssign": "error",

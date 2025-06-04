@@ -9,14 +9,14 @@ export interface ConnectionResult {
 
 export interface QueryResult {
   success: boolean
-  data?: any[]
+  data?: Record<string, unknown>[]
   error?: string
   executionTime?: number
 }
 interface VSCodeApi {
-  postMessage(message: any): void
-  getState(): any
-  setState(state: any): void
+  postMessage(message: Record<string, unknown>): void
+  getState(): Record<string, unknown>
+  setState(state: Record<string, unknown>): void
 }
 
 declare global {
@@ -28,7 +28,7 @@ declare global {
 
 class VSCodeWebViewAPI {
   private vscode: VSCodeApi | null = null
-  private messageHandlers: Map<string, (data: any) => void> = new Map()
+  private messageHandlers: Map<string, (data: unknown) => void> = new Map()
   private isInitialized = false
 
   constructor() {
@@ -57,9 +57,13 @@ class VSCodeWebViewAPI {
   private setupDevMode() {
     // Mock VSCode API for development
     this.vscode = {
-      postMessage: (_message: any) => {},
+      postMessage: (_message: Record<string, unknown>) => {
+        /* VSCode API mock */
+      },
       getState: () => ({}),
-      setState: (_state: any) => {},
+      setState: (_state: Record<string, unknown>) => {
+        /* VSCode API mock */
+      },
     }
     this.isInitialized = true
   }
@@ -75,13 +79,13 @@ class VSCodeWebViewAPI {
   }
 
   // Public API methods
-  public postMessage(type: string, data?: any) {
+  public postMessage(type: string, data?: unknown) {
     if (this.vscode) {
       this.vscode.postMessage({ type, data })
     }
   }
 
-  public onMessage(type: string, handler: (data: any) => void) {
+  public onMessage(type: string, handler: (data: unknown) => void) {
     this.messageHandlers.set(type, handler)
   }
 
@@ -93,7 +97,7 @@ class VSCodeWebViewAPI {
     return this.vscode?.getState() || {}
   }
 
-  public setState(state: any) {
+  public setState(state: Record<string, unknown>) {
     this.vscode?.setState(state)
   }
 
@@ -109,16 +113,16 @@ class VSCodeWebViewAPI {
     })
   }
 
-  public async openConnection(connectionData: any): Promise<ConnectionResult> {
+  public async openConnection(connectionData: Record<string, unknown>): Promise<ConnectionResult> {
     return new Promise((resolve) => {
-      this.onMessage("connectionResult", resolve)
+      this.onMessage("connectionResult", (data) => resolve(data as ConnectionResult))
       this.postMessage("openConnection", connectionData)
     })
   }
 
   public async executeQuery(query: string): Promise<QueryResult> {
     return new Promise((resolve) => {
-      this.onMessage("queryResult", resolve)
+      this.onMessage("queryResult", (data) => resolve(data as QueryResult))
       this.postMessage("executeQuery", { query })
     })
   }

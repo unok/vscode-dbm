@@ -47,7 +47,7 @@ export interface IndexSchema {
 }
 
 export interface QueryResult {
-  rows: Record<string, any>[]
+  rows: Record<string, unknown>[]
   rowCount: number
   executionTime: number
   error?: string
@@ -62,7 +62,7 @@ export interface ConnectionStatus {
 export interface DatabaseDriver {
   connect(timeout?: number): Promise<void>
   disconnect(): Promise<void>
-  query(sql: string, params?: any[]): Promise<QueryResult>
+  query(sql: string, params?: unknown[]): Promise<QueryResult>
   isConnected(): boolean
   getConnectionInfo(): DatabaseConfig
   getConnectionStatus(): ConnectionStatus

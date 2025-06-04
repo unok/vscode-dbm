@@ -40,7 +40,7 @@ export class PostgreSQLDriver extends DatabaseConnection {
     this.setConnected(false)
   }
 
-  async query(sql: string, params?: any[]): Promise<QueryResult> {
+  async query(sql: string, params?: unknown[]): Promise<QueryResult> {
     if (!this.client) {
       return {
         rows: [],
@@ -73,14 +73,14 @@ export class PostgreSQLDriver extends DatabaseConnection {
 
   async getDatabases(): Promise<string[]> {
     const result = await this.query("SELECT datname FROM pg_database WHERE datistemplate = false")
-    return result.rows.map((row: any) => row.datname)
+    return result.rows.map((row: Record<string, unknown>) => row.datname as string)
   }
 
   async getSchemas(): Promise<string[]> {
     const result = await this.query(
       "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast')"
     )
-    return result.rows.map((row: any) => row.schema_name)
+    return result.rows.map((row: Record<string, unknown>) => row.schema_name as string)
   }
 
   async getTables(): Promise<{ name: string; type: string }[]> {
@@ -132,17 +132,17 @@ export class PostgreSQLDriver extends DatabaseConnection {
       [tableName]
     )
 
-    const primaryKeys = pkResult.rows.map((row: any) => row.attname)
+    const primaryKeys = pkResult.rows.map((row: Record<string, unknown>) => row.attname as string)
 
-    const columns: ColumnSchema[] = columnsResult.rows.map((row: any) => ({
-      name: row.column_name,
+    const columns: ColumnSchema[] = columnsResult.rows.map((row: Record<string, unknown>) => ({
+      name: String(row.column_name),
       type: this.formatPostgreSQLType(row),
       nullable: row.is_nullable === "YES",
-      defaultValue: row.column_default,
-      isPrimaryKey: primaryKeys.includes(row.column_name),
+      defaultValue: row.column_default === null ? undefined : String(row.column_default),
+      isPrimaryKey: primaryKeys.includes(String(row.column_name)),
       isForeignKey: false, // TODO: 外部キー判定の実装
       isUnique: false, // TODO: ユニーク制約判定の実装
-      autoIncrement: row.column_default?.includes("nextval") || false,
+      autoIncrement: String(row.column_default || "").includes("nextval"),
     }))
 
     return {
@@ -172,16 +172,16 @@ export class PostgreSQLDriver extends DatabaseConnection {
       [tableName]
     )
 
-    return result.rows.map((row: any) => ({
-      name: row.index_name,
-      columns: row.column_names,
-      unique: row.is_unique,
+    return result.rows.map((row: Record<string, unknown>) => ({
+      name: String(row.index_name),
+      columns: row.column_names as string[],
+      unique: Boolean(row.is_unique),
       type: "BTREE",
     }))
   }
 
-  private formatPostgreSQLType(column: any): string {
-    let type = column.data_type
+  private formatPostgreSQLType(column: Record<string, unknown>): string {
+    let type = String(column.data_type)
 
     if (column.character_maximum_length) {
       type += `(${column.character_maximum_length})`

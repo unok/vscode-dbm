@@ -208,7 +208,7 @@ export class SQLEditorService {
       "ALL",
     ]
 
-    keywords.forEach((keyword) => {
+    for (const keyword of keywords) {
       const regex = new RegExp(`\\b${keyword}\\b`, "gi")
       const replacement =
         formatOptions.keywordCase === "upper"
@@ -218,7 +218,7 @@ export class SQLEditorService {
             : keyword
 
       formatted = formatted.replace(regex, replacement)
-    })
+    }
 
     // Add line breaks and indentation
     formatted = formatted
@@ -437,7 +437,7 @@ export class SQLEditorService {
       // Handle COUNT queries
       if (lowerQuery.includes("count(")) {
         resultColumns = ["count"]
-        resultRows = [{ count: mockRows.length } as any]
+        resultRows = [{ id: 0, name: String(mockRows.length), email: "", created_at: "" }]
       }
 
       // Apply LIMIT if specified

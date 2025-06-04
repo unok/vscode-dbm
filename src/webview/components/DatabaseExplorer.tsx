@@ -364,6 +364,7 @@ const DatabaseExplorer: React.FC = () => {
           <h2 className='text-xl font-bold text-green-400'>Database Explorer</h2>
           {activeConnectionId && (
             <button
+              type='button'
               onClick={handleRefreshSchema}
               disabled={isLoading}
               className='btn-secondary text-xs px-3 py-1'
