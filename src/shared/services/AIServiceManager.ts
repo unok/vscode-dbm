@@ -1,6 +1,27 @@
 import type { CellValue, CursorAIDefaultOptions } from "../types/datagrid"
 import type { DatabaseSchema } from "../types/sql"
 
+// API Response Types
+interface APIResponse {
+  content?: string
+  sql?: string
+  defaults?: Record<string, CellValue>
+  patterns?: DataPattern[]
+  confidence?: number
+  suggestions?: string[]
+  issues?: QualityIssue[]
+  improvements?: QualityImprovement[]
+  score?: number
+  choices?: Array<{
+    message?: {
+      content?: string
+    }
+  }>
+  response?: string
+}
+
+type CacheData = Record<string, CellValue> | string | PatternAnalysis | QualityReport
+
 export interface AIServiceInterface {
   generateDefaults(options: CursorAIDefaultOptions): Promise<Record<string, CellValue>>
   generateSQL(description: string, schema: DatabaseSchema): Promise<string>
@@ -70,7 +91,7 @@ export interface AIServiceConfig {
 
 export class CursorAIService implements AIServiceInterface {
   private config: AIServiceConfig["cursorAI"]
-  private cache = new Map<string, { data: any; timestamp: number }>()
+  private cache = new Map<string, { data: CacheData; timestamp: number }>()
 
   constructor(config: AIServiceConfig["cursorAI"]) {
     this.config = config
@@ -83,7 +104,9 @@ export class CursorAIService implements AIServiceInterface {
 
     const cacheKey = `defaults_${JSON.stringify(options)}`
     const cached = this.getFromCache(cacheKey)
-    if (cached) return cached
+    if (cached && typeof cached === 'object' && !Array.isArray(cached) && cached !== null) {
+      return cached as Record<string, CellValue>
+    }
 
     try {
       const prompt = this.buildDefaultsPrompt(options)
@@ -107,7 +130,9 @@ export class CursorAIService implements AIServiceInterface {
 
     const cacheKey = `sql_${description}_${JSON.stringify(schema.tables.map((t) => t.name))}`
     const cached = this.getFromCache(cacheKey)
-    if (cached) return cached
+    if (cached && typeof cached === 'string') {
+      return cached
+    }
 
     try {
       const prompt = this.buildSQLPrompt(description, schema)
@@ -174,7 +199,7 @@ export class CursorAIService implements AIServiceInterface {
     }
   }
 
-  private async callCursorAPI(prompt: string, operation: string): Promise<any> {
+  private async callCursorAPI(prompt: string, operation: string): Promise<APIResponse> {
     let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
@@ -327,7 +352,7 @@ Return as JSON with:
   }
 
   private parseDefaultsResponse(
-    response: any,
+    response: APIResponse,
     options: CursorAIDefaultOptions
   ): Record<string, CellValue> {
     try {
@@ -354,7 +379,7 @@ Return as JSON with:
     }
   }
 
-  private parseSQLResponse(response: any): string {
+  private parseSQLResponse(response: APIResponse): string {
     try {
       if (response.sql) {
         return response.sql
@@ -379,7 +404,7 @@ Return as JSON with:
     }
   }
 
-  private parsePatternAnalysisResponse(response: any): PatternAnalysis {
+  private parsePatternAnalysisResponse(response: APIResponse): PatternAnalysis {
     try {
       if (response.patterns) {
         return {
@@ -399,7 +424,7 @@ Return as JSON with:
     }
   }
 
-  private parseQualityResponse(response: any): QualityReport {
+  private parseQualityResponse(response: APIResponse): QualityReport {
     try {
       if (response.issues && response.improvements) {
         return {
@@ -444,7 +469,7 @@ Return as JSON with:
     return defaults
   }
 
-  private getFromCache(key: string): any {
+  private getFromCache(key: string): CacheData | null {
     const cached = this.cache.get(key)
     if (cached && Date.now() - cached.timestamp < 300000) {
       // 5 minutes
@@ -453,7 +478,7 @@ Return as JSON with:
     return null
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: CacheData): void {
     this.cache.set(key, { data, timestamp: Date.now() })
   }
 }

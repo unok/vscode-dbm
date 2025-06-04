@@ -240,7 +240,8 @@ export class DataImportService {
     const rows: Record<string, CellValue>[] = []
     let match: RegExpExecArray | null
 
-    while ((match = insertRegex.exec(text)) !== null) {
+    match = insertRegex.exec(text)
+    while (match !== null) {
       try {
         const columnsStr = match[2]
         const valuesStr = match[3]
@@ -258,6 +259,7 @@ export class DataImportService {
         }
 
         rows.push(row)
+        match = insertRegex.exec(text)
       } catch (error) {
         throw new Error(
           `Error parsing SQL statement: ${error instanceof Error ? error.message : "Unknown error"}`
@@ -356,9 +358,11 @@ export class DataImportService {
     const allColumns = new Set<string>()
 
     // Collect all column names
-    rawData.forEach((row) => {
-      Object.keys(row).forEach((col) => allColumns.add(col))
-    })
+    for (const row of rawData) {
+      for (const col of Object.keys(row)) {
+        allColumns.add(col)
+      }
+    }
 
     const columns = Array.from(allColumns)
     const conflicts: ConflictInfo[] = []

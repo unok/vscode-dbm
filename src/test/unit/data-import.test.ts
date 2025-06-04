@@ -550,14 +550,11 @@ Jane,false`
 
     test("should handle unsupported format", async () => {
       const mockFile = new File(["test"], "test.txt", { type: "text/plain" })
-      const options: ImportOptions = {
-        format: "csv" as any, // Force invalid format
+      const options = {
+        format: "unsupported",
         hasHeaders: true,
         onConflict: "ignore",
-      }
-
-      // Modify options to have unsupported format
-      Object.defineProperty(options, "format", { value: "unsupported" })
+      } as ImportOptions
 
       const result = await importService.importData(mockFile, options, mockTableData)
 

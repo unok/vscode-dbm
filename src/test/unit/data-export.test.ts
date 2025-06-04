@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import { DataExportService, type ExportResult } from "../../shared/services/DataExportService"
+import {
+  DataExportService,
+  type ExportProgress,
+  type ExportResult,
+} from "../../shared/services/DataExportService"
 import type { TableData } from "../../shared/types/datagrid"
 import type { ExportOptions } from "../../shared/types/sql"
 
@@ -410,7 +414,7 @@ describe("DataExportService", () => {
         includeHeaders: true,
       }
 
-      const progressUpdates: any[] = []
+      const progressUpdates: ExportProgress[] = []
       const onProgress = vi.fn((progress) => {
         progressUpdates.push(progress)
       })
@@ -450,11 +454,13 @@ describe("DataExportService", () => {
         href: "",
         download: "",
         click: vi.fn(),
-      } as any
+      } as HTMLAnchorElement
 
       const createElementSpy = vi.spyOn(document, "createElement").mockReturnValue(mockLink)
       const createObjectURLSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test-url")
-      const revokeObjectURLSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
+      const revokeObjectURLSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {
+        // Mock implementation for cleanup
+      })
 
       const result: ExportResult = {
         success: true,
@@ -481,10 +487,10 @@ describe("DataExportService", () => {
 
   describe("Error Handling", () => {
     test("should handle unsupported export format", async () => {
-      const options: ExportOptions = {
-        format: "unsupported" as any,
+      const options = {
+        format: "unsupported",
         includeHeaders: true,
-      }
+      } as ExportOptions
 
       const result = await exportService.exportData(mockTableData, options)
 
