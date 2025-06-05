@@ -1,13 +1,13 @@
 {
   "name": "vscode-dbm",
-  "displayName": "Database DataGrid Manager",
-  "description": "Advanced database management extension with DataGrid interface and Cursor AI integration",
+  "displayName": "Database Manager (DBM)",
+  "description": "Advanced database management extension with Cursor AI integration",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": ["Database", "Data Science", "Visualization"],
-  "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "datagrid", "cursor-ai"],
+  "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "cursor-ai", "dbm"],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {

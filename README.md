@@ -1,11 +1,11 @@
-# Database DataGrid Manager
+# Database Manager (DBM)
 
 ![CI Status](https://github.com/unok/vscode-dbm/workflows/CI%20-%20Pull%20Request%20Checks/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node.js-v20+-green.svg)
 ![React](https://img.shields.io/badge/react-v19-blue.svg)
 
-VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGripのような直感的な操作感を持つDataGridインターフェースを提供し、複数のデータベースに対応した包括的なDB管理ツールです。
+VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGripのような直感的な操作感を提供し、複数のデータベースに対応した包括的なDB管理ツールです。
 
 ## 🎉 フェーズ12実装中: ユーザビリティ向上機能
 
@@ -109,7 +109,7 @@ cursor --install-extension dist/vscode-dbm-0.1.0.vsix
 
 - 📊 **カスタマイズ可能なツールバー** - ドラッグ&ドロップによる自由なカスタマイズ
 - 🗃️ **複数データベース対応** - MySQL、PostgreSQL、SQLite
-- ✏️ **高度なDataGrid** - TanStack Tableベースの高性能テーブル編集
+- ✏️ **高度なデータ編集** - TanStack Tableベースの高性能テーブル編集
 - 🚀 **Monaco SQLエディタ** - シンタックスハイライト、オートコンプリート対応
 - 🔧 **テーブル管理** - DDL実行、制約管理、インデックス管理
 - 🎨 **テーマ対応** - VSCode/Cursorのテーマに自動対応
@@ -119,7 +119,7 @@ cursor --install-extension dist/vscode-dbm-0.1.0.vsix
 ### ✅ フェーズ1-11: 基盤からテーブル管理まで
 - **データベース接続**: 複数DB対応、暗号化、接続プール
 - **WebView UI**: React 19、Vite、Tailwind CSS
-- **DataGrid**: TanStack Table、仮想スクロール、インライン編集
+- **データ編集**: TanStack Table、仮想スクロール、インライン編集
 - **SQLエディタ**: Monaco Editor、オートコンプリート、フォーマッター
 - **AI統合**: Cursor AI連携、スマートデフォルト値生成
 - **テーブル管理**: DDL実行、制約・インデックス管理
