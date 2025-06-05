@@ -1,6 +1,7 @@
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { ConnectionInfo } from "../../shared/types/schema"
+import { vscodeApi } from "../api/vscode"
 
 export interface ConnectionConfig {
   id: string
@@ -15,15 +16,11 @@ export interface ConnectionConfig {
 
 export interface ConnectionFormProps {
   initialData?: Partial<ConnectionConfig>
-  onSubmit: (data: ConnectionConfig) => void
+  onSubmit?: (data: ConnectionConfig) => void
   onCancel: () => void
 }
 
-export const ConnectionForm: React.FC<ConnectionFormProps> = ({
-  initialData,
-  onSubmit,
-  onCancel,
-}) => {
+export const ConnectionForm: React.FC<ConnectionFormProps> = ({ initialData, onCancel }) => {
   const [formData, setFormData] = useState<Partial<ConnectionConfig>>(
     initialData || {
       name: "",
@@ -35,6 +32,27 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
       password: "",
     }
   )
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Listen for connection results
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data
+      if (message.type === "connectionResult") {
+        setIsConnecting(false)
+        if (message.data.success) {
+          setConnectionError(null)
+          // Connection successful - close modal or update UI
+        } else {
+          setConnectionError(message.data.message || "接続に失敗しました")
+        }
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [])
 
   // Update default port when database type changes
   const handleTypeChange = (type: ConnectionConfig["type"]) => {
@@ -50,36 +68,32 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
     })
   }
 
+  const isFormValid = (data: Partial<ConnectionConfig>): data is ConnectionConfig => {
+    if (!data.name || !data.type) return false
+    if (data.type === "sqlite") {
+      return !!(data.database && data.name)
+    }
+    return !!(data.host && data.port && data.database && data.username && data.name)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (isFormValid(formData)) {
+      setIsConnecting(true)
+      setConnectionError(null)
 
-    // Validation
-    if (!formData.name?.trim()) {
-      alert("Connection name is required")
-      return
+      // Send connection request to VSCode extension
+      const validData = formData as ConnectionConfig
+      vscodeApi.postMessage("openConnection", {
+        type: validData.type,
+        host: validData.host,
+        port: validData.port,
+        database: validData.database,
+        username: validData.username,
+        password: validData.password,
+        ssl: false,
+      })
     }
-
-    if (formData.type !== "sqlite") {
-      if (!formData.host?.trim()) {
-        alert("Host is required")
-        return
-      }
-      if (!formData.username?.trim()) {
-        alert("Username is required")
-        return
-      }
-    }
-
-    if (!formData.database?.trim()) {
-      alert("Database is required")
-      return
-    }
-
-    const completeFormData = formData as ConnectionConfig
-    onSubmit({
-      ...completeFormData,
-      id: initialData?.id || `conn_${Date.now()}`,
-    })
   }
 
   return (
@@ -207,20 +221,29 @@ export const ConnectionForm: React.FC<ConnectionFormProps> = ({
             />
           </div>
 
+          {/* Connection Error Display */}
+          {connectionError && (
+            <div className='p-3 bg-red-900/50 border border-red-700 rounded-md'>
+              <p className='text-red-300 text-sm'>{connectionError}</p>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className='flex justify-end gap-2 pt-4'>
             <button
               type='button'
               onClick={onCancel}
-              className='px-4 py-2 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500'
+              disabled={isConnecting}
+              className='px-4 py-2 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 disabled:bg-gray-700 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500'
             >
               Cancel
             </button>
             <button
               type='submit'
-              className='px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              disabled={isConnecting || !isFormValid(formData)}
+              className='px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
-              Save
+              {isConnecting ? "接続中..." : "Connect"}
             </button>
           </div>
         </form>

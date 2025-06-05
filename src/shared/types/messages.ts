@@ -93,6 +93,49 @@ export interface ShowErrorMessage extends BaseMessage {
   }
 }
 
+export interface DisconnectConnectionMessage extends BaseMessage {
+  type: "disconnectConnection"
+  data: {
+    connectionId: string
+  }
+}
+
+export interface GetTableDataMessage extends BaseMessage {
+  type: "getTableData"
+  data: {
+    tableName: string
+    schema?: string
+    limit?: number
+    offset?: number
+  }
+}
+
+export interface GetSchemaMessage extends BaseMessage {
+  type: "getSchema"
+  data: {
+    refresh?: boolean
+  }
+}
+
+export interface TableDataMessage extends BaseMessage {
+  type: "tableData"
+  data: {
+    success: boolean
+    tableName?: string
+    data?: QueryResult
+    error?: string
+  }
+}
+
+export interface SchemaDataMessage extends BaseMessage {
+  type: "schemaData"
+  data: {
+    success: boolean
+    schema?: DatabaseInfo
+    error?: string
+  }
+}
+
 // Data types
 export interface DatabaseInfo {
   name: string
@@ -153,6 +196,8 @@ export type ExtensionMessage =
   | QueryResultMessage
   | ThemeChangedMessage
   | ChangeViewMessage
+  | TableDataMessage
+  | SchemaDataMessage
 
 export type WebViewMessage =
   | GetConnectionStatusMessage
@@ -161,3 +206,6 @@ export type WebViewMessage =
   | GetThemeMessage
   | ShowInfoMessage
   | ShowErrorMessage
+  | DisconnectConnectionMessage
+  | GetTableDataMessage
+  | GetSchemaMessage
