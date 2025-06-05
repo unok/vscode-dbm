@@ -97,10 +97,10 @@ npm run build
 npm run package
 
 # VSCodeにインストール
-code --install-extension dist/vscode-dbm-0.1.0.vsix
+code --install-extension vscode-dbm-0.1.0.vsix
 
 # Cursorにインストール
-cursor --install-extension dist/vscode-dbm-0.1.0.vsix
+cursor --install-extension vscode-dbm-0.1.0.vsix
 ```
 
 詳細なインストール手順は [INSTALL.md](./INSTALL.md) をご覧ください。

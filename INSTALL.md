@@ -53,14 +53,14 @@ npm run build
 npm run package
 ```
 
-ビルドが成功すると、`dist/` ディレクトリに `.vsix` ファイルが生成されます。
+ビルドが成功すると、プロジェクトルートに `.vsix` ファイルが生成されます。
 
 ## VSCodeへのインストール
 
 ### 方法1: コマンドラインから
 
 ```bash
-code --install-extension dist/vscode-dbm-0.1.0.vsix
+code --install-extension vscode-dbm-0.1.0.vsix
 ```
 
 ### 方法2: VSCode UIから
@@ -69,7 +69,7 @@ code --install-extension dist/vscode-dbm-0.1.0.vsix
 2. 拡張機能ビュー (`Ctrl+Shift+X`) を開く
 3. 「...」メニューをクリック
 4. 「VSIXからのインストール...」を選択
-5. `dist/vscode-dbm-0.1.0.vsix` ファイルを選択
+5. `vscode-dbm-0.1.0.vsix` ファイルを選択
 6. インストール完了後、VSCodeを再起動
 
 ### 方法3: 開発モードで実行
@@ -86,7 +86,7 @@ npm run dev
 ### 方法1: コマンドラインから
 
 ```bash
-cursor --install-extension dist/vscode-dbm-0.1.0.vsix
+cursor --install-extension vscode-dbm-0.1.0.vsix
 ```
 
 ### 方法2: Cursor UIから
@@ -95,7 +95,7 @@ cursor --install-extension dist/vscode-dbm-0.1.0.vsix
 2. 拡張機能ビュー (`Ctrl+Shift+X`) を開く
 3. 「...」メニューをクリック
 4. 「VSIXからのインストール...」を選択
-5. `dist/vscode-dbm-0.1.0.vsix` ファイルを選択
+5. `vscode-dbm-0.1.0.vsix` ファイルを選択
 6. インストール完了後、Cursorを再起動
 
 ### 方法3: 開発モードで実行
@@ -222,7 +222,7 @@ npm install
 # 拡張機能の再インストール
 code --uninstall-extension publisher.extension-name
 npm run package
-code --install-extension dist/vscode-dbm-0.1.0.vsix
+code --install-extension vscode-dbm-0.1.0.vsix
 ```
 
 #### 3. データベース接続エラー
@@ -281,7 +281,7 @@ npm run build
 npm run package
 
 # 再インストール
-code --install-extension dist/vscode-dbm-0.1.0.vsix --force
+code --install-extension vscode-dbm-0.1.0.vsix --force
 ```
 
 ### 自動更新（将来予定）
