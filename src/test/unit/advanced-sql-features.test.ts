@@ -431,10 +431,10 @@ describe("QueryPlanAnalyzer", () => {
 
       const plan = await analyzer.getQueryPlan(sql, mockContext)
 
-      plan.nodes.forEach((node) => {
+      for (const node of plan.nodes) {
         expect(node.relativeCost).toBeGreaterThanOrEqual(0)
         expect(node.relativeCost).toBeLessThanOrEqual(100)
-      })
+      }
     })
   })
 

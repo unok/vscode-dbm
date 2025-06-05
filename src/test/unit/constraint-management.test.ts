@@ -207,8 +207,8 @@ describe("ConstraintManagementService", () => {
         columns: ["id"],
         referencedTable: "other_table",
         referencedColumns: ["id"],
-        onDelete: "INVALID_ACTION" as any,
-        onUpdate: "ANOTHER_INVALID" as any,
+        onDelete: "INVALID_ACTION" as "CASCADE",
+        onUpdate: "ANOTHER_INVALID" as "CASCADE",
       }
 
       const result = constraintService.validateConstraint(
@@ -557,7 +557,7 @@ describe("ConstraintManagementService", () => {
         name: "unknown_constraint",
         type: "UNKNOWN_TYPE",
         columns: ["id"],
-      } as any
+      } as ConstraintDefinition
 
       const result = constraintService.validateConstraint(constraint, ["id"], mockConnection)
 

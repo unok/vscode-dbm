@@ -14,11 +14,16 @@ node -e "require('./package.json')" && echo "✅ Package.json is valid" || {
   exit 1
 }
 
-# Basic linting (auto-fix if possible)
-echo "📝 Running basic lint check..."
-npm run lint:fix && echo "✅ Lint issues auto-fixed" || {
-  echo "⚠️  Some lint issues remain. Consider reviewing before commit."
-}
+# Lint check (strict mode for commits)
+echo "📝 Running lint check (strict mode)..."
+npm run lint:fix
+if ! npm run lint:check; then
+  echo "❌ Lint issues found. All warnings must be resolved before committing."
+  echo ""
+  echo "Run 'npm run lint:fix' and manually fix remaining issues."
+  exit 1
+fi
+echo "✅ Lint check passed"
 
 # TypeScript check (strict - blocks commit on errors)
 echo "🔍 Running TypeScript type check..."
@@ -36,7 +41,7 @@ npm run build && echo "✅ Build successful" || {
 echo ""
 echo "📝 Pre-commit summary:"
 echo "  ✅ Dependencies and package.json verified"
-echo "  ✅ Lint issues auto-fixed"
+echo "  ✅ All lint issues resolved (strict mode)"
 echo "  ✅ TypeScript type check passed"
 echo "  ✅ Build process successful"
 echo ""

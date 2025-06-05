@@ -1,5 +1,5 @@
 import { SQLFormatter } from "@/shared/services/SQLFormatter"
-import { describe, expect, test } from "vitest"
+import { beforeEach, describe, expect, test } from "vitest"
 
 describe("SQLFormatter", () => {
   let formatter: SQLFormatter

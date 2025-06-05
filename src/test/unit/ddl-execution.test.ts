@@ -21,7 +21,10 @@ describe("DDLExecutionService", () => {
     }
 
     // Mock the getConnection method to avoid actual database connections
-    vi.spyOn(ddlService as any, "getConnection").mockResolvedValue({
+    vi.spyOn(
+      ddlService as DDLExecutionService & { getConnection: () => Promise<unknown> },
+      "getConnection"
+    ).mockResolvedValue({
       query: vi.fn().mockResolvedValue({
         success: true,
         data: [],
@@ -276,9 +279,9 @@ describe("DDLExecutionService", () => {
       const results = await ddlService.executeTransaction(statements, mockConnection)
 
       expect(results).toHaveLength(3)
-      results.forEach((result) => {
+      for (const result of results) {
         expect(result.success).toBe(true)
-      })
+      }
     })
 
     test("should rollback transaction on error", async () => {

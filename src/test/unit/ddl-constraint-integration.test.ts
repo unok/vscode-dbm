@@ -332,9 +332,9 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       const results = await ddlService.batchConstraintOperations(operations, mockConnection)
 
       expect(results).toHaveLength(2)
-      results.forEach((result) => {
+      for (const result of results) {
         expect(result.success).toBe(true)
-      })
+      }
     })
 
     test("should rollback batch operations on error", async () => {
@@ -385,9 +385,9 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
       const results = await ddlService.batchConstraintOperations(operations, mockConnection)
 
       expect(results).toHaveLength(2)
-      results.forEach((result) => {
+      for (const result of results) {
         expect(result.success).toBe(true)
-      })
+      }
     })
 
     test("should handle invalid batch operations", async () => {
@@ -405,13 +405,16 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
         },
       ]
 
-      const results = await ddlService.batchConstraintOperations(operations as any, mockConnection)
+      const results = await ddlService.batchConstraintOperations(
+        operations as Parameters<typeof ddlService.batchConstraintOperations>[0],
+        mockConnection
+      )
 
       expect(results).toHaveLength(2)
-      results.forEach((result) => {
+      for (const result of results) {
         expect(result.success).toBe(false)
         expect(result.error).toContain("Invalid constraint operation")
-      })
+      }
     })
   })
 

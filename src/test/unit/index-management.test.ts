@@ -18,7 +18,12 @@ describe("IndexManagementService", () => {
       close: vi.fn(),
       isConnected: true,
       driver: "mysql",
-    } as any
+    } as {
+      query: () => Promise<unknown>
+      close: () => Promise<void>
+      isConnected: boolean
+      driver: string
+    }
   })
 
   describe("Index Validation", () => {

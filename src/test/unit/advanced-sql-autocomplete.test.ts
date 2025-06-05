@@ -73,9 +73,12 @@ describe("AdvancedSQLAutoCompleter", () => {
         { name: "SUM", description: "Sum values" },
         { name: "AVG", description: "Average values" },
       ]),
-    } as any
+    } as DatabaseMetadataService
 
-    autoCompleter = new AdvancedSQLAutoCompleter(mockMetadataService, mockMonaco as any)
+    autoCompleter = new AdvancedSQLAutoCompleter(
+      mockMetadataService,
+      mockMonaco as typeof import("monaco-editor").languages
+    )
   })
 
   describe("キーワード補完", () => {

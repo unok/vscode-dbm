@@ -30,7 +30,7 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
   }, [columns, availableDataTypes, onChange])
 
   const updateColumn = useCallback(
-    (index: number, field: keyof ColumnDefinition, value: any) => {
+    (index: number, field: keyof ColumnDefinition, value: string | boolean | string[] | undefined) => {
       const newColumns = [...columns]
       newColumns[index] = {
         ...newColumns[index],
@@ -106,6 +106,7 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
       <div className='flex justify-between items-center'>
         <h3 className='text-lg font-medium text-gray-900'>Table Columns</h3>
         <button
+          type='button'
           onClick={addColumn}
           className='px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
         >
@@ -154,7 +155,10 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
                 const isEditing = editingIndex === index
 
                 return (
-                  <tr key={index} className={isEditing ? "bg-blue-50" : "hover:bg-gray-50"}>
+                  <tr
+                    key={`column-${column.name}-${index}`}
+                    className={isEditing ? "bg-blue-50" : "hover:bg-gray-50"}
+                  >
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <input
                         type='text'
@@ -293,6 +297,7 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
                     <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
                       <div className='flex space-x-2'>
                         <button
+                          type='button'
                           onClick={() => moveColumn(index, Math.max(0, index - 1))}
                           disabled={index === 0}
                           className='text-gray-400 hover:text-gray-600 disabled:opacity-25'
@@ -301,6 +306,7 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
                           ↑
                         </button>
                         <button
+                          type='button'
                           onClick={() => moveColumn(index, Math.min(columns.length - 1, index + 1))}
                           disabled={index === columns.length - 1}
                           className='text-gray-400 hover:text-gray-600 disabled:opacity-25'
@@ -309,6 +315,7 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
                           ↓
                         </button>
                         <button
+                          type='button'
                           onClick={() => removeColumn(index)}
                           className='text-red-600 hover:text-red-900'
                           title='Remove column'

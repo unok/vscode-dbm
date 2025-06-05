@@ -79,7 +79,7 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
   }, [constraints, newConstraintType, tableName, onChange])
 
   const updateConstraint = useCallback(
-    (index: number, field: keyof ConstraintDefinition, value: any) => {
+    (index: number, field: keyof ConstraintDefinition, value: string | boolean | string[]) => {
       const newConstraints = [...constraints]
       newConstraints[index] = {
         ...newConstraints[index],
@@ -130,6 +130,7 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
             ))}
           </select>
           <button
+            type='button'
             onClick={addConstraint}
             disabled={columns.length === 0}
             className='px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
@@ -150,7 +151,7 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
 
             return (
               <div
-                key={index}
+                key={`constraint-${constraint.name}-${index}`}
                 className={`p-4 border rounded-lg ${isEditing ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
               >
                 <div className='flex justify-between items-start mb-4'>
@@ -173,9 +174,9 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
                     <div className='space-y-3'>
                       {(constraint.type === "PRIMARY_KEY" || constraint.type === "UNIQUE") && (
                         <div>
-                          <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          <div className='block text-sm font-medium text-gray-700 mb-1'>
                             Columns
-                          </label>
+                          </div>
                           <div className='flex flex-wrap gap-2'>
                             {columns.map((column) => (
                               <label key={column.name} className='flex items-center'>
@@ -202,9 +203,9 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
                         <>
                           <div className='grid grid-cols-2 gap-4'>
                             <div>
-                              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              <div className='block text-sm font-medium text-gray-700 mb-1'>
                                 Local Columns
-                              </label>
+                              </div>
                               <div className='space-y-1'>
                                 {columns.map((column) => (
                                   <label key={column.name} className='flex items-center'>
@@ -227,10 +228,14 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
                             </div>
 
                             <div>
-                              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              <label
+                                htmlFor={`ref-table-${index}`}
+                                className='block text-sm font-medium text-gray-700 mb-1'
+                              >
                                 Referenced Table
                               </label>
                               <input
+                                id={`ref-table-${index}`}
                                 type='text'
                                 value={constraint.referencedTable || ""}
                                 onChange={(e) =>
@@ -243,10 +248,14 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
                           </div>
 
                           <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                            <label
+                              htmlFor={`ref-columns-${index}`}
+                              className='block text-sm font-medium text-gray-700 mb-1'
+                            >
                               Referenced Columns (comma-separated)
                             </label>
                             <input
+                              id={`ref-columns-${index}`}
                               type='text'
                               value={constraint.referencedColumns?.join(", ") || ""}
                               onChange={(e) => {
@@ -263,10 +272,14 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
 
                           <div className='grid grid-cols-2 gap-4'>
                             <div>
-                              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              <label
+                                htmlFor={`on-delete-${index}`}
+                                className='block text-sm font-medium text-gray-700 mb-1'
+                              >
                                 On Delete
                               </label>
                               <select
+                                id={`on-delete-${index}`}
                                 value={constraint.onDelete || "RESTRICT"}
                                 onChange={(e) =>
                                   updateConstraint(index, "onDelete", e.target.value)
@@ -282,10 +295,14 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
                             </div>
 
                             <div>
-                              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              <label
+                                htmlFor={`on-update-${index}`}
+                                className='block text-sm font-medium text-gray-700 mb-1'
+                              >
                                 On Update
                               </label>
                               <select
+                                id={`on-update-${index}`}
                                 value={constraint.onUpdate || "RESTRICT"}
                                 onChange={(e) =>
                                   updateConstraint(index, "onUpdate", e.target.value)
@@ -305,10 +322,14 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
 
                       {constraint.type === "CHECK" && (
                         <div>
-                          <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          <label
+                            htmlFor={`check-expr-${index}`}
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
                             Check Expression
                           </label>
                           <textarea
+                            id={`check-expr-${index}`}
                             value={constraint.checkExpression || ""}
                             onChange={(e) =>
                               updateConstraint(index, "checkExpression", e.target.value)
@@ -323,6 +344,7 @@ export const ConstraintEditor: React.FC<ConstraintEditorProps> = ({
                   </div>
 
                   <button
+                    type='button'
                     onClick={() => removeConstraint(index)}
                     className='ml-4 text-red-600 hover:text-red-900'
                     title='Remove constraint'

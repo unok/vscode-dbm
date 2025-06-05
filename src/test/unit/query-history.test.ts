@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 describe("QueryHistoryManager", () => {
   let historyManager: QueryHistoryManager
-  let mockStorage: any
+  let mockStorage: { getItem: vi.Mock; setItem: vi.Mock; removeItem: vi.Mock }
 
   beforeEach(() => {
     // Mock VSCode storage
