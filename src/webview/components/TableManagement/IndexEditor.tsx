@@ -51,7 +51,11 @@ export const IndexEditor: React.FC<IndexEditorProps> = ({
   }, [indexes, tableName, onChange])
 
   const updateIndex = useCallback(
-    (index: number, field: keyof IndexDefinition, value: string | boolean | string[] | undefined) => {
+    (
+      index: number,
+      field: keyof IndexDefinition,
+      value: string | boolean | string[] | undefined
+    ) => {
       const newIndexes = [...indexes]
       newIndexes[index] = {
         ...newIndexes[index],

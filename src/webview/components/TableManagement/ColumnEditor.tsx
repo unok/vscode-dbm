@@ -30,7 +30,11 @@ export const ColumnEditor: React.FC<ColumnEditorProps> = ({ columns, databaseTyp
   }, [columns, availableDataTypes, onChange])
 
   const updateColumn = useCallback(
-    (index: number, field: keyof ColumnDefinition, value: string | boolean | string[] | undefined) => {
+    (
+      index: number,
+      field: keyof ColumnDefinition,
+      value: string | boolean | string[] | undefined
+    ) => {
       const newColumns = [...columns]
       newColumns[index] = {
         ...newColumns[index],
