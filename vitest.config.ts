@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./src/test/setup.ts"],
+    server: {
+      deps: {
+        external: ["vscode", "fs", "path"],
+      },
+    },
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: [
       "node_modules",

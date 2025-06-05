@@ -1,6 +1,18 @@
 import path from "node:path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+import type { Plugin } from "vite"
+
+// Custom plugin to remove type="module" from script tags
+const removeModuleType = (): Plugin => {
+  return {
+    name: "remove-module-type",
+    transformIndexHtml(html) {
+      // Remove type="module" and crossorigin from script tags
+      return html.replace(/<script type="module" crossorigin/g, "<script")
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -8,7 +20,10 @@ export default defineConfig({
       // React 19 対応
       jsxRuntime: "automatic",
     }),
+    removeModuleType(),
   ],
+  // HTMLのベースパスを明示的に設定
+  base: "./",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -20,8 +35,18 @@ export default defineConfig({
     outDir: "../../dist/webview",
     sourcemap: true,
     emptyOutDir: true,
+    target: "es2015", // 古いブラウザ対応
     rollupOptions: {
       input: path.resolve(__dirname, "src/webview/index.html"),
+      output: {
+        format: "iife", // VSCode WebView用にIIFE形式でビルド
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
+        inlineDynamicImports: true, // 動的インポートをインライン化
+        // WebViewでのパスを確実に解決するための設定
+        manualChunks: undefined, // チャンク分割を無効化
+      },
     },
   },
   root: "src/webview",

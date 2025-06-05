@@ -8,8 +8,8 @@
   },
   "categories": ["Database", "Data Science", "Visualization"],
   "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "cursor-ai", "dbm"],
-  "activationEvents": [],
-  "main": "./dist/src/extension/extension.js",
+  "activationEvents": ["*"],
+  "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
       {
@@ -81,10 +81,13 @@
     }
   },
   "scripts": {
-    "dev": "docker-compose -f docker-compose.dev.yml up -d && vite",
-    "build": "npm run build:extension && npm run build:webview",
-    "build:extension": "tsc -p ./tsconfig.json",
-    "build:webview": "vite build",
+    "dev": "docker compose -f docker-compose.dev.yml up -d && npm run dev:vite",
+    "dev:vite": "npx vite --host 0.0.0.0",
+    "dev:db": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:stop": "docker compose -f docker-compose.dev.yml down",
+    "build": "rm -rf dist && npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p ./tsconfig.extension.json",
+    "build:webview": "npx vite build",
     "package": "npx @vscode/vsce package",
     "watch": "tsc -watch -p ./tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
@@ -148,7 +151,7 @@
     "url": "https://github.com/your-username/vscode-dbm.git"
   },
   "license": "MIT",
-  "publisher": "your-publisher-name",
+  "publisher": "unok",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "ES2020"
+  },
+  "include": ["src/extension/**/*", "src/shared/**/*"],
+  "exclude": ["src/webview/**/*", "src/test/**/*", "node_modules", "dist"]
+}

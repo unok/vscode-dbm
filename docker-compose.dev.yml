@@ -25,7 +25,7 @@ services:
       MYSQL_USER: dev_user
       MYSQL_PASSWORD: dev_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-dev-data:/var/lib/mysql
       - ./scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -41,7 +41,7 @@ services:
       POSTGRES_USER: dev_user
       POSTGRES_PASSWORD: dev_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
       - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro

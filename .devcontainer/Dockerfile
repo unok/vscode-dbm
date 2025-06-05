@@ -9,7 +9,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         wget \
         unzip \
         sqlite3 \
-        mysql-client \
+        default-mysql-client \
         postgresql-client \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 

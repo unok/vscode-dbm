@@ -5,6 +5,17 @@ import type {
   ExecuteQueryMessage,
   OpenConnectionMessage,
 } from "../shared/types/messages"
+import { WebViewResourceManager } from "./webviewHelper"
+
+// Helper function to generate nonce for CSP
+function getNonce() {
+  let text = ""
+  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length))
+  }
+  return text
+}
 
 export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dbManager.webview"
@@ -52,15 +63,9 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // Get URIs for Vite dev server or built assets
-    const isDevelopment = process.env.NODE_ENV === "development"
-
-    if (isDevelopment) {
-      // Development mode: use Vite dev server
-      return this._getDevHtml()
-    }
-    // Production mode: use built assets
-    return this._getProdHtml(webview)
+    // WebViewResourceManagerを使用してHTMLを生成
+    const resourceManager = new WebViewResourceManager(webview, this._extensionUri)
+    return resourceManager.getHtmlContent("dashboard")
   }
 
   private _getDevHtml() {
@@ -80,50 +85,33 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _getProdHtml(webview: vscode.Webview) {
-    // Production HTML with built assets from Vite
+    // Find the actual JS file dynamically
     const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
-    const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
+    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
 
+    let jsFileName = "index-C_gadd4f.js" // fallback
     try {
-      // Try to read the built index.html file from Vite
       const fs = require("node:fs")
-      if (fs.existsSync(indexPath.fsPath)) {
-        let htmlContent = fs.readFileSync(indexPath.fsPath, "utf8")
-
-        // Transform asset paths to webview URIs
-        htmlContent = htmlContent.replace(
-          /href="\.\/assets\//g,
-          `href="${webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets"))}/`
-        )
-        htmlContent = htmlContent.replace(
-          /src="\.\/assets\//g,
-          `src="${webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets"))}/`
-        )
-
-        // Update CSP for webview
-        htmlContent = htmlContent.replace(
-          /<meta http-equiv="Content-Security-Policy"[^>]*>/g,
-          `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https:; script-src ${webview.cspSource}; font-src ${webview.cspSource};">`
-        )
-
-        return htmlContent
+      const files = fs.readdirSync(assetsPath.fsPath)
+      const jsFile = files.find((file: string) => file.startsWith("index-") && file.endsWith(".js"))
+      if (jsFile) {
+        jsFileName = jsFile
       }
     } catch (error) {
-      console.warn("Failed to read built HTML, falling back to static template:", error)
+      console.error("[WebViewProvider] Failed to read assets directory:", error)
     }
 
-    // Fallback to static HTML structure if built file is not available
-    const styleSrc = webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets", "index.css"))
-    const scriptSrc = webview.asWebviewUri(vscode.Uri.joinPath(webviewPath, "assets", "index.js"))
+    // Generate URLs
+    const nonce = getNonce()
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFileName))
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https:; script-src ${webview.cspSource}; font-src ${webview.cspSource};">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; connect-src ${webview.cspSource} https: ws:;">
     <title>Database DataGrid Manager</title>
-    <link rel="stylesheet" href="${styleSrc}">
     <style>
         body {
             margin: 0;
@@ -153,7 +141,130 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
     <div id="root"></div>
-    <script src="${scriptSrc}"></script>
+    <script nonce="${nonce}">
+        window.initialViewType = "dashboard";
+        window.acquireVsCodeApi = window.acquireVsCodeApi || (() => ({
+            postMessage: (msg) => console.log('VSCode API:', msg),
+            getState: () => ({}),
+            setState: (state) => {}
+        }));
+        
+        // Ensure DOM is loaded before React app
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('[WebViewProvider] DOM loaded, root element exists:', !!document.getElementById('root'));
+            });
+        } else {
+            console.log('[WebViewProvider] DOM already loaded, root element exists:', !!document.getElementById('root'));
+        }
+    </script>
+    <script nonce="${nonce}" src="${scriptUri}" defer></script>
+</body>
+</html>`
+  }
+
+  private _getFallbackHtml(webview: vscode.Webview) {
+    const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
+    const nonce = getNonce()
+
+    // Try to find the actual built files
+    const fs = require("node:fs")
+    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
+    let scriptSrc = ""
+    let styleSrc = ""
+
+    try {
+      const files = fs.readdirSync(assetsPath.fsPath)
+      const jsFile = files.find((f: string) => f.startsWith("index-") && f.endsWith(".js"))
+      const cssFile = files.find((f: string) => f.startsWith("index-") && f.endsWith(".css"))
+
+      if (jsFile) {
+        scriptSrc = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFile)).toString()
+      }
+      if (cssFile) {
+        styleSrc = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, cssFile)).toString()
+      }
+    } catch (error) {
+      console.error("Failed to find assets:", error)
+    }
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; connect-src ${webview.cspSource} https: ws:;">
+    <title>Database DataGrid Manager</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            overflow: hidden;
+        }
+        #root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .loading-text {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .error {
+            padding: 16px;
+            text-align: center;
+            color: var(--vscode-errorForeground);
+        }
+        /* VSCode theme variables */
+        :root {
+            --vscode-primary: var(--vscode-button-background);
+            --vscode-primary-hover: var(--vscode-button-hoverBackground);
+            --vscode-secondary: var(--vscode-button-secondaryBackground);
+            --vscode-border: var(--vscode-panel-border);
+            --vscode-input-bg: var(--vscode-input-background);
+            --vscode-input-border: var(--vscode-input-border);
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">
+            <div class="loading-text">Database Manager を初期化中...</div>
+        </div>
+    </div>
+    <script>
+        // Initialize VSCode API
+        window.initialViewType = "dashboard";
+        window.acquireVsCodeApi = window.acquireVsCodeApi || (() => ({
+            postMessage: (msg) => console.log('VSCode API:', msg),
+            getState: () => ({}),
+            setState: (state) => {}
+        }));
+        
+        // Fallback error handling
+        window.addEventListener('error', function(e) {
+            const root = document.getElementById('root');
+            if (root) {
+                root.innerHTML = '<div class="error">リソースの読み込みに失敗しました。<br>拡張機能を再読み込みしてください。</div>';
+            }
+        });
+    </script>
+    ${scriptSrc ? `<script nonce="${nonce}" src="${scriptSrc}"></script>` : ""}
+    ${styleSrc ? `<link rel="stylesheet" href="${styleSrc}">` : ""}
+    </script>
 </body>
 </html>`
   }
