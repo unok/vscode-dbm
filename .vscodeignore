@@ -1,0 +1,49 @@
+# テスト関連
+.vscode-test/**
+out/test/**
+test/**
+src/test/**
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# ソースファイル
+src/**
+
+# 開発用ファイル
+node_modules/**
+.vscode/**
+.gitignore
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/tslint.json
+**/.eslintrc.json
+**/jsconfig.json
+
+# ビルド設定ファイル
+vite.config.ts
+vitest.config.ts
+vitest.e2e.config.ts
+vitest.integration.config.ts
+postcss.config.js
+tailwind.config.js
+biome.json
+
+# Docker関連
+docker-compose.dev.yml
+docker-compose.test.yml
+.devcontainer/**
+
+# GitHub関連
+.github/**
+.husky/**
+
+# プロジェクト管理ファイル
+CLAUDE.md
+INSTALL.md
+scripts/**
+
+# その他
+**/*.map
+.claude/**
