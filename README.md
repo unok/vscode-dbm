@@ -1,10 +1,13 @@
 # Database DataGrid Manager
 
-![CI Status](https://github.com/your-username/vscode-dbm/workflows/CI%20-%20Pull%20Request%20Checks/badge.svg)
+![CI Status](https://github.com/unok/vscode-dbm/workflows/CI%20-%20Pull%20Request%20Checks/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node.js](https://img.shields.io/badge/node.js-v20+-green.svg)
+![React](https://img.shields.io/badge/react-v19-blue.svg)
 
 VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGripのような直感的な操作感を持つDataGridインターフェースを提供し、複数のデータベースに対応した包括的なDB管理ツールです。
 
-## 🎉 フェーズ2完了: データベース接続基盤（TDD実装）
+## 🎉 フェーズ12実装中: ユーザビリティ向上機能
 
 ### ✅ フェーズ1: Dev Container + Vite+React19基盤構築
 
@@ -81,20 +84,60 @@ VSCode/Cursor用のデータベース操作プラグイン。JetBrains DataGrip�
   - `PostgreSQLDriver` - PostgreSQL専用ドライバー（JSON/UUID対応）
   - `SQLiteDriver` - SQLite専用ドライバー（FTS、トランザクション）
 
-## 🔄 次のステップ
+## 📦 インストール・使用方法
 
-### フェーズ3: Vite WebView UI基盤
-- React 19開発環境セットアップ
-- Vite WebViewプロバイダー実装
-- 基本的なUIレイアウト作成
-- VSCode拡張機能とWebView間の通信実装
+### クイックインストール
 
-### 長期ロードマップ
-- フェーズ4: スキーマエクスプローラー
-- フェーズ5: TanStack Table DataGrid実装
-- フェーズ6: Monaco Editor SQLエディタ実装
-- フェーズ7-9: 高度機能とCursor AI統合
-- フェーズ10-15: 完成・公開準備
+```bash
+# リポジトリからビルド
+git clone https://github.com/unok/vscode-dbm.git
+cd vscode-dbm
+npm install
+npm run build
+npm run package
+
+# VSCodeにインストール
+code --install-extension dist/vscode-dbm-0.1.0.vsix
+
+# Cursorにインストール
+cursor --install-extension dist/vscode-dbm-0.1.0.vsix
+```
+
+詳細なインストール手順は [INSTALL.md](./INSTALL.md) をご覧ください。
+
+### 主要機能
+
+- 📊 **カスタマイズ可能なツールバー** - ドラッグ&ドロップによる自由なカスタマイズ
+- 🗃️ **複数データベース対応** - MySQL、PostgreSQL、SQLite
+- ✏️ **高度なDataGrid** - TanStack Tableベースの高性能テーブル編集
+- 🚀 **Monaco SQLエディタ** - シンタックスハイライト、オートコンプリート対応
+- 🔧 **テーブル管理** - DDL実行、制約管理、インデックス管理
+- 🎨 **テーマ対応** - VSCode/Cursorのテーマに自動対応
+
+## 🎯 実装済み機能（フェーズ1-12）
+
+### ✅ フェーズ1-11: 基盤からテーブル管理まで
+- **データベース接続**: 複数DB対応、暗号化、接続プール
+- **WebView UI**: React 19、Vite、Tailwind CSS
+- **DataGrid**: TanStack Table、仮想スクロール、インライン編集
+- **SQLエディタ**: Monaco Editor、オートコンプリート、フォーマッター
+- **AI統合**: Cursor AI連携、スマートデフォルト値生成
+- **テーブル管理**: DDL実行、制約・インデックス管理
+
+### 🚧 フェーズ12: ユーザビリティ向上（実装中）
+- **✅ ツールバーカスタマイズ**: ドラッグ&ドロップ、テーマ切り替え、設定保存
+- **🔄 設定画面**: 実装予定
+- **🔄 ヘルプ・ドキュメント**: 実装予定
+
+## 🔄 今後の予定
+
+### フェーズ13: 最終統合テスト・品質保証
+- E2Eワークフローテスト、パフォーマンス・負荷テスト
+- セキュリティテスト、ユーザビリティテスト
+
+### フェーズ14-15: 公開準備
+- GitHub Actions CI/CD構築、VSCode Marketplace公開
+- ドキュメント・チュートリアル作成
 
 ## 🏃‍♂️ 開発環境セットアップ
 

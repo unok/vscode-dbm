@@ -6,8 +6,20 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Database", "Data Science", "Visualization"],
-  "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "datagrid", "cursor-ai"],
+  "categories": [
+    "Database",
+    "Data Science",
+    "Visualization"
+  ],
+  "keywords": [
+    "database",
+    "sql",
+    "mysql",
+    "postgresql",
+    "sqlite",
+    "datagrid",
+    "cursor-ai"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -85,6 +97,7 @@
     "build": "npm run build:extension && npm run build:webview",
     "build:extension": "tsc -p ./tsconfig.json",
     "build:webview": "vite build",
+    "package": "npx @vscode/vsce package",
     "watch": "tsc -watch -p ./tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
     "test:ci": "vitest run --config vitest.config.ts src/test/ci-check.test.ts",
@@ -101,7 +114,6 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "type-check": "tsc --noEmit",
-    "package": "npx @vscode/vsce package",
     "vscode:prepublish": "npm run build",
     "precommit": "npm run lint:check && npm run type-check && npm run build",
     "ci:check": "npm run lint:fix || echo 'Some lint issues remain' && npm run lint:check && npm run type-check && npm run build",
@@ -122,7 +134,7 @@
     "@types/vscode": "^1.85.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.8",
-    "@vscode/vsce": "^3.2.0",
+    "@vscode/vsce": "^3.4.2",
     "autoprefixer": "^10.4.21",
     "happy-dom": "^15.11.6",
     "husky": "^9.1.7",
