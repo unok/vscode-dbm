@@ -202,9 +202,8 @@ class ToolbarCustomizationService {
     const item = this.defaultItems.find((i) => i.id === itemId)
     if (item) {
       item.visible = true
-      this.settings.userCustomizations.hiddenItems = this.settings.userCustomizations.hiddenItems.filter(
-        (id) => id !== itemId
-      )
+      this.settings.userCustomizations.hiddenItems =
+        this.settings.userCustomizations.hiddenItems.filter((id) => id !== itemId)
       this.applyItemsToLayout()
       this.saveSettings()
     }
@@ -214,9 +213,11 @@ class ToolbarCustomizationService {
     const item = this.defaultItems.find((i) => i.id === itemId)
     if (item) {
       item.position = newPosition
-      
+
       // Update or add to reordered items
-      const existingReorder = this.settings.userCustomizations.reorderedItems.find((r) => r.id === itemId)
+      const existingReorder = this.settings.userCustomizations.reorderedItems.find(
+        (r) => r.id === itemId
+      )
       if (existingReorder) {
         existingReorder.position = newPosition
       } else {
@@ -239,7 +240,7 @@ class ToolbarCustomizationService {
 
   toggleSection(sectionId: string): void {
     const section = this.layout.sections.find((s) => s.id === sectionId)
-    if (section && section.collapsible) {
+    if (section?.collapsible) {
       section.collapsed = !section.collapsed
       this.saveSettings()
     }
@@ -376,7 +377,7 @@ describe("ToolbarCustomizationService", () => {
       setItem: vi.fn(),
       removeItem: vi.fn(),
     }
-    
+
     Object.defineProperty(window, "localStorage", {
       value: mockLocalStorage,
       writable: true,
@@ -465,7 +466,7 @@ describe("ToolbarCustomizationService", () => {
 
       const layout = toolbarService.getLayout()
       const editorSection = layout.sections.find((s) => s.id === "editor")
-      
+
       // execute-query should now be first (position 1)
       expect(editorSection?.items[0].id).toBe("execute-query")
     })
@@ -546,7 +547,7 @@ describe("ToolbarCustomizationService", () => {
       const layout = toolbarService.getLayout()
       expect(layout.theme).toBe("standard")
       expect(layout.iconSize).toBe("medium")
-      
+
       const editorSection = layout.sections.find((s) => s.id === "editor")
       expect(editorSection?.items.some((item) => item.id === "new-query")).toBe(true)
     })

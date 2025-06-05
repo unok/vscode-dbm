@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { CustomizableToolbar } from "../../webview/components/CustomizableToolbar"
 import { ToolbarCustomizationService } from "../../shared/services/ToolbarCustomizationService"
+import { CustomizableToolbar } from "../../webview/components/CustomizableToolbar"
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -22,7 +22,7 @@ describe("CustomizableToolbar", () => {
   beforeEach(() => {
     mockLocalStorage.getItem.mockReturnValue(null)
     toolbarService = new ToolbarCustomizationService()
-    
+
     mockActions = {
       "new-connection": vi.fn(),
       "new-query": vi.fn(),
@@ -42,7 +42,7 @@ describe("CustomizableToolbar", () => {
 
       // Should show customize button
       expect(screen.getByText("Customize")).toBeInTheDocument()
-      
+
       // Should show some default items
       expect(screen.getByText("New Connection")).toBeInTheDocument()
       expect(screen.getByText("New Query")).toBeInTheDocument()
@@ -53,11 +53,11 @@ describe("CustomizableToolbar", () => {
       render(<CustomizableToolbar toolbarService={toolbarService} />)
 
       const layout = toolbarService.getLayout()
-      
+
       // Database section
       const dbSection = layout.sections.find((s) => s.id === "database")
       expect(dbSection?.items).toHaveLength(2) // new-connection, refresh-connections
-      
+
       // Editor section
       const editorSection = layout.sections.find((s) => s.id === "editor")
       expect(editorSection?.items.length).toBeGreaterThan(0)
@@ -79,7 +79,7 @@ describe("CustomizableToolbar", () => {
 
       // Hide labels
       toolbarService.toggleLabels()
-      
+
       // Wait for re-render (simulated refresh)
       await waitFor(() => {
         const layout = toolbarService.getLayout()
@@ -101,20 +101,23 @@ describe("CustomizableToolbar", () => {
       render(<CustomizableToolbar toolbarService={toolbarService} />)
 
       const newQueryButton = screen.getByText("New Query")
-      
+
       // Get the layout to check the actual action
       const layout = toolbarService.getLayout()
       const editorSection = layout.sections.find((s) => s.id === "editor")
       const newQueryItem = editorSection?.items.find((i) => i.id === "new-query")
-      
+
       // Verify the item has an action
       expect(newQueryItem?.action).toBeDefined()
-      
+
       fireEvent.click(newQueryButton)
 
-      await waitFor(() => {
-        expect(mockActions["new-query"]).toHaveBeenCalledOnce()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(mockActions["new-query"]).toHaveBeenCalledOnce()
+        },
+        { timeout: 2000 }
+      )
     })
 
     it("should handle dropdown items", async () => {
@@ -156,15 +159,15 @@ describe("CustomizableToolbar", () => {
       // First get a layout and disable an item
       const layout = toolbarService.getLayout()
       const section = layout.sections.find((s) => s.id === "editor")
-      if (section && section.items[0]) {
+      if (section?.items[0]) {
         section.items[0].disabled = true
       }
 
       render(<CustomizableToolbar toolbarService={toolbarService} />)
 
-      const disabledButton = screen.getAllByRole("button").find(
-        (button) => button.hasAttribute("disabled")
-      )
+      const disabledButton = screen
+        .getAllByRole("button")
+        .find((button) => button.hasAttribute("disabled"))
 
       if (disabledButton) {
         fireEvent.click(disabledButton)
@@ -261,7 +264,10 @@ describe("CustomizableToolbar", () => {
       render(<CustomizableToolbar toolbarService={toolbarService} />)
 
       const newConnectionButton = screen.getByText("New Connection")
-      expect(newConnectionButton.closest("button")).toHaveAttribute("title", "Create new database connection")
+      expect(newConnectionButton.closest("button")).toHaveAttribute(
+        "title",
+        "Create new database connection"
+      )
     })
 
     it("should have proper keyboard navigation support", () => {
@@ -276,8 +282,10 @@ describe("CustomizableToolbar", () => {
 
   describe("Error Handling", () => {
     it("should handle action execution errors gracefully", async () => {
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
-      
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
+        // Intentionally empty for test mocking
+      })
+
       // Make an action throw an error
       mockActions["new-query"].mockRejectedValue(new Error("Test error"))
 

@@ -350,9 +350,8 @@ export class ToolbarCustomizationService {
     const item = this.defaultItems.find((i) => i.id === itemId)
     if (item) {
       item.visible = true
-      this.settings.userCustomizations.hiddenItems = this.settings.userCustomizations.hiddenItems.filter(
-        (id) => id !== itemId
-      )
+      this.settings.userCustomizations.hiddenItems =
+        this.settings.userCustomizations.hiddenItems.filter((id) => id !== itemId)
       this.applyItemsToLayout()
       this.saveSettings()
     }
@@ -365,9 +364,11 @@ export class ToolbarCustomizationService {
     const item = this.defaultItems.find((i) => i.id === itemId)
     if (item) {
       item.position = newPosition
-      
+
       // Update or add to reordered items
-      const existingReorder = this.settings.userCustomizations.reorderedItems.find((r) => r.id === itemId)
+      const existingReorder = this.settings.userCustomizations.reorderedItems.find(
+        (r) => r.id === itemId
+      )
       if (existingReorder) {
         existingReorder.position = newPosition
       } else {
@@ -385,7 +386,7 @@ export class ToolbarCustomizationService {
   moveItemToSection(itemId: string, targetSectionId: string): void {
     const item = this.defaultItems.find((i) => i.id === itemId)
     const targetSection = this.layout.sections.find((s) => s.id === targetSectionId)
-    
+
     if (item && targetSection) {
       item.category = targetSectionId as ToolbarItem["category"]
       this.applyItemsToLayout()
@@ -398,7 +399,7 @@ export class ToolbarCustomizationService {
    */
   toggleSection(sectionId: string): void {
     const section = this.layout.sections.find((s) => s.id === sectionId)
-    if (section && section.collapsible) {
+    if (section?.collapsible) {
       section.collapsed = !section.collapsed
       this.saveSettings()
     }
@@ -434,7 +435,7 @@ export class ToolbarCustomizationService {
   getLayout(): ToolbarLayout {
     // Deep clone but preserve functions for actions
     const cloned = JSON.parse(JSON.stringify(this.layout))
-    
+
     // Restore action functions from defaultItems
     for (const section of cloned.sections) {
       for (const item of section.items) {
@@ -444,7 +445,7 @@ export class ToolbarCustomizationService {
         }
       }
     }
-    
+
     return cloned
   }
 

@@ -1,11 +1,11 @@
 import React, { Suspense, startTransition, useState, useEffect, useMemo } from "react"
+import { ToolbarCustomizationService } from "../shared/services/ToolbarCustomizationService"
 import { useVSCodeAPI } from "./api/vscode"
+import { CustomizableToolbar } from "./components/CustomizableToolbar"
 import { Layout } from "./components/Layout"
 import { LoadingSpinner } from "./components/LoadingSpinner"
-import { CustomizableToolbar } from "./components/CustomizableToolbar"
 import { useVSCodeTheme } from "./hooks/useVSCodeTheme"
 import { DevelopmentOverlay } from "./utils/devHelper"
-import { ToolbarCustomizationService } from "../shared/services/ToolbarCustomizationService"
 
 // React 19 lazy loading for main components
 const DatabaseExplorer = React.lazy(() => import("./components/DatabaseExplorer"))
@@ -22,52 +22,52 @@ export const App: React.FC = () => {
   // Initialize toolbar service
   const toolbarService = useMemo(() => {
     const service = new ToolbarCustomizationService()
-    
+
     // Register action callbacks for toolbar items
     service.registerAction("new-connection", () => {
       vscodeApi.showInfo("New Connection dialog will open")
       setCurrentView("explorer")
     })
-    
+
     service.registerAction("refresh-connections", () => {
       vscodeApi.showInfo("Refreshing connections...")
     })
-    
+
     service.registerAction("new-query", () => {
       vscodeApi.showInfo("Creating new query...")
       setCurrentView("sql")
     })
-    
+
     service.registerAction("execute-query", () => {
       vscodeApi.showInfo("Executing query...")
     })
-    
+
     service.registerAction("format-sql", () => {
       vscodeApi.showInfo("Formatting SQL...")
     })
-    
+
     service.registerAction("save-query", () => {
       vscodeApi.showInfo("Saving query...")
     })
-    
+
     service.registerAction("import-data", () => {
       vscodeApi.showInfo("Import data dialog will open")
     })
-    
+
     service.registerAction("table-manager", () => {
       vscodeApi.showInfo("Table Manager will open")
       setCurrentView("datagrid")
     })
-    
+
     service.registerAction("database-explorer", () => {
       vscodeApi.showInfo("Database Explorer")
       setCurrentView("explorer")
     })
-    
+
     service.registerAction("query-history", () => {
       vscodeApi.showInfo("Query History will open")
     })
-    
+
     return service
   }, [vscodeApi])
 
@@ -126,7 +126,7 @@ export const App: React.FC = () => {
 
   return (
     <Layout currentView={currentView} onViewChange={handleViewChange} theme={theme}>
-      <CustomizableToolbar toolbarService={toolbarService} className="mb-4" />
+      <CustomizableToolbar toolbarService={toolbarService} className='mb-4' />
       <Suspense fallback={<LoadingSpinner />}>{renderContent()}</Suspense>
       <DevelopmentOverlay />
     </Layout>
