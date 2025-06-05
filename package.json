@@ -6,20 +6,8 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": [
-    "Database",
-    "Data Science",
-    "Visualization"
-  ],
-  "keywords": [
-    "database",
-    "sql",
-    "mysql",
-    "postgresql",
-    "sqlite",
-    "datagrid",
-    "cursor-ai"
-  ],
+  "categories": ["Database", "Data Science", "Visualization"],
+  "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "datagrid", "cursor-ai"],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {

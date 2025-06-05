@@ -1,9 +1,11 @@
 import React, { Suspense, startTransition, useState, useEffect, useMemo } from "react"
+import { SettingsService } from "../shared/services/SettingsService"
 import { ToolbarCustomizationService } from "../shared/services/ToolbarCustomizationService"
 import { useVSCodeAPI } from "./api/vscode"
 import { CustomizableToolbar } from "./components/CustomizableToolbar"
 import { Layout } from "./components/Layout"
 import { LoadingSpinner } from "./components/LoadingSpinner"
+import { SettingsUI } from "./components/SettingsUI"
 import { useVSCodeTheme } from "./hooks/useVSCodeTheme"
 import { DevelopmentOverlay } from "./utils/devHelper"
 
@@ -16,10 +18,11 @@ type View = "dashboard" | "explorer" | "datagrid" | "sql"
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>("dashboard")
+  const [showSettings, setShowSettings] = useState(false)
   const theme = useVSCodeTheme()
   const vscodeApi = useVSCodeAPI()
 
-  // Initialize toolbar service
+  // Initialize services
   const toolbarService = useMemo(() => {
     const service = new ToolbarCustomizationService()
 
@@ -70,6 +73,8 @@ export const App: React.FC = () => {
 
     return service
   }, [vscodeApi])
+
+  const settingsService = useMemo(() => new SettingsService(), [])
 
   useEffect(() => {
     // Set initial view from VSCode if provided
@@ -125,11 +130,22 @@ export const App: React.FC = () => {
   }
 
   return (
-    <Layout currentView={currentView} onViewChange={handleViewChange} theme={theme}>
-      <CustomizableToolbar toolbarService={toolbarService} className='mb-4' />
-      <Suspense fallback={<LoadingSpinner />}>{renderContent()}</Suspense>
-      <DevelopmentOverlay />
-    </Layout>
+    <>
+      <Layout
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        theme={theme}
+        onShowSettings={() => setShowSettings(true)}
+      >
+        <CustomizableToolbar toolbarService={toolbarService} className='mb-4' />
+        <Suspense fallback={<LoadingSpinner />}>{renderContent()}</Suspense>
+        <DevelopmentOverlay />
+      </Layout>
+
+      {showSettings && (
+        <SettingsUI settingsService={settingsService} onClose={() => setShowSettings(false)} />
+      )}
+    </>
   )
 }
 
