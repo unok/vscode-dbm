@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { vscodeApi } from "../api/vscode"
 
 type Theme = "dark" | "light"
@@ -6,25 +6,26 @@ type Theme = "dark" | "light"
 export const useVSCodeTheme = (): Theme => {
   const [theme, setTheme] = useState<Theme>("dark")
 
-  useEffect(() => {
-    // VSCode theme detection
-    const detectTheme = () => {
-      const body = document.body
-      const computedStyle = getComputedStyle(body)
-      const backgroundColor = computedStyle.getPropertyValue("--vscode-editor-background")
+  // VSCode theme detection
+  const detectTheme = useCallback(() => {
+    const body = document.body
+    const computedStyle = getComputedStyle(body)
+    const backgroundColor = computedStyle.getPropertyValue("--vscode-editor-background")
 
-      // If background is light, use light theme, otherwise dark
-      if (backgroundColor) {
-        // Convert hex/rgb to brightness
-        const isLight = isLightColor(backgroundColor)
-        const detectedTheme = isLight ? "light" : "dark"
-        setTheme(detectedTheme)
+    // If background is light, use light theme, otherwise dark
+    if (backgroundColor) {
+      // Convert hex/rgb to brightness
+      const isLight = isLightColor(backgroundColor)
+      const detectedTheme = isLight ? "light" : "dark"
+      setTheme(detectedTheme)
 
-        // Apply theme class to body for Tailwind
-        document.body.classList.remove("light", "dark")
-        document.body.classList.add(detectedTheme)
-      }
+      // Apply theme class to body for Tailwind
+      document.body.classList.remove("light", "dark")
+      document.body.classList.add(detectedTheme)
     }
+  }, [])
+
+  useEffect(() => {
 
     // Listen for theme changes from VSCode API
     vscodeApi.onMessage("themeChanged", (data) => {
@@ -56,7 +57,7 @@ export const useVSCodeTheme = (): Theme => {
       observer.disconnect()
       vscodeApi.removeMessageHandler("themeChanged")
     }
-  }, [])
+  }, [detectTheme])
 
   return theme
 }

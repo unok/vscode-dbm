@@ -38,6 +38,34 @@ export default defineConfig({
     target: "es2015", // 古いブラウザ対応
     rollupOptions: {
       input: path.resolve(__dirname, "src/webview/index.html"),
+      // ネイティブモジュールとNode.js専用モジュールをexternalに設定
+      external: [
+        "better-sqlite3",
+        "mysql2",
+        "pg",
+        "sqlite3",
+        "node-gyp",
+        "node-addon-api",
+        "bindings",
+        "prebuild-install",
+        // Node.js Built-ins
+        "fs",
+        "path",
+        "os",
+        "crypto",
+        "child_process",
+        "cluster",
+        "dgram",
+        "dns",
+        "net",
+        "tls",
+        "http",
+        "https",
+        "http2",
+        "stream",
+        "worker_threads",
+        "vscode",
+      ],
       output: {
         format: "iife", // VSCode WebView用にIIFE形式でビルド
         entryFileNames: "assets/[name]-[hash].js",

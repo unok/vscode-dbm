@@ -1,11 +1,10 @@
 import * as path from "node:path"
 import * as vscode from "vscode"
-import type { DatabaseConnection } from "../shared/database/DatabaseConnection"
-import { MySQLDriver } from "../shared/database/drivers/MySQLDriver"
-import { PostgreSQLDriver } from "../shared/database/drivers/PostgreSQLDriver"
-import { SQLiteDriver } from "../shared/database/drivers/SQLiteDriver"
-import { DatabaseMetadataService } from "../shared/services/DatabaseMetadataService"
-import type { DatabaseConfig } from "../shared/types"
+import {
+  type DatabaseProxy,
+  type DatabaseProxyConfig,
+  DatabaseProxyFactory,
+} from "../shared/database/DatabaseProxy"
 import type {
   BaseMessage,
   ConnectionInfo,
@@ -29,23 +28,55 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dbManager.webview"
 
   private _view?: vscode.WebviewView
-  private _connections = new Map<string, DatabaseConnection>()
-  private _activeConnection?: string
-  private _metadataService = new DatabaseMetadataService()
+  private _databaseProxy?: DatabaseProxy
+  private _isConnected = false
+  private _connectionType?: string
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
-  private _createConnection(config: DatabaseConfig): DatabaseConnection {
-    switch (config.type) {
-      case "mysql":
-        return new MySQLDriver(config)
-      case "postgresql":
-        return new PostgreSQLDriver(config)
-      case "sqlite":
-        return new SQLiteDriver(config)
-      default:
-        throw new Error(`Unsupported database type: ${config.type}`)
+  private async _connectDatabase(type: "mysql" | "postgresql" | "sqlite"): Promise<boolean> {
+    try {
+      // 接続中の場合は切断
+      if (this._databaseProxy) {
+        await this._databaseProxy.disconnect()
+      }
+
+      // データベースタイプに応じて接続
+      switch (type) {
+        case "mysql":
+          this._databaseProxy = DatabaseProxyFactory.createMySQL()
+          this._connectionType = "MySQL (Docker:3307)"
+          break
+        case "postgresql":
+          this._databaseProxy = DatabaseProxyFactory.createPostgreSQL()
+          this._connectionType = "PostgreSQL (Docker:5433)"
+          break
+        case "sqlite":
+          this._databaseProxy = DatabaseProxyFactory.createSQLite()
+          this._connectionType = "SQLite (Memory)"
+          break
+        default:
+          throw new Error(`Unsupported database type: ${type}`)
+      }
+
+      const connected = await this._databaseProxy.connect()
+      this._isConnected = connected
+
+      return connected
+    } catch (error) {
+      console.error("Database connection failed:", error)
+      this._isConnected = false
+      return false
     }
+  }
+
+  private async _disconnectDatabase(): Promise<void> {
+    if (this._databaseProxy) {
+      await this._databaseProxy.disconnect()
+      this._databaseProxy = undefined
+    }
+    this._isConnected = false
+    this._connectionType = undefined
   }
 
   public resolveWebviewView(
@@ -74,14 +105,11 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         case "executeQuery":
           this._handleExecuteQuery(message.data)
           break
-        case "disconnectConnection":
-          this._handleDisconnectConnection(message.data)
+        case "showInfo":
+          vscode.window.showInformationMessage(message.data.message)
           break
-        case "getTableData":
-          this._handleGetTableData(message.data)
-          break
-        case "getSchema":
-          this._handleGetSchema(message.data)
+        case "showError":
+          vscode.window.showErrorMessage(message.data.message)
           break
         case "getTheme":
           this._sendTheme()
@@ -96,23 +124,456 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // WebViewResourceManagerを使用してHTMLを生成
-    const resourceManager = new WebViewResourceManager(webview, this._extensionUri)
-    return resourceManager.getHtmlContent("dashboard")
-  }
+    // 開発環境かどうかを判定
+    const isDevelopment =
+      process.env.NODE_ENV === "development" || process.env.VSCODE_DEBUG === "true"
 
-  private _getDevHtml() {
-    // Development HTML that connects to Vite dev server
+    if (isDevelopment) {
+      return this._getDevHtml()
+    }
+
+    // プロダクション環境用の簡単なHTML
+    const nonce = this.getNonce()
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database DataGrid Manager</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <title>DB Manager</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+        button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: var(--vscode-editor-background);
+        }
+        th, td {
+            border: 1px solid var(--vscode-panel-border);
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: var(--vscode-editorWidget-background);
+            font-weight: bold;
+        }
+        tr:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+    </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="module" src="http://localhost:5173/src/webview/main.tsx"></script>
+    <h2>Database Manager</h2>
+    <div class="status" id="status">WebView読み込み中...</div>
+    <div class="status" id="connectionStatus">データベース: 未接続</div>
+    <button id="testBtn">メッセージテスト</button>
+    <button id="connectBtn">デモ接続テスト</button>
+    <button id="queryBtn">デモクエリ実行</button>
+    <button id="dashboardBtn">ダッシュボードを開く</button>
+    <div id="queryResults" style="margin-top: 20px;"></div>
+    
+    <script nonce="${nonce}">
+        // Store VSCode API globally to prevent multiple acquisitions
+        if (!window.vscode && window.acquireVsCodeApi) {
+            window.vscode = acquireVsCodeApi();
+        }
+        const vscode = window.vscode;
+        
+        document.getElementById('status').textContent = 'WebView正常読み込み完了';
+        
+        // ボタンにイベントリスナーを追加
+        document.getElementById('testBtn').addEventListener('click', function() {
+            console.log('Test button clicked');
+            vscode.postMessage({
+                type: 'showInfo',
+                data: { message: 'メッセージテスト成功!' }
+            });
+        });
+        
+        document.getElementById('connectBtn').addEventListener('click', function() {
+            console.log('Connect button clicked');
+            vscode.postMessage({
+                type: 'openConnection',
+                data: { type: 'sqlite' }
+            });
+        });
+        
+        document.getElementById('queryBtn').addEventListener('click', function() {
+            console.log('Query button clicked');
+            vscode.postMessage({
+                type: 'executeQuery',
+                data: { query: 'SELECT * FROM users' }
+            });
+        });
+        
+        document.getElementById('dashboardBtn').addEventListener('click', function() {
+            console.log('Dashboard button clicked');
+            vscode.postMessage({
+                type: 'showInfo', 
+                data: { message: 'ダッシュボード機能は開発中です' }
+            });
+        });
+        
+        
+        // テーブル作成関数
+        function createResultTable(rows) {
+            if (!rows || rows.length === 0) return '<p>データなし</p>';
+            
+            const headers = Object.keys(rows[0]);
+            let html = '<table>';
+            
+            // ヘッダー行
+            html += '<thead><tr>';
+            headers.forEach(header => {
+                html += \`<th>\${header}</th>\`;
+            });
+            html += '</tr></thead>';
+            
+            // データ行
+            html += '<tbody>';
+            rows.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    const value = row[header] !== null && row[header] !== undefined ? row[header] : 'NULL';
+                    html += \`<td>\${value}</td>\`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            
+            return html;
+        }
+        
+        window.addEventListener('message', event => {
+            console.log('Received:', event.data);
+            const message = event.data;
+            
+            // 接続状況の更新
+            if (message.type === 'connectionStatus') {
+                const status = message.data.connected ? 
+                    \`データベース: 接続済み (\${message.data.activeConnection})\` : 
+                    'データベース: 未接続';
+                document.getElementById('connectionStatus').textContent = status;
+            }
+            
+            // 接続結果の表示
+            if (message.type === 'connectionResult') {
+                const statusEl = document.getElementById('connectionStatus');
+                if (message.data.success) {
+                    statusEl.textContent = \`データベース: \${message.data.message}\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconPassed)';
+                } else {
+                    statusEl.textContent = \`接続エラー: \${message.data.message}\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconFailed)';
+                }
+            }
+            
+            // クエリ結果の表示
+            if (message.type === 'queryResult') {
+                const statusEl = document.getElementById('status');
+                const resultsEl = document.getElementById('queryResults');
+                
+                if (message.data.success) {
+                    statusEl.textContent = \`クエリ成功: \${message.data.message} (\${message.data.executionTime}ms)\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconPassed)';
+                    console.log('Query results:', message.data.results);
+                    
+                    // テーブル形式で結果を表示
+                    if (message.data.results && message.data.results.length > 0) {
+                        const tableHtml = createResultTable(message.data.results);
+                        resultsEl.innerHTML = tableHtml;
+                    } else {
+                        resultsEl.innerHTML = '<p>結果なし</p>';
+                    }
+                } else {
+                    statusEl.textContent = \`クエリエラー: \${message.data.message}\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconFailed)';
+                    resultsEl.innerHTML = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>`
+  }
+
+  private getNonce() {
+    let text = ""
+    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    for (let i = 0; i < 32; i++) {
+      text += possible.charAt(Math.floor(Math.random() * possible.length))
+    }
+    return text
+  }
+
+  private _getDevHtml() {
+    // Simple development HTML with fallback UI
+    const nonce = this.getNonce()
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <title>Database Manager - Development</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+        }
+        .dev-header {
+            background: var(--vscode-editorWidget-background);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+        button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .feature-card {
+            background: var(--vscode-editorWidget-background);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+        .feature-title {
+            color: var(--vscode-textLink-foreground);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: var(--vscode-editor-background);
+        }
+        th, td {
+            border: 1px solid var(--vscode-panel-border);
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: var(--vscode-editorWidget-background);
+            font-weight: bold;
+        }
+        tr:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+    </style>
+</head>
+<body>
+    <div class="dev-header">
+        <h1>🚀 Database Manager - Development Mode</h1>
+        <p>VSCode拡張機能の開発環境で動作中です</p>
+        <div class="status" id="connectionStatus">データベース: 未接続</div>
+    </div>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-title">データベース接続</div>
+            <p>各データベースタイプに接続をテストします</p>
+            <button id="connectMySQLBtn">MySQL接続 (Docker:3307)</button>
+            <button id="connectPostgreBtn">PostgreSQL接続 (Docker:5433)</button>
+            <button id="connectSQLiteBtn">SQLite接続 (Memory)</button>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-title">クエリ実行</div>
+            <p>サンプルクエリを実行してデータを取得します</p>
+            <button id="queryBtn">デモクエリ実行</button>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-title">メッセージAPI</div>
+            <p>VSCode拡張機能とのメッセージ通信をテストします</p>
+            <button id="testBtn">メッセージテスト</button>
+        </div>
+    </div>
+
+    <div id="queryResults" style="margin-top: 20px;"></div>
+    <div class="status" id="status">準備完了</div>
+
+    <script nonce="${nonce}">
+        // Store VSCode API globally to prevent multiple acquisitions
+        if (!window.vscode && window.acquireVsCodeApi) {
+            window.vscode = acquireVsCodeApi();
+        }
+        const vscode = window.vscode;
+        
+        // MySQL接続テスト
+        document.getElementById('connectMySQLBtn').addEventListener('click', function() {
+            console.log('Development: MySQL Connect button clicked');
+            vscode.postMessage({
+                type: 'openConnection',
+                data: { type: 'mysql' }
+            });
+        });
+        
+        // PostgreSQL接続テスト
+        document.getElementById('connectPostgreBtn').addEventListener('click', function() {
+            console.log('Development: PostgreSQL Connect button clicked');
+            vscode.postMessage({
+                type: 'openConnection',
+                data: { type: 'postgresql' }
+            });
+        });
+        
+        // SQLite接続テスト
+        document.getElementById('connectSQLiteBtn').addEventListener('click', function() {
+            console.log('Development: SQLite Connect button clicked');
+            vscode.postMessage({
+                type: 'openConnection',
+                data: { type: 'sqlite' }
+            });
+        });
+        
+        // クエリテスト
+        document.getElementById('queryBtn').addEventListener('click', function() {
+            console.log('Development: Query button clicked');
+            vscode.postMessage({
+                type: 'executeQuery',
+                data: { query: 'SELECT * FROM users' }
+            });
+        });
+        
+        // メッセージテスト
+        document.getElementById('testBtn').addEventListener('click', function() {
+            console.log('Development: Test button clicked');
+            vscode.postMessage({
+                type: 'showInfo',
+                data: { message: '開発環境でのメッセージテスト成功！' }
+            });
+        });
+        
+        // テーブル作成関数
+        function createResultTable(rows) {
+            if (!rows || rows.length === 0) return '<p>データなし</p>';
+            
+            const headers = Object.keys(rows[0]);
+            let html = '<table>';
+            
+            html += '<thead><tr>';
+            headers.forEach(header => {
+                html += \`<th>\${header}</th>\`;
+            });
+            html += '</tr></thead>';
+            
+            html += '<tbody>';
+            rows.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    const value = row[header] !== null && row[header] !== undefined ? row[header] : 'NULL';
+                    html += \`<td>\${value}</td>\`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            
+            return html;
+        }
+        
+        // メッセージリスナー
+        window.addEventListener('message', event => {
+            console.log('Development: Received message:', event.data);
+            const message = event.data;
+            
+            // 接続状況の更新
+            if (message.type === 'connectionStatus') {
+                const status = message.data.connected ? 
+                    \`データベース: 接続済み (\${message.data.activeConnection})\` : 
+                    'データベース: 未接続';
+                document.getElementById('connectionStatus').textContent = status;
+            }
+            
+            // 接続結果の表示
+            if (message.type === 'connectionResult') {
+                const statusEl = document.getElementById('connectionStatus');
+                if (message.data.success) {
+                    statusEl.textContent = \`データベース: \${message.data.message}\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconPassed)';
+                } else {
+                    statusEl.textContent = \`接続エラー: \${message.data.message}\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconFailed)';
+                }
+            }
+            
+            // クエリ結果の表示
+            if (message.type === 'queryResult') {
+                const statusEl = document.getElementById('status');
+                const resultsEl = document.getElementById('queryResults');
+                
+                if (message.data.success) {
+                    statusEl.textContent = \`クエリ成功: \${message.data.message} (\${message.data.executionTime}ms)\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconPassed)';
+                    
+                    if (message.data.results && message.data.results.length > 0) {
+                        const tableHtml = createResultTable(message.data.results);
+                        resultsEl.innerHTML = '<h3>クエリ結果:</h3>' + tableHtml;
+                    } else {
+                        resultsEl.innerHTML = '<p>結果なし</p>';
+                    }
+                } else {
+                    statusEl.textContent = \`クエリエラー: \${message.data.message}\`;
+                    statusEl.style.color = 'var(--vscode-testing-iconFailed)';
+                    resultsEl.innerHTML = '';
+                }
+            }
+        });
+        
+        console.log('Development WebView loaded successfully');
+    </script>
 </body>
 </html>`
   }
@@ -122,16 +583,22 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
     const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
 
-    let jsFileName = "index-C_gadd4f.js" // fallback
+    // Read JS filename from index.html (most reliable method)
+    let jsFileName: string
     try {
       const fs = require("node:fs")
-      const files = fs.readdirSync(assetsPath.fsPath)
-      const jsFile = files.find((file: string) => file.startsWith("index-") && file.endsWith(".js"))
-      if (jsFile) {
-        jsFileName = jsFile
+      const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
+      const indexContent = fs.readFileSync(indexPath.fsPath, "utf-8")
+      const scriptMatch = indexContent.match(/src="\.\/assets\/(index-[^"]+\.js)"/)
+
+      if (scriptMatch) {
+        jsFileName = scriptMatch[1]
+      } else {
+        throw new Error("No script tag found in index.html")
       }
     } catch (error) {
-      console.error("[WebViewProvider] Failed to read assets directory:", error)
+      console.error("[WebViewProvider] Failed to read index.html:", error)
+      return this._getDevHtml() // Fallback to development HTML
     }
 
     // Generate URLs
@@ -305,72 +772,12 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private async _sendConnectionStatus() {
     if (!this._view) return
 
-    const connections: ConnectionInfo[] = []
-    const databases: DatabaseInfo[] = []
-
-    for (const [id, connection] of this._connections) {
-      const isConnected = await connection.isConnected()
-      const config = connection.getConnectionInfo()
-      connections.push({
-        id,
-        name: config.name || `${config.type}-${config.host}`,
-        type: config.type,
-        host: config.host || "localhost",
-        port: config.port || 3306,
-        database: config.database || "default",
-        username: config.username || "user",
-        isConnected,
-        lastConnected: isConnected ? new Date() : undefined,
-      })
-
-      if (isConnected && this._activeConnection === id) {
-        try {
-          const schema = await this._metadataService.getSchema(connection)
-          const config = connection.getConnectionInfo()
-          databases.push({
-            name: schema.name || config.database || "unknown",
-            type: config.type,
-            tables: schema.tables.map((table) => ({
-              name: table.name,
-              schema: table.schema || "default",
-              columns: table.columns.map((col) => ({
-                name: col.name,
-                type: col.type,
-                nullable: col.nullable,
-                defaultValue: col.defaultValue || undefined,
-                isPrimaryKey: col.isPrimaryKey,
-                isForeignKey: col.isForeignKey,
-                foreignKeyTarget: col.foreignKeyTarget
-                  ? {
-                      table: col.foreignKeyTarget.table,
-                      column: col.foreignKeyTarget.column,
-                    }
-                  : undefined,
-              })),
-              rowCount: table.rowCount || 0,
-            })),
-            views: schema.views.map((view) => ({
-              name: view.name,
-              schema: view.schema || "default",
-              definition: view.definition,
-            })),
-          })
-        } catch (error) {
-          console.error("Failed to get database schema:", error)
-        }
-      }
-    }
-
     this._view.webview.postMessage({
       type: "connectionStatus",
       data: {
-        connected: this._activeConnection
-          ? (await this._connections.get(this._activeConnection)?.isConnected()) || false
-          : false,
-        databases,
-        activeConnection: this._activeConnection
-          ? connections.find((c) => c.id === this._activeConnection)
-          : undefined,
+        connected: this._isConnected,
+        databases: this._isConnected ? [this._connectionType || "Database"] : [],
+        activeConnection: this._isConnected ? this._connectionType : undefined,
       },
     })
   }
@@ -387,124 +794,51 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     })
   }
 
-  private async _handleOpenConnection(data: OpenConnectionMessage["data"]) {
+  private async _handleOpenConnection(data: { type?: string }) {
     try {
-      const connectionId = `${data.type}-${data.host}-${data.port}-${data.database}`
+      // データベースタイプを決定（デフォルトはMySQL）
+      const dbType =
+        data.type === "postgresql" ? "postgresql" : data.type === "sqlite" ? "sqlite" : "mysql"
 
-      // Close existing connection if any
-      if (this._activeConnection) {
-        await this._handleDisconnectConnection({ connectionId: this._activeConnection })
-      }
+      const success = await this._connectDatabase(dbType)
 
-      // Create new connection
-      const connection = this._createConnection({
-        id: connectionId,
-        name: `${data.type}-${data.host}`,
-        type: data.type,
-        host: data.host,
-        port: data.port,
-        database: data.database,
-        username: data.username,
-        password: data.password,
-        ssl: data.ssl || false,
-      })
+      if (success) {
+        vscode.window.showInformationMessage(`${this._connectionType} 接続成功`)
 
-      // Test connection
-      await connection.connect()
-      await connection.query("SELECT 1")
+        // 接続状況を更新
+        this._sendConnectionStatus()
 
-      // Store connection
-      this._connections.set(connectionId, connection)
-      this._activeConnection = connectionId
-
-      vscode.window.showInformationMessage(`✅ 接続成功: ${data.type} - ${data.host}:${data.port}`)
-
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "connectionResult",
-          data: {
-            success: true,
-            message: "接続が正常に確立されました",
-            connection: {
-              id: connectionId,
-              name: `${data.type}-${data.host}`,
-              type: data.type,
-              host: data.host,
-              port: data.port,
-              database: data.database,
-              username: data.username,
-              isConnected: true,
-              lastConnected: new Date(),
+        if (this._view) {
+          this._view.webview.postMessage({
+            type: "connectionResult",
+            data: {
+              success: true,
+              message: `${this._connectionType} に接続しました`,
             },
-          },
-        })
+          })
+        }
+      } else {
+        throw new Error("データベース接続に失敗しました")
       }
-
-      // Send updated connection status
-      await this._sendConnectionStatus()
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      vscode.window.showErrorMessage(`❌ 接続失敗: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
+      vscode.window.showErrorMessage(`接続エラー: ${errorMessage}`)
 
       if (this._view) {
         this._view.webview.postMessage({
           type: "connectionResult",
           data: {
             success: false,
-            message: `接続に失敗しました: ${errorMessage}`,
-            error: errorMessage,
+            message: errorMessage,
           },
         })
       }
     }
   }
 
-  private async _handleExecuteQuery(data: ExecuteQueryMessage["data"]) {
-    try {
-      const connectionId = data.connection || this._activeConnection
-      if (!connectionId) {
-        throw new Error("アクティブな接続がありません")
-      }
-
-      const connection = this._connections.get(connectionId)
-      if (!connection) {
-        throw new Error("指定された接続が見つかりません")
-      }
-
-      const isConnected = await connection.isConnected()
-      if (!isConnected) {
-        throw new Error("データベースに接続されていません")
-      }
-
-      const startTime = Date.now()
-      const result = await connection.query(data.query)
-      const executionTime = Date.now() - startTime
-
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "queryResult",
-          data: {
-            success: true,
-            results: Array.isArray(result)
-              ? result.map((row) => ({
-                  columns: Object.keys(row),
-                  rows: [Object.values(row)],
-                }))
-              : [
-                  {
-                    columns: Object.keys(result),
-                    rows: [Object.values(result)],
-                  },
-                ],
-            executionTime,
-          },
-        })
-      }
-
-      vscode.window.showInformationMessage(`✅ クエリ実行完了 (${executionTime}ms)`)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      vscode.window.showErrorMessage(`❌ クエリ実行失敗: ${errorMessage}`)
+  private async _handleExecuteQuery(data: { query?: string }) {
+    if (!this._databaseProxy || !this._isConnected) {
+      vscode.window.showWarningMessage("データベースに接続されていません")
 
       if (this._view) {
         this._view.webview.postMessage({
@@ -512,107 +846,50 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
           data: {
             success: false,
             results: [],
-            error: errorMessage,
+            message: "データベースに接続されていません",
           },
         })
       }
+      return
     }
-  }
 
-  private async _handleDisconnectConnection(data: { connectionId: string }) {
     try {
-      const connection = this._connections.get(data.connectionId)
-      if (connection) {
-        await connection.disconnect()
-        this._connections.delete(data.connectionId)
+      const query = data.query || "SELECT * FROM users LIMIT 10"
 
-        if (this._activeConnection === data.connectionId) {
-          this._activeConnection = undefined
+      // DatabaseProxyを使用してクエリ実行
+      const result = await this._databaseProxy.query(query)
+
+      if (result.success) {
+        vscode.window.showInformationMessage(
+          `クエリ実行成功: ${result.rowCount}行取得 (${result.executionTime}ms) - ${this._connectionType}`
+        )
+
+        if (this._view) {
+          this._view.webview.postMessage({
+            type: "queryResult",
+            data: {
+              success: true,
+              results: result.rows || [],
+              rowCount: result.rowCount || 0,
+              executionTime: result.executionTime || 0,
+              message: `${result.rowCount}行を取得しました (${this._connectionType})`,
+            },
+          })
         }
-
-        vscode.window.showInformationMessage("接続を切断しました")
-        await this._sendConnectionStatus()
+      } else {
+        throw new Error(result.error || "クエリ実行に失敗しました")
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      vscode.window.showErrorMessage(`切断中にエラーが発生しました: ${errorMessage}`)
-    }
-  }
-
-  private async _handleGetTableData(data: {
-    tableName: string
-    schema?: string
-    limit?: number
-    offset?: number
-  }) {
-    try {
-      if (!this._activeConnection) {
-        throw new Error("アクティブな接続がありません")
-      }
-
-      const connection = this._connections.get(this._activeConnection)
-      if (!connection) {
-        throw new Error("接続が見つかりません")
-      }
-
-      // Build SELECT query for table data
-      const query = `SELECT * FROM ${data.schema ? `${data.schema}.` : ""}${data.tableName} LIMIT ${data.limit || 100} OFFSET ${data.offset || 0}`
-      const tableData = await connection.query(query)
+      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
+      vscode.window.showErrorMessage(`クエリエラー: ${errorMessage}`)
 
       if (this._view) {
         this._view.webview.postMessage({
-          type: "tableData",
-          data: {
-            success: true,
-            tableName: data.tableName,
-            data: tableData,
-          },
-        })
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "tableData",
+          type: "queryResult",
           data: {
             success: false,
-            error: errorMessage,
-          },
-        })
-      }
-    }
-  }
-
-  private async _handleGetSchema(_data: { refresh?: boolean }) {
-    try {
-      if (!this._activeConnection) {
-        throw new Error("アクティブな接続がありません")
-      }
-
-      const connection = this._connections.get(this._activeConnection)
-      if (!connection) {
-        throw new Error("接続が見つかりません")
-      }
-
-      const schema = await this._metadataService.getSchema(connection)
-
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "schemaData",
-          data: {
-            success: true,
-            schema,
-          },
-        })
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "schemaData",
-          data: {
-            success: false,
-            error: errorMessage,
+            results: [],
+            message: errorMessage,
           },
         })
       }
@@ -633,15 +910,6 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   public async cleanup() {
-    // Clean up all connections when extension is deactivated
-    for (const [id, connection] of this._connections) {
-      try {
-        await connection.disconnect()
-      } catch (error) {
-        console.error(`Failed to disconnect ${id}:`, error)
-      }
-    }
-    this._connections.clear()
-    this._activeConnection = undefined
+    await this._disconnectDatabase()
   }
 }

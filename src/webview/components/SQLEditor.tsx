@@ -1,981 +1,252 @@
-import * as monaco from "monaco-editor"
 import type React from "react"
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { SQLEditorService } from "../../shared/services/SQLEditorService"
-import type {
-  CompletionItem,
-  DatabaseSchema,
-  ExecutionPlan,
-  QueryBookmark,
-  QueryExecutionOptions,
-  QueryResult,
-  ValidationError,
-} from "../../shared/types/sql"
-import { SQLAutoCompleter } from "../../shared/utils/SQLAutoCompleter"
-import { SQLQueryValidator } from "../../shared/utils/SQLQueryValidator"
+import { useRef, useState } from "react"
 import { useVSCodeAPI } from "../api/vscode"
 
-interface SQLEditorProps {
-  initialQuery?: string
-  schema?: DatabaseSchema
-  onQueryExecute?: (query: string, result: QueryResult) => void
-  onError?: (error: string) => void
-  readOnly?: boolean
-  height?: number
+interface QueryResult {
+  id: number
+  name: string
+  email: string
+  created_at: string
 }
 
-const SQLEditor: React.FC<SQLEditorProps> = ({
-  initialQuery = "",
-  schema,
-  onQueryExecute,
-  onError,
-  readOnly = false,
-  height = 400,
-}) => {
-  // State management
-  const [query, setQuery] = useState(initialQuery)
+const SQLEditor: React.FC = () => {
+  const [query, setQuery] = useState("SELECT * FROM users LIMIT 10")
+  const [results, setResults] = useState<QueryResult[]>([])
   const [isExecuting, setIsExecuting] = useState(false)
-  const [queryResults, setQueryResults] = useState<QueryResult[]>([])
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
-  const [executionHistory, setExecutionHistory] = useState<string[]>([])
-  const [bookmarks, setBookmarks] = useState<QueryBookmark[]>([])
-  const [showHistory, setShowHistory] = useState(false)
-  const [showBookmarks, setShowBookmarks] = useState(false)
-  const [showExecutionPlan, setShowExecutionPlan] = useState(false)
-  const [executionPlan, setExecutionPlan] = useState<ExecutionPlan | null>(null)
-
-  // Refs
-  const editorRef = useRef<HTMLDivElement>(null)
-  const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
-
-  // Services
-  const sqlEditorService = useMemo(
-    () => new SQLEditorService(schema || { tables: [], views: [], functions: [], procedures: [] }),
-    [schema]
-  )
-  const validator = useMemo(
-    () => new SQLQueryValidator(schema || { tables: [], views: [], functions: [], procedures: [] }),
-    [schema]
-  )
-  const autoCompleter = useMemo(
-    () => new SQLAutoCompleter(schema || { tables: [], views: [], functions: [], procedures: [] }),
-    [schema]
-  )
+  const [executionTime, setExecutionTime] = useState<number | null>(null)
+  const [error, setError] = useState<string>("")
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const vscodeApi = useVSCodeAPI()
 
-  // Initialize Monaco Editor
-  useEffect(() => {
-    if (!editorRef.current) return
+  const sampleQueries = [
+    "SELECT * FROM users LIMIT 10",
+    "SELECT * FROM products WHERE price > 100",
+    "SELECT u.name, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id",
+    "INSERT INTO users (name, email) VALUES ('Test User', 'test@example.com')",
+    "UPDATE users SET email = 'updated@example.com' WHERE id = 1",
+  ]
 
-    // Configure SQL language
-    monaco.languages.register({ id: "sql" })
-
-    // Configure syntax highlighting
-    monaco.languages.setMonarchTokensProvider("sql", {
-      defaultToken: "",
-      tokenPostfix: ".sql",
-      ignoreCase: true,
-      brackets: [
-        { open: "(", close: ")", token: "delimiter.parenthesis" },
-        { open: "[", close: "]", token: "delimiter.square" },
-        { open: "{", close: "}", token: "delimiter.curly" },
-      ],
-      keywords: [
-        "SELECT",
-        "FROM",
-        "WHERE",
-        "JOIN",
-        "LEFT",
-        "RIGHT",
-        "INNER",
-        "OUTER",
-        "ON",
-        "GROUP BY",
-        "ORDER BY",
-        "HAVING",
-        "LIMIT",
-        "OFFSET",
-        "UNION",
-        "INSERT",
-        "INTO",
-        "VALUES",
-        "UPDATE",
-        "SET",
-        "DELETE",
-        "CREATE",
-        "ALTER",
-        "DROP",
-        "TRUNCATE",
-        "INDEX",
-        "VIEW",
-        "TABLE",
-        "DATABASE",
-        "AND",
-        "OR",
-        "NOT",
-        "IN",
-        "EXISTS",
-        "BETWEEN",
-        "LIKE",
-        "IS",
-        "NULL",
-        "AS",
-        "DISTINCT",
-        "ALL",
-        "ANY",
-        "SOME",
-        "CASE",
-        "WHEN",
-        "THEN",
-        "ELSE",
-        "END",
-        "ASC",
-        "DESC",
-        "PRIMARY",
-        "KEY",
-        "FOREIGN",
-        "UNIQUE",
-      ],
-      operators: [
-        "=",
-        ">",
-        "<",
-        "!",
-        "~",
-        "?",
-        ":",
-        "==",
-        "<=",
-        ">=",
-        "!=",
-        "<>",
-        "+=",
-        "-=",
-        "*=",
-        "/=",
-        "%=",
-        "&=",
-        "|=",
-        "^=",
-        ">>=",
-        "<<=",
-      ],
-      builtinFunctions: [
-        "COUNT",
-        "SUM",
-        "AVG",
-        "MIN",
-        "MAX",
-        "CONCAT",
-        "SUBSTRING",
-        "LENGTH",
-        "UPPER",
-        "LOWER",
-        "TRIM",
-        "NOW",
-        "DATE",
-        "TIME",
-      ],
-      tokenizer: {
-        root: [
-          { include: "@comments" },
-          { include: "@whitespace" },
-          { include: "@numbers" },
-          { include: "@strings" },
-          { include: "@complexIdentifiers" },
-          [/[;,.]/, "delimiter"],
-          [/[()]/, "@brackets"],
-          [
-            /[\w@#$]+/,
-            {
-              cases: {
-                "@keywords": "keyword",
-                "@operators": "operator",
-                "@builtinFunctions": "predefined",
-                "@default": "identifier",
-              },
-            },
-          ],
-        ],
-        comments: [
-          [/--+.*/, "comment"],
-          [/\/\*/, { token: "comment.quote", next: "@comment" }],
-        ],
-        comment: [
-          [/[^*/]+/, "comment"],
-          [/\*\//, { token: "comment.quote", next: "@pop" }],
-          [/./, "comment"],
-        ],
-        whitespace: [[/\s+/, "white"]],
-        numbers: [
-          [/\d*\.\d+([eE][\-+]?\d+)?/, "number.float"],
-          [/\d+/, "number"],
-        ],
-        strings: [
-          [/'/, { token: "string", next: "@string" }],
-          [/"/, { token: "string.double", next: "@stringDouble" }],
-        ],
-        string: [
-          [/[^']+/, "string"],
-          [/''/, "string.escape"],
-          [/'/, { token: "string", next: "@pop" }],
-        ],
-        stringDouble: [
-          [/[^"]+/, "string.double"],
-          [/""/, "string.escape"],
-          [/"/, { token: "string.double", next: "@pop" }],
-        ],
-        complexIdentifiers: [
-          [/\[/, { token: "identifier.quote", next: "@bracketedIdentifier" }],
-          [/`/, { token: "identifier.quote", next: "@quotedIdentifier" }],
-        ],
-        bracketedIdentifier: [
-          [/[^\]]+/, "identifier"],
-          [/]]/, "identifier.escape"],
-          [/\]/, { token: "identifier.quote", next: "@pop" }],
-        ],
-        quotedIdentifier: [
-          [/[^`]+/, "identifier"],
-          [/``/, "identifier.escape"],
-          [/`/, { token: "identifier.quote", next: "@pop" }],
-        ],
-      },
-    })
-
-    // Configure autocompletion
-    monaco.languages.registerCompletionItemProvider("sql", {
-      provideCompletionItems: (model, position) => {
-        const query = model.getValue()
-        const completions = autoCompleter.getCompletions(query, {
-          line: position.lineNumber,
-          column: position.column,
-        })
-
-        return {
-          suggestions: completions.map((completion) => ({
-            label: completion.label,
-            kind: mapCompletionKind(completion.kind),
-            detail: completion.detail,
-            documentation: completion.documentation,
-            insertText: completion.insertText || completion.label,
-            insertTextRules:
-              completion.insertTextRules === "insertAsSnippet"
-                ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-                : undefined,
-            range: {
-              startLineNumber: position.lineNumber,
-              endLineNumber: position.lineNumber,
-              startColumn: position.column,
-              endColumn: position.column,
-            },
-          })),
-        }
-      },
-    })
-
-    // Configure validation
-    monaco.languages.registerCodeActionProvider("sql", {
-      provideCodeActions: (model, _range, context) => {
-        const actions: monaco.languages.CodeAction[] = []
-
-        for (const marker of context.markers) {
-          if (marker.source === "sql-validator") {
-            actions.push({
-              title: "Format Query",
-              kind: "quickfix",
-              edit: {
-                edits: [
-                  {
-                    resource: model.uri,
-                    versionId: model.getVersionId(),
-                    textEdit: {
-                      range: model.getFullModelRange(),
-                      text: sqlEditorService.formatQuery(model.getValue()),
-                    },
-                  },
-                ],
-              },
-            })
-          }
-        }
-
-        return {
-          actions,
-          dispose: () => {
-            // Cleanup resources if needed
-          },
-        }
-      },
-    })
-
-    // Create editor instance
-    const editor = monaco.editor.create(editorRef.current, {
-      value: query,
-      language: "sql",
-      theme: "vs-dark",
-      automaticLayout: true,
-      minimap: { enabled: false },
-      fontSize: 14,
-      lineNumbers: "on",
-      wordWrap: "on",
-      readOnly,
-      contextmenu: true,
-      quickSuggestions: true,
-      parameterHints: { enabled: true },
-      suggestOnTriggerCharacters: true,
-      acceptSuggestionOnEnter: "on",
-      tabCompletion: "on",
-      formatOnPaste: true,
-      formatOnType: true,
-    })
-
-    monacoEditorRef.current = editor
-
-    // Setup event handlers
-    editor.onDidChangeModelContent(() => {
-      const value = editor.getValue()
-      setQuery(value)
-
-      // Validate query
-      startTransition(() => {
-        const errors = validator.validateQuery(value)
-        setValidationErrors(errors)
-
-        // Update editor markers
-        const markers = errors.map((error) => ({
-          severity: mapSeverity(error.severity),
-          startLineNumber: error.line || 1,
-          startColumn: error.column || 1,
-          endLineNumber: error.line || 1,
-          endColumn: (error.column || 1) + (error.length || 1),
-          message: error.message,
-          source: "sql-validator",
-        }))
-
-        const model = editor.getModel()
-        if (model) {
-          monaco.editor.setModelMarkers(model, "sql-validator", markers)
-        }
-      })
-    })
-
-    // Keyboard shortcuts
-    editor.addAction({
-      id: "execute-query",
-      label: "Execute Query",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: () => {
-        handleExecuteQuery()
-      },
-    })
-
-    editor.addAction({
-      id: "format-query",
-      label: "Format Query",
-      keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
-      run: () => {
-        handleFormatQuery()
-      },
-    })
-
-    editor.addAction({
-      id: "save-bookmark",
-      label: "Save as Bookmark",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB],
-      run: () => {
-        handleSaveBookmark()
-      },
-    })
-
-    return () => {
-      editor.dispose()
+  const handleExecuteQuery = async () => {
+    if (!query.trim()) {
+      setError("クエリを入力してください")
+      return
     }
-  }, [readOnly, autoCompleter, validator, sqlEditorService, query])
-
-  // Update editor content when initialQuery changes
-  useEffect(() => {
-    if (monacoEditorRef.current && initialQuery !== query) {
-      monacoEditorRef.current.setValue(initialQuery)
-    }
-  }, [initialQuery, query])
-
-  // Execute query
-  const handleExecuteQuery = useCallback(async () => {
-    if (!query.trim() || isExecuting) return
 
     setIsExecuting(true)
+    setError("")
+    const startTime = Date.now()
 
     try {
-      const selection = monacoEditorRef.current?.getSelection()
-      const selectedText =
-        selection && monacoEditorRef.current?.getModel()?.getValueInRange(selection)
-      const queryToExecute = selectedText || query
+      // VSCode Extension APIを通じてクエリを実行
+      vscodeApi.postMessage("executeQuery", { query: query.trim() })
 
-      const result = await sqlEditorService.executeQuery(queryToExecute)
+      // 模擬実行結果（実際にはExtensionからメッセージで結果を受け取る）
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
-      setQueryResults((prev) => [result, ...prev.slice(0, 9)]) // Keep last 10 results
-      setExecutionHistory(sqlEditorService.getQueryHistory().slice(0, 50))
+      const mockResults: QueryResult[] = [
+        { id: 1, name: "Alice", email: "alice@example.com", created_at: "2024-01-01 10:00:00" },
+        { id: 2, name: "Bob", email: "bob@example.com", created_at: "2024-01-01 11:00:00" },
+        { id: 3, name: "Charlie", email: "charlie@example.com", created_at: "2024-01-01 12:00:00" },
+      ]
 
-      onQueryExecute?.(queryToExecute, result)
-      vscodeApi.showInfo(`Query executed successfully in ${result.executionTime}ms`)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      onError?.(errorMessage)
-      vscodeApi.showError(errorMessage)
+      setResults(mockResults)
+      setExecutionTime(Date.now() - startTime)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "クエリの実行に失敗しました")
+      setResults([])
     } finally {
       setIsExecuting(false)
     }
-  }, [query, isExecuting, sqlEditorService, onQueryExecute, onError, vscodeApi])
+  }
 
-  // Execute with options
-  const handleExecuteWithOptions = useCallback(
-    async (options: QueryExecutionOptions) => {
-      if (!query.trim() || isExecuting) return
+  const handleFormatSQL = () => {
+    // 簡単なSQL整形
+    const formatted = query
+      .replace(/\s+/g, " ")
+      .replace(
+        /\b(SELECT|FROM|WHERE|ORDER BY|GROUP BY|HAVING|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|UNION|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/gi,
+        "\n$1"
+      )
+      .replace(/\s*,\s*/g, ",\n  ")
+      .trim()
 
-      setIsExecuting(true)
+    setQuery(formatted)
+    vscodeApi.showInfo("SQLを整形しました")
+  }
 
-      try {
-        const result = await sqlEditorService.executeQueryWithOptions(query, options)
-        setQueryResults((prev) => [result, ...prev.slice(0, 9)])
-        vscodeApi.showInfo("Query executed with options successfully")
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error"
-        vscodeApi.showError(errorMessage)
-      } finally {
-        setIsExecuting(false)
-      }
-    },
-    [query, isExecuting, sqlEditorService, vscodeApi]
-  )
+  const handleClearEditor = () => {
+    setQuery("")
+    setResults([])
+    setError("")
+    setExecutionTime(null)
+  }
 
-  // Get execution plan
-  const handleGetExecutionPlan = useCallback(async () => {
-    if (!query.trim()) return
-
-    try {
-      const plan = await sqlEditorService.getExecutionPlan(query)
-      setExecutionPlan(plan)
-      setShowExecutionPlan(true)
-      vscodeApi.showInfo("Execution plan generated successfully")
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      vscodeApi.showError(errorMessage)
+  const insertSampleQuery = (sampleQuery: string) => {
+    setQuery(sampleQuery)
+    if (textareaRef.current) {
+      textareaRef.current.focus()
     }
-  }, [query, sqlEditorService, vscodeApi])
+  }
 
-  // Format query
-  const handleFormatQuery = useCallback(() => {
-    if (!monacoEditorRef.current) return
-
-    const formatted = sqlEditorService.formatQuery(query)
-    monacoEditorRef.current.setValue(formatted)
-    vscodeApi.showInfo("Query formatted successfully")
-  }, [query, sqlEditorService, vscodeApi])
-
-  // Save bookmark
-  const handleSaveBookmark = useCallback(() => {
-    if (!query.trim()) return
-
-    const name = prompt("Bookmark name:")
-    if (!name) return
-
-    const bookmark: QueryBookmark = {
-      id: `bookmark_${Date.now()}`,
-      name,
-      query,
-      description: "",
-      tags: [],
-      createdAt: new Date(),
-    }
-
-    sqlEditorService.saveBookmark(bookmark)
-    setBookmarks(sqlEditorService.getBookmarks())
-    vscodeApi.showInfo("Bookmark saved successfully")
-  }, [query, sqlEditorService, vscodeApi])
-
-  // Load bookmark
-  const handleLoadBookmark = useCallback((bookmark: QueryBookmark) => {
-    if (monacoEditorRef.current) {
-      monacoEditorRef.current.setValue(bookmark.query)
-    }
-    setShowBookmarks(false)
-  }, [])
-
-  // Clear results
-  const handleClearResults = useCallback(() => {
-    setQueryResults([])
-    vscodeApi.showInfo("Results cleared")
-  }, [vscodeApi])
-
-  // Export results
-  const handleExportResults = useCallback(
-    (result: QueryResult, format: string) => {
-      let exportedData: string
-      let fileName: string
-
-      switch (format) {
-        case "csv":
-          exportedData = sqlEditorService.exportToCSV(result)
-          fileName = "query_result.csv"
-          break
-        case "json":
-          exportedData = sqlEditorService.exportToJSON(result)
-          fileName = "query_result.json"
-          break
-        case "sql":
-          exportedData = sqlEditorService.exportToSQL(result, "exported_data")
-          fileName = "query_result.sql"
-          break
-        default:
-          return
-      }
-
-      // Create download link
-      const blob = new Blob([exportedData], { type: "text/plain" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = fileName
-      a.click()
-      URL.revokeObjectURL(url)
-
-      vscodeApi.showInfo(`Results exported as ${format.toUpperCase()}`)
-    },
-    [sqlEditorService, vscodeApi]
-  )
-
-  return (
-    <div className='sql-editor h-full flex flex-col bg-gray-900 text-white'>
-      {/* Toolbar */}
-      <SQLEditorToolbar
-        isExecuting={isExecuting}
-        hasQuery={!!query.trim()}
-        validationErrors={validationErrors}
-        onExecute={handleExecuteQuery}
-        onExecuteWithOptions={handleExecuteWithOptions}
-        onGetExecutionPlan={handleGetExecutionPlan}
-        onFormat={handleFormatQuery}
-        onSaveBookmark={handleSaveBookmark}
-        onShowHistory={() => setShowHistory(true)}
-        onShowBookmarks={() => setShowBookmarks(true)}
-        onClearResults={handleClearResults}
-      />
-
-      {/* Editor */}
-      <div
-        ref={editorRef}
-        className='flex-1 border border-gray-700'
-        style={{ height: `${height}px` }}
-      />
-
-      {/* Results */}
-      {queryResults.length > 0 && (
-        <SQLResultsPanel results={queryResults} onExport={handleExportResults} />
-      )}
-
-      {/* History Modal */}
-      {showHistory && (
-        <SQLHistoryModal
-          history={executionHistory}
-          onSelect={(selectedQuery: string) => {
-            if (monacoEditorRef.current) {
-              monacoEditorRef.current.setValue(selectedQuery)
-            }
-            setShowHistory(false)
-          }}
-          onClose={() => setShowHistory(false)}
-        />
-      )}
-
-      {/* Bookmarks Modal */}
-      {showBookmarks && (
-        <SQLBookmarksModal
-          bookmarks={bookmarks}
-          onSelect={handleLoadBookmark}
-          onDelete={(id: string) => {
-            sqlEditorService.deleteBookmark(id)
-            setBookmarks(sqlEditorService.getBookmarks())
-          }}
-          onClose={() => setShowBookmarks(false)}
-        />
-      )}
-
-      {/* Execution Plan Modal */}
-      {showExecutionPlan && executionPlan && (
-        <SQLExecutionPlanModal plan={executionPlan} onClose={() => setShowExecutionPlan(false)} />
-      )}
-    </div>
-  )
-}
-
-// Toolbar component
-interface SQLEditorToolbarProps {
-  isExecuting: boolean
-  hasQuery: boolean
-  validationErrors: ValidationError[]
-  onExecute: () => void
-  onExecuteWithOptions: (options: QueryExecutionOptions) => void
-  onGetExecutionPlan: () => void
-  onFormat: () => void
-  onSaveBookmark: () => void
-  onShowHistory: () => void
-  onShowBookmarks: () => void
-  onClearResults: () => void
-}
-
-const SQLEditorToolbar: React.FC<SQLEditorToolbarProps> = ({
-  isExecuting,
-  hasQuery,
-  validationErrors,
-  onExecute,
-  onExecuteWithOptions: _onExecuteWithOptions,
-  onGetExecutionPlan,
-  onFormat,
-  onSaveBookmark,
-  onShowHistory,
-  onShowBookmarks,
-  onClearResults,
-}) => {
-  const hasErrors = validationErrors.some((e) => e.severity === "error")
-
-  return (
-    <div className='sql-editor-toolbar flex items-center justify-between p-3 bg-gray-800 border-b border-gray-700'>
-      <div className='flex items-center gap-2'>
-        <button
-          type='button'
-          onClick={onExecute}
-          disabled={!hasQuery || isExecuting || hasErrors}
-          className='btn-primary text-sm flex items-center gap-2'
-        >
-          {isExecuting ? (
-            <>
-              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white' />
-              Executing...
-            </>
-          ) : (
-            <>
-              <PlayIcon />
-              Execute (Ctrl+Enter)
-            </>
-          )}
-        </button>
-
-        <button
-          type='button'
-          onClick={onGetExecutionPlan}
-          disabled={!hasQuery || isExecuting}
-          className='btn-secondary text-sm'
-        >
-          Explain
-        </button>
-
-        <button
-          type='button'
-          onClick={onFormat}
-          disabled={!hasQuery}
-          className='btn-secondary text-sm'
-        >
-          Format
-        </button>
-
-        <button
-          type='button'
-          onClick={onSaveBookmark}
-          disabled={!hasQuery}
-          className='btn-secondary text-sm'
-        >
-          Bookmark
-        </button>
-      </div>
-
-      <div className='flex items-center gap-2'>
-        {validationErrors.length > 0 && (
-          <div className='flex items-center gap-1 text-sm'>
-            <ErrorIcon className='text-red-400' />
-            <span className='text-red-400'>{validationErrors.length} issues</span>
-          </div>
-        )}
-
-        <button type='button' onClick={onShowHistory} className='btn-secondary text-sm'>
-          History
-        </button>
-
-        <button type='button' onClick={onShowBookmarks} className='btn-secondary text-sm'>
-          Bookmarks
-        </button>
-
-        <button type='button' onClick={onClearResults} className='btn-secondary text-sm'>
-          Clear Results
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// Results panel component (simplified)
-const SQLResultsPanel: React.FC<{
-  results: QueryResult[]
-  onExport: (result: QueryResult, format: string) => void
-}> = ({ results, onExport }) => {
-  const [selectedResultIndex, setSelectedResultIndex] = useState(0)
-  const selectedResult = results[selectedResultIndex]
-
-  return (
-    <div className='sql-results-panel bg-gray-800 border-t border-gray-700 p-4 max-h-96 overflow-auto'>
-      <div className='flex items-center justify-between mb-4'>
-        <h3 className='font-semibold text-white'>Query Results</h3>
-        <div className='flex items-center gap-2'>
-          <select
-            value={selectedResultIndex}
-            onChange={(e) => setSelectedResultIndex(Number(e.target.value))}
-            className='bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white'
-          >
-            {results.map((result, index) => (
-              <option key={`result-${index}-${result.executionTime}`} value={index}>
-                Result {index + 1}
-              </option>
-            ))}
-          </select>
-          <button
-            type='button'
-            onClick={() => onExport(selectedResult, "csv")}
-            className='btn-secondary text-sm'
-          >
-            Export CSV
-          </button>
+  const renderResults = () => {
+    if (error) {
+      return (
+        <div className='p-4 bg-red-50 border border-red-200 rounded'>
+          <h3 className='font-medium text-red-800 mb-2'>エラー</h3>
+          <p className='text-sm text-red-600'>{error}</p>
         </div>
-      </div>
+      )
+    }
 
-      {selectedResult && (
-        <div className='text-sm'>
-          <div className='mb-2 text-gray-400'>
-            {selectedResult.rowCount} rows in {selectedResult.executionTime}ms
-          </div>
-          <div className='bg-gray-900 rounded border border-gray-700 overflow-auto max-h-64'>
-            <table className='w-full text-sm'>
-              <thead className='bg-gray-700'>
-                <tr>
-                  {selectedResult.columns.map((col) => (
-                    <th key={col} className='px-3 py-2 text-left font-medium text-gray-300'>
-                      {col}
-                    </th>
+    if (results.length === 0) {
+      return (
+        <div className='p-4 text-center text-vscode-descriptionForeground'>
+          クエリを実行すると結果がここに表示されます
+        </div>
+      )
+    }
+
+    return (
+      <div className='overflow-auto'>
+        <div className='bg-vscode-editorWidget-background border border-vscode-panel-border rounded overflow-hidden'>
+          <table className='w-full'>
+            <thead className='bg-vscode-editorWidget-background border-b border-vscode-panel-border'>
+              <tr>
+                {Object.keys(results[0]).map((key) => (
+                  <th
+                    key={key}
+                    className='text-left p-3 font-medium text-vscode-editor-foreground border-r border-vscode-panel-border last:border-r-0'
+                  >
+                    {key}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((row, index) => (
+                <tr
+                  key={index}
+                  className='hover:bg-vscode-list-hoverBackground border-b border-vscode-panel-border last:border-b-0'
+                >
+                  {Object.values(row).map((value, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      className='p-3 border-r border-vscode-panel-border last:border-r-0 text-vscode-editor-foreground'
+                    >
+                      {value === null || value === undefined ? (
+                        <span className='text-gray-400 italic'>NULL</span>
+                      ) : (
+                        String(value)
+                      )}
+                    </td>
                   ))}
                 </tr>
-              </thead>
-              <tbody>
-                {selectedResult.rows.slice(0, 100).map((row, index) => (
-                  <tr
-                    key={`row-${index}-${Object.values(row).slice(0, 2).join("-")}`}
-                    className='border-b border-gray-800'
-                  >
-                    {selectedResult.columns.map((col) => (
-                      <td key={col} className='px-3 py-2 text-gray-300'>
-                        {row[col] === null ? (
-                          <span className='text-gray-500 italic'>NULL</span>
-                        ) : (
-                          String(row[col])
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {executionTime && (
+          <div className='mt-2 text-sm text-vscode-descriptionForeground'>
+            実行時間: {executionTime}ms ({results.length}行)
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className='h-full flex flex-col bg-vscode-editor-background'>
+      {/* Header */}
+      <div className='p-4 border-b border-vscode-panel-border'>
+        <div className='flex items-center justify-between mb-4'>
+          <h2 className='text-lg font-semibold text-vscode-editor-foreground'>SQLエディタ</h2>
+          <div className='flex space-x-2'>
+            <button
+              onClick={handleFormatSQL}
+              className='px-3 py-1 text-sm bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground'
+            >
+              整形
+            </button>
+            <button
+              onClick={handleClearEditor}
+              className='px-3 py-1 text-sm border border-vscode-input-border text-vscode-input-foreground rounded hover:bg-vscode-list-hoverBackground'
+            >
+              クリア
+            </button>
+            <button
+              onClick={handleExecuteQuery}
+              disabled={isExecuting}
+              className='px-4 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50'
+            >
+              {isExecuting ? "実行中..." : "実行 (⌘+Enter)"}
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Sample Queries */}
+        <div className='mb-4'>
+          <h3 className='text-sm font-medium text-vscode-editor-foreground mb-2'>
+            サンプルクエリ:
+          </h3>
+          <div className='flex flex-wrap gap-2'>
+            {sampleQueries.map((sample, index) => (
+              <button
+                key={index}
+                onClick={() => insertSampleQuery(sample)}
+                className='px-2 py-1 text-xs border border-vscode-input-border text-vscode-input-foreground rounded hover:bg-vscode-list-hoverBackground'
+                title={sample}
+              >
+                {sample.substring(0, 30)}...
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Editor Area */}
+      <div className='flex-1 flex flex-col overflow-hidden'>
+        <div className='flex-1 p-4'>
+          <div className='h-full flex flex-col space-y-4'>
+            {/* SQL Input */}
+            <div className='flex-1 min-h-[200px]'>
+              <label className='block text-sm font-medium text-vscode-editor-foreground mb-2'>
+                SQLクエリ:
+              </label>
+              <textarea
+                ref={textareaRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className='w-full h-full p-3 font-mono text-sm border border-vscode-input-border bg-vscode-input-background text-vscode-input-foreground rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='SQLクエリを入力してください...'
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault()
+                    handleExecuteQuery()
+                  }
+                }}
+              />
+            </div>
+
+            {/* Results */}
+            <div className='flex-1 min-h-[200px]'>
+              <h3 className='text-sm font-medium text-vscode-editor-foreground mb-2'>実行結果:</h3>
+              <div className='h-full border border-vscode-panel-border rounded overflow-hidden'>
+                {renderResults()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className='p-2 border-t border-vscode-panel-border bg-vscode-editorWidget-background'>
+        <div className='text-xs text-vscode-descriptionForeground'>
+          💡 Monaco Editor統合とシンタックスハイライトは開発中です
+        </div>
+      </div>
     </div>
   )
 }
-
-// Simplified modal components (would be fully implemented)
-interface SQLHistoryModalProps {
-  history: string[]
-  onSelect: (query: string) => void
-  onClose: () => void
-}
-
-const SQLHistoryModal: React.FC<SQLHistoryModalProps> = ({ history, onSelect, onClose }) => (
-  <div
-    className='modal-overlay'
-    onClick={onClose}
-    onKeyDown={(e) => {
-      if (e.key === "Escape") {
-        onClose()
-      }
-    }}
-    role='dialog'
-    aria-modal='true'
-  >
-    <div
-      className='modal-content'
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-      role='document'
-    >
-      <h2>Query History</h2>
-      <div className='max-h-96 overflow-auto'>
-        {history.map((query: string, index: number) => (
-          <button
-            type='button'
-            key={`query-${index}-${query.slice(0, 10)}`}
-            className='w-full text-left p-2 hover:bg-gray-700 cursor-pointer'
-            onClick={() => onSelect(query)}
-          >
-            {query.slice(0, 100)}...
-          </button>
-        ))}
-      </div>
-      <button type='button' onClick={onClose}>
-        Close
-      </button>
-    </div>
-  </div>
-)
-
-interface SQLBookmarksModalProps {
-  bookmarks: QueryBookmark[]
-  onSelect: (bookmark: QueryBookmark) => void
-  onDelete: (id: string) => void
-  onClose: () => void
-}
-
-const SQLBookmarksModal: React.FC<SQLBookmarksModalProps> = ({
-  bookmarks,
-  onSelect,
-  onDelete,
-  onClose,
-}) => (
-  <div
-    className='modal-overlay'
-    onClick={onClose}
-    onKeyDown={(e) => {
-      if (e.key === "Escape") {
-        onClose()
-      }
-    }}
-    role='dialog'
-    aria-modal='true'
-  >
-    <div
-      className='modal-content'
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-      role='document'
-    >
-      <h2>Bookmarks</h2>
-      <div className='max-h-96 overflow-auto'>
-        {bookmarks.map((bookmark: QueryBookmark) => (
-          <div key={bookmark.id} className='p-2 hover:bg-gray-700 flex justify-between'>
-            <button
-              type='button'
-              className='text-left flex-1 cursor-pointer'
-              onClick={() => onSelect(bookmark)}
-            >
-              <div className='font-medium'>{bookmark.name}</div>
-              <div className='text-sm text-gray-400'>{bookmark.query.slice(0, 50)}...</div>
-            </button>
-            <button
-              type='button'
-              onClick={() => onDelete(bookmark.id)}
-              className='text-red-400 ml-2'
-            >
-              Delete
-            </button>
-          </div>
-        ))}
-      </div>
-      <button type='button' onClick={onClose}>
-        Close
-      </button>
-    </div>
-  </div>
-)
-
-interface SQLExecutionPlanModalProps {
-  plan: ExecutionPlan
-  onClose: () => void
-}
-
-const SQLExecutionPlanModal: React.FC<SQLExecutionPlanModalProps> = ({ plan, onClose }) => (
-  <div
-    className='modal-overlay'
-    onClick={onClose}
-    onKeyDown={(e) => {
-      if (e.key === "Escape") {
-        onClose()
-      }
-    }}
-    role='dialog'
-    aria-modal='true'
-  >
-    <div
-      className='modal-content'
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-      role='document'
-    >
-      <h2>Execution Plan</h2>
-      <pre className='bg-gray-900 p-4 rounded text-sm overflow-auto max-h-96'>
-        {JSON.stringify(plan, null, 2)}
-      </pre>
-      <button type='button' onClick={onClose}>
-        Close
-      </button>
-    </div>
-  </div>
-)
-
-// Helper functions
-function mapCompletionKind(kind: string): monaco.languages.CompletionItemKind {
-  switch (kind) {
-    case "keyword":
-      return monaco.languages.CompletionItemKind.Keyword
-    case "function":
-      return monaco.languages.CompletionItemKind.Function
-    case "table":
-      return monaco.languages.CompletionItemKind.Struct
-    case "column":
-      return monaco.languages.CompletionItemKind.Field
-    case "snippet":
-      return monaco.languages.CompletionItemKind.Snippet
-    default:
-      return monaco.languages.CompletionItemKind.Text
-  }
-}
-
-function mapSeverity(severity: string): monaco.MarkerSeverity {
-  switch (severity) {
-    case "error":
-      return monaco.MarkerSeverity.Error
-    case "warning":
-      return monaco.MarkerSeverity.Warning
-    case "info":
-      return monaco.MarkerSeverity.Info
-    default:
-      return monaco.MarkerSeverity.Hint
-  }
-}
-
-// Icon components
-const PlayIcon: React.FC = () => (
-  <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-    <path
-      fillRule='evenodd'
-      d='M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z'
-      clipRule='evenodd'
-    />
-  </svg>
-)
-
-const ErrorIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={`w-4 h-4 ${className}`} fill='currentColor' viewBox='0 0 20 20'>
-    <path
-      fillRule='evenodd'
-      d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z'
-      clipRule='evenodd'
-    />
-  </svg>
-)
 
 export default SQLEditor

@@ -82,10 +82,11 @@
   },
   "scripts": {
     "dev": "docker compose -f docker-compose.dev.yml up -d && npm run dev:vite",
-    "dev:vite": "npx vite --host 0.0.0.0",
+    "dev:vite": "NODE_ENV=development npx vite --host 0.0.0.0",
+    "dev:extension": "NODE_ENV=development npm run build:extension",
     "dev:db": "docker compose -f docker-compose.dev.yml up -d",
     "dev:stop": "docker compose -f docker-compose.dev.yml down",
-    "build": "rm -rf dist && npm run build:extension && npm run build:webview",
+    "build": "rm -rf dist && npm run build:extension && npm run build:webview && npm run check:native",
     "build:extension": "tsc -p ./tsconfig.extension.json",
     "build:webview": "npx vite build",
     "package": "npx @vscode/vsce package",
@@ -109,7 +110,9 @@
     "precommit": "npm run lint:check && npm run type-check && npm run build",
     "ci:check": "npm run lint:fix || echo 'Some lint issues remain' && npm run lint:check && npm run type-check && npm run build",
     "ci:local": "npm run ci:check",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:native": "node scripts/check-native-modules.js",
+    "check:deps": "npm run check:native"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -121,6 +124,7 @@
     "@types/pg": "^8.11.10",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@types/sql.js": "^1.4.9",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.85.0",
     "@vitejs/plugin-react": "^4.3.4",
@@ -143,6 +147,7 @@
     "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sql.js": "^1.13.0",
     "tailwindcss": "^3.4.17",
     "uuid": "^11.0.3"
   },

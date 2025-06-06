@@ -31,22 +31,31 @@ class VSCodeWebViewAPI {
   private messageHandlers: Map<string, (data: unknown) => void> = new Map()
   private isInitialized = false
 
-  constructor() {
-    this.initialize()
-  }
-
   private initialize() {
-    try {
-      // Acquire VSCode API if available
-      if (typeof window !== "undefined" && window.acquireVsCodeApi) {
-        this.vscode = window.acquireVsCodeApi()
-        this.isInitialized = true
+    if (this.isInitialized) {
+      return
+    }
 
-        // Listen for messages from extension
-        window.addEventListener("message", this.handleMessage.bind(this))
+    try {
+      // Check if VSCode API is already acquired via window property
+      if (typeof window !== "undefined" && (window as unknown as { vscode?: VSCodeApi }).vscode) {
+        this.vscode = (window as unknown as { vscode?: VSCodeApi }).vscode || null
+        if (!this.vscode) return
+        this.isInitialized = true
+      } else if (typeof window !== "undefined" && window.acquireVsCodeApi) {
+        // Acquire VSCode API if available
+        this.vscode = window.acquireVsCodeApi()
+        // Store it globally to prevent re-acquisition
+        ;(window as unknown as { vscode?: VSCodeApi }).vscode = this.vscode
+        this.isInitialized = true
       } else {
         console.warn("VSCode API not available - running in development mode")
         this.setupDevMode()
+      }
+
+      if (this.isInitialized && !window.addEventListener.toString().includes("handleMessage")) {
+        // Listen for messages from extension
+        window.addEventListener("message", this.handleMessage.bind(this))
       }
     } catch (error) {
       console.error("Failed to initialize VSCode API:", error)
@@ -80,6 +89,9 @@ class VSCodeWebViewAPI {
 
   // Public API methods
   public postMessage(type: string, data?: unknown) {
+    if (!this.isInitialized) {
+      this.initialize()
+    }
     if (this.vscode) {
       this.vscode.postMessage({ type, data })
     }

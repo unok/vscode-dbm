@@ -1,12 +1,12 @@
 import React, { Suspense, startTransition, useState, useEffect, useMemo } from "react"
-import { SettingsService } from "../shared/services/SettingsService"
-import { ToolbarCustomizationService } from "../shared/services/ToolbarCustomizationService"
 import { useVSCodeAPI } from "./api/vscode"
 import { CustomizableToolbar } from "./components/CustomizableToolbar"
 import { Layout } from "./components/Layout"
 import { LoadingSpinner } from "./components/LoadingSpinner"
 import { SettingsUI } from "./components/SettingsUI"
 import { useVSCodeTheme } from "./hooks/useVSCodeTheme"
+import { WebViewSettingsService } from "./services/WebViewSettingsService"
+import { WebViewToolbarService } from "./services/WebViewToolbarService"
 import { DevelopmentOverlay } from "./utils/devHelper"
 
 // React 19 lazy loading for main components
@@ -24,7 +24,7 @@ export const App: React.FC = () => {
 
   // Initialize services
   const toolbarService = useMemo(() => {
-    const service = new ToolbarCustomizationService()
+    const service = new WebViewToolbarService()
 
     // Register action callbacks for toolbar items
     service.registerAction("new-connection", () => {
@@ -74,7 +74,7 @@ export const App: React.FC = () => {
     return service
   }, [vscodeApi])
 
-  const settingsService = useMemo(() => new SettingsService(), [])
+  const settingsService = useMemo(() => new WebViewSettingsService(), [])
 
   useEffect(() => {
     // Set initial view from VSCode if provided

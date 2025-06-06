@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build:extension",
+      "group": "build",
+      "label": "npm: build:extension",
+      "detail": "TypeScript拡張機能をビルド"
+    },
+    {
+      "type": "npm", 
+      "script": "dev:extension",
+      "group": "build",
+      "label": "npm: dev:extension",
+      "detail": "開発モードで拡張機能をビルド"
+    },
+    {
+      "type": "npm",
+      "script": "dev:vite",
+      "group": "build",
+      "label": "npm: dev:vite",
+      "detail": "Vite開発サーバーを起動",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "label": "npm: build",
+      "detail": "プロダクション用ビルド"
+    }
+  ]
+}
