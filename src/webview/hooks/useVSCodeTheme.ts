@@ -26,7 +26,6 @@ export const useVSCodeTheme = (): Theme => {
   }, [])
 
   useEffect(() => {
-
     // Listen for theme changes from VSCode API
     vscodeApi.onMessage("themeChanged", (data) => {
       const themeData = data as { kind?: "light" | "dark" }

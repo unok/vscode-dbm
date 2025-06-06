@@ -31,6 +31,7 @@ const DatabaseExplorer: React.FC = () => {
               スキーマエクスプローラー機能は開発中です
             </p>
             <button
+              type='button'
               onClick={() => setIsConnected(false)}
               className='mt-3 px-4 py-2 bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground'
             >
@@ -45,6 +46,7 @@ const DatabaseExplorer: React.FC = () => {
 
             <div className='grid grid-cols-1 gap-2'>
               <button
+                type='button'
                 onClick={() => handleConnect("mysql")}
                 className='flex items-center p-3 border border-vscode-input-border rounded hover:bg-vscode-list-hoverBackground'
               >
@@ -56,6 +58,7 @@ const DatabaseExplorer: React.FC = () => {
               </button>
 
               <button
+                type='button'
                 onClick={() => handleConnect("postgresql")}
                 className='flex items-center p-3 border border-vscode-input-border rounded hover:bg-vscode-list-hoverBackground'
               >
@@ -67,6 +70,7 @@ const DatabaseExplorer: React.FC = () => {
               </button>
 
               <button
+                type='button'
                 onClick={() => handleConnect("sqlite")}
                 className='flex items-center p-3 border border-vscode-input-border rounded hover:bg-vscode-list-hoverBackground'
               >

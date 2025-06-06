@@ -163,18 +163,21 @@ const SQLEditor: React.FC = () => {
           <h2 className='text-lg font-semibold text-vscode-editor-foreground'>SQLエディタ</h2>
           <div className='flex space-x-2'>
             <button
+              type='button'
               onClick={handleFormatSQL}
               className='px-3 py-1 text-sm bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground'
             >
               整形
             </button>
             <button
+              type='button'
               onClick={handleClearEditor}
               className='px-3 py-1 text-sm border border-vscode-input-border text-vscode-input-foreground rounded hover:bg-vscode-list-hoverBackground'
             >
               クリア
             </button>
             <button
+              type='button'
               onClick={handleExecuteQuery}
               disabled={isExecuting}
               className='px-4 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50'
@@ -192,6 +195,7 @@ const SQLEditor: React.FC = () => {
           <div className='flex flex-wrap gap-2'>
             {sampleQueries.map((sample, index) => (
               <button
+                type='button'
                 key={index}
                 onClick={() => insertSampleQuery(sample)}
                 className='px-2 py-1 text-xs border border-vscode-input-border text-vscode-input-foreground rounded hover:bg-vscode-list-hoverBackground'
@@ -210,10 +214,14 @@ const SQLEditor: React.FC = () => {
           <div className='h-full flex flex-col space-y-4'>
             {/* SQL Input */}
             <div className='flex-1 min-h-[200px]'>
-              <label className='block text-sm font-medium text-vscode-editor-foreground mb-2'>
+              <label
+                htmlFor='sql-query-input'
+                className='block text-sm font-medium text-vscode-editor-foreground mb-2'
+              >
                 SQLクエリ:
               </label>
               <textarea
+                id='sql-query-input'
                 ref={textareaRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

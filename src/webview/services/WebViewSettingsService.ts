@@ -24,12 +24,24 @@ export class WebViewSettingsService {
 
   private get vscodeApi() {
     // Use globally stored VSCode API if available
-    return (window as unknown as { vscode?: { getState: () => unknown; setState: (state: unknown) => void; postMessage: (message: unknown) => void } }).vscode || null
+    return (
+      (
+        window as unknown as {
+          vscode?: {
+            getState: () => unknown
+            setState: (state: unknown) => void
+            postMessage: (message: unknown) => void
+          }
+        }
+      ).vscode || null
+    )
   }
 
   constructor() {
     // VSCodeの状態から設定を復元
-    const savedState = this.vscodeApi?.getState() as { settings?: Partial<WebViewSettings> } | undefined
+    const savedState = this.vscodeApi?.getState() as
+      | { settings?: Partial<WebViewSettings> }
+      | undefined
     if (savedState?.settings) {
       this.settings = { ...this.settings, ...savedState.settings }
     }

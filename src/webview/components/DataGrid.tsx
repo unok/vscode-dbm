@@ -32,19 +32,22 @@ const DataGrid: React.FC = () => {
     ],
   }
 
-  const loadTableData = useCallback(async (tableName: typeof selectedTable) => {
-    setIsLoading(true)
-    try {
-      // シミュレーション: 実際にはVSCode APIを通じてデータを取得
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setData(sampleData[tableName])
-      vscodeApi.showInfo(`${tableName} テーブルを読み込みました`)
-    } catch (error) {
-      console.error("Failed to load table data:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [vscodeApi])
+  const loadTableData = useCallback(
+    async (tableName: typeof selectedTable) => {
+      setIsLoading(true)
+      try {
+        // シミュレーション: 実際にはVSCode APIを通じてデータを取得
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        setData(sampleData[tableName])
+        vscodeApi.showInfo(`${tableName} テーブルを読み込みました`)
+      } catch (error) {
+        console.error("Failed to load table data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [vscodeApi]
+  )
 
   useEffect(() => {
     loadTableData(selectedTable)
@@ -71,7 +74,7 @@ const DataGrid: React.FC = () => {
     }
   }
 
-  const renderCellValue = (value: any) => {
+  const renderCellValue = (value: unknown) => {
     if (value === null || value === undefined) {
       return <span className='text-gray-400 italic'>NULL</span>
     }
@@ -86,6 +89,7 @@ const DataGrid: React.FC = () => {
           <h2 className='text-lg font-semibold text-vscode-editor-foreground'>データグリッド</h2>
           <div className='flex space-x-2'>
             <button
+              type='button'
               onClick={handleRefresh}
               disabled={isLoading}
               className='px-3 py-1 text-sm bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground disabled:opacity-50'
@@ -93,6 +97,7 @@ const DataGrid: React.FC = () => {
               {isLoading ? "読み込み中..." : "更新"}
             </button>
             <button
+              type='button'
               onClick={handleExecuteQuery}
               className='px-3 py-1 text-sm bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground'
             >
@@ -105,6 +110,7 @@ const DataGrid: React.FC = () => {
         <div className='flex space-x-2'>
           {(["users", "products", "orders"] as const).map((table) => (
             <button
+              type='button'
               key={table}
               onClick={() => setSelectedTable(table)}
               className={`px-3 py-1 text-sm rounded border ${

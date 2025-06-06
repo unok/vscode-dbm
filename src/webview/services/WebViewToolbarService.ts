@@ -28,7 +28,17 @@ export class WebViewToolbarService {
 
   private get vscodeApi() {
     // Use globally stored VSCode API if available
-    return (window as unknown as { vscode?: { getState: () => unknown; setState: (state: unknown) => void; postMessage: (message: unknown) => void } }).vscode || null
+    return (
+      (
+        window as unknown as {
+          vscode?: {
+            getState: () => unknown
+            setState: (state: unknown) => void
+            postMessage: (message: unknown) => void
+          }
+        }
+      ).vscode || null
+    )
   }
 
   constructor() {

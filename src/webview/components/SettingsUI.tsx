@@ -59,10 +59,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
 
       <div className='space-y-3'>
         <div>
-          <label className='block text-sm font-medium text-vscode-editor-foreground mb-1'>
+          <label
+            htmlFor='theme-select'
+            className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+          >
             テーマ
           </label>
           <select
+            id='theme-select'
             value={currentSettings.theme}
             onChange={(e) => updateSetting("theme", e.target.value as WebViewSettings["theme"])}
             className='w-full p-2 border border-vscode-input-border bg-vscode-input-background text-vscode-input-foreground rounded'
@@ -74,10 +78,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
         </div>
 
         <div>
-          <label className='block text-sm font-medium text-vscode-editor-foreground mb-1'>
+          <label
+            htmlFor='auto-save-checkbox'
+            className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+          >
             自動保存
           </label>
           <input
+            id='auto-save-checkbox'
             type='checkbox'
             checked={currentSettings.autoSave}
             onChange={(e) => updateSetting("autoSave", e.target.checked)}
@@ -95,10 +103,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
 
       <div className='space-y-3'>
         <div>
-          <label className='block text-sm font-medium text-vscode-editor-foreground mb-1'>
+          <label
+            htmlFor='font-size-input'
+            className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+          >
             フォントサイズ
           </label>
           <input
+            id='font-size-input'
             type='number'
             min='10'
             max='24'
@@ -109,10 +121,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
         </div>
 
         <div>
-          <label className='block text-sm font-medium text-vscode-editor-foreground mb-1'>
+          <label
+            htmlFor='line-numbers-checkbox'
+            className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+          >
             行番号を表示
           </label>
           <input
+            id='line-numbers-checkbox'
             type='checkbox'
             checked={currentSettings.showLineNumbers}
             onChange={(e) => updateSetting("showLineNumbers", e.target.checked)}
@@ -130,10 +146,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
 
       <div className='space-y-3'>
         <div>
-          <label className='block text-sm font-medium text-vscode-editor-foreground mb-1'>
+          <label
+            htmlFor='virtual-scrolling-checkbox'
+            className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+          >
             仮想スクロール
           </label>
           <input
+            id='virtual-scrolling-checkbox'
             type='checkbox'
             checked={currentSettings.enableVirtualScrolling}
             onChange={(e) => updateSetting("enableVirtualScrolling", e.target.checked)}
@@ -145,10 +165,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
         </div>
 
         <div>
-          <label className='block text-sm font-medium text-vscode-editor-foreground mb-1'>
+          <label
+            htmlFor='max-rows-input'
+            className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+          >
             1ページあたりの最大行数
           </label>
           <input
+            id='max-rows-input'
             type='number'
             min='10'
             max='1000'
@@ -182,6 +206,7 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
         <div className='flex items-center justify-between p-4 border-b border-vscode-panel-border'>
           <h2 className='text-xl font-semibold text-vscode-editor-foreground'>設定</h2>
           <button
+            type='button'
             onClick={onClose}
             className='text-vscode-editor-foreground hover:bg-vscode-toolbar-hoverBackground p-1 rounded'
           >
@@ -199,6 +224,7 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
                 { id: "ui", label: "UI" },
               ].map((tab) => (
                 <button
+                  type='button'
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as SettingsTab)}
                   className={`
@@ -231,6 +257,7 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
             {/* Footer */}
             <div className='p-4 border-t border-vscode-panel-border flex justify-between'>
               <button
+                type='button'
                 onClick={handleReset}
                 className='px-4 py-2 bg-vscode-button-secondaryBackground text-vscode-button-secondaryForeground rounded hover:bg-vscode-button-secondaryHoverBackground'
               >
@@ -238,12 +265,14 @@ export const SettingsUI: React.FC<SettingsUIProps> = ({ settingsService, onClose
               </button>
               <div className='space-x-2'>
                 <button
+                  type='button'
                   onClick={onClose}
                   className='px-4 py-2 border border-vscode-button-border text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground'
                 >
                   キャンセル
                 </button>
                 <button
+                  type='button'
                   onClick={handleSave}
                   className='px-4 py-2 bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground'
                 >
