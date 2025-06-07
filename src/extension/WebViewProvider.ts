@@ -350,13 +350,59 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         button:hover {
             background: var(--vscode-button-hoverBackground);
         }
-        /* Connection Management Styles */
-        .connection-section, .schema-section {
+        /* Database Tree Styles */
+        .database-tree-section {
             margin-bottom: 24px;
             padding: 12px;
             background: var(--vscode-editorWidget-background);
             border: 1px solid var(--vscode-panel-border);
             border-radius: 6px;
+        }
+        .database-tree {
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
+        }
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            user-select: none;
+        }
+        .tree-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        .tree-item.selected {
+            background: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
+        .tree-item-icon {
+            margin-right: 6px;
+            font-size: 14px;
+        }
+        .tree-item-label {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tree-item-children {
+            margin-left: 16px;
+            border-left: 1px solid var(--vscode-tree-indentGuidesStroke);
+            padding-left: 8px;
+        }
+        .tree-item-children.collapsed {
+            display: none;
+        }
+        .tree-expand-icon {
+            margin-right: 4px;
+            font-size: 12px;
+            color: var(--vscode-icon-foreground);
+            cursor: pointer;
+        }
+        .tree-expand-icon:hover {
+            color: var(--vscode-foreground);
         }
         .section-header {
             display: flex;
@@ -489,42 +535,18 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         <div class="status" id="connectionStatus">データベース: 未接続</div>
     </div>
 
-    <!-- Connection Management Section -->
-    <div class="connection-section">
+    <!-- Database Tree Section -->
+    <div class="database-tree-section">
         <div class="section-header">
-            <h3 class="section-title">データベース接続</h3>
-            <button id="newConnectionBtn" class="btn-icon" title="新しい接続を追加">
+            <h3 class="section-title">📁 データベース接続</h3>
+            <button id="addConnectionBtn" class="btn-icon" title="新しい接続を追加">
                 <span class="codicon codicon-add"></span>
             </button>
         </div>
         
-        <!-- Saved Connections -->
-        <div class="subsection">
-            <h4 class="subsection-title">保存された接続</h4>
-            <div id="savedConnectionsList" class="connection-list">
-                <div class="loading">読み込み中...</div>
-            </div>
-        </div>
-        
-        <!-- Active Connections -->
-        <div class="subsection">
-            <h4 class="subsection-title">アクティブな接続</h4>
-            <div id="activeConnectionsList" class="connection-list">
-                <div class="no-connections">接続されていません</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Schema Explorer Section -->
-    <div class="schema-section">
-        <div class="section-header">
-            <h3 class="section-title">スキーマエクスプローラー</h3>
-            <button id="refreshSchemaBtn" class="btn-icon" title="スキーマを更新">
-                <span class="codicon codicon-refresh"></span>
-            </button>
-        </div>
-        <div id="schemaTree" class="schema-tree">
-            <div class="no-connections">接続を選択してください</div>
+        <!-- Unified Connection Tree -->
+        <div id="databaseTree" class="database-tree">
+            <div class="loading">読み込み中...</div>
         </div>
     </div>
 
@@ -539,21 +561,12 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         const vscode = window.vscode;
         
         
-        // New Connection button
-        document.getElementById('newConnectionBtn').addEventListener('click', function() {
-            console.log('New Connection button clicked');
+        // Add Connection button
+        document.getElementById('addConnectionBtn').addEventListener('click', function() {
+            console.log('Add Connection button clicked');
             vscode.postMessage({
                 type: 'showInfo',
                 data: { message: 'メインパネルの "New Connection" から接続を追加してください' }
-            });
-        });
-        
-        // Refresh Schema button
-        document.getElementById('refreshSchemaBtn').addEventListener('click', function() {
-            console.log('Refresh Schema button clicked');
-            vscode.postMessage({
-                type: 'getSavedConnections',
-                data: {}
             });
         });
         
@@ -568,9 +581,9 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             data: {}
         });
         
-        // Connection list management functions
-        function updateSavedConnections(connections) {
-            const container = document.getElementById('savedConnectionsList');
+        // Database tree management functions
+        function updateDatabaseTree(connections, schemas = {}) {
+            const container = document.getElementById('databaseTree');
             if (!connections || connections.length === 0) {
                 container.innerHTML = '<div class="no-connections">保存された接続がありません</div>';
                 return;
@@ -578,70 +591,161 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             
             container.innerHTML = connections.map(conn => {
                 const icon = getDbIcon(conn.type);
-                const details = conn.type === 'sqlite' ? conn.database : conn.host + ':' + conn.port;
-                return '<div class="connection-item" data-connection-id="' + conn.id + '">' +
-                    '<div class="connection-info">' +
-                        '<div class="connection-name">' + icon + ' ' + conn.name + '</div>' +
-                        '<div class="connection-details">' + conn.type.toUpperCase() + ' - ' + details + '</div>' +
-                    '</div>' +
-                    '<div class="connection-actions">' +
-                        '<button class="btn-icon connect-btn" title="接続" data-connection-id="' + conn.id + '">' +
-                            '<span class="codicon codicon-plug"></span>' +
-                        '</button>' +
-                    '</div>' +
+                const isExpanded = expandedConnections.has(conn.id);
+                const schema = schemas[conn.id];
+                
+                let html = '<div class="tree-item connection-item" data-connection-id="' + conn.id + '">' +
+                    (schema ? '<span class="tree-expand-icon codicon ' + (isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right') + '"></span>' : '') +
+                    '<span class="tree-item-icon">' + icon + '</span>' +
+                    '<span class="tree-item-label">' + conn.name + '</span>' +
                 '</div>';
+                
+                if (schema && isExpanded) {
+                    html += '<div class="tree-item-children">';
+                    
+                    // テーブル一覧
+                    if (schema.tables && schema.tables.length > 0) {
+                        html += '<div class="tree-item schema-folder">' +
+                            '<span class="tree-item-icon">📊</span>' +
+                            '<span class="tree-item-label">テーブル (' + schema.tables.length + ')</span>' +
+                        '</div>';
+                        html += '<div class="tree-item-children">';
+                        schema.tables.forEach(table => {
+                            html += '<div class="tree-item table-item" data-connection-id="' + conn.id + '" data-table="' + table.name + '">' +
+                                '<span class="tree-item-icon">📋</span>' +
+                                '<span class="tree-item-label">' + table.name + '</span>' +
+                            '</div>';
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // ビュー一覧
+                    if (schema.views && schema.views.length > 0) {
+                        html += '<div class="tree-item schema-folder">' +
+                            '<span class="tree-item-icon">👁️</span>' +
+                            '<span class="tree-item-label">ビュー (' + schema.views.length + ')</span>' +
+                        '</div>';
+                        html += '<div class="tree-item-children">';
+                        schema.views.forEach(view => {
+                            html += '<div class="tree-item view-item" data-connection-id="' + conn.id + '" data-view="' + view.name + '">' +
+                                '<span class="tree-item-icon">👁️</span>' +
+                                '<span class="tree-item-label">' + view.name + '</span>' +
+                            '</div>';
+                        });
+                        html += '</div>';
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                return html;
             }).join('');
             
-            // Add event listeners for connect buttons
-            container.querySelectorAll('.connect-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
+            // イベントリスナーを追加
+            addTreeEventListeners();
+        }
+        
+        // 展開状態を管理
+        const expandedConnections = new Set();
+        const schemaCache = {};
+        
+        function addTreeEventListeners() {
+            const container = document.getElementById('databaseTree');
+            
+            // 展開/折り畳みボタン
+            container.querySelectorAll('.tree-expand-icon').forEach(icon => {
+                icon.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    const connectionItem = this.closest('.connection-item');
+                    const connectionId = connectionItem.getAttribute('data-connection-id');
+                    toggleConnection(connectionId);
+                });
+            });
+            
+            // 接続アイテムクリック
+            container.querySelectorAll('.connection-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('tree-expand-icon')) return;
                     const connectionId = this.getAttribute('data-connection-id');
-                    const connection = connections.find(c => c.id === connectionId);
-                    if (connection) {
-                        vscode.postMessage({
-                            type: 'openConnection',
-                            data: connection
-                        });
-                    }
+                    toggleConnection(connectionId);
+                });
+            });
+            
+            // テーブルクリック
+            container.querySelectorAll('.table-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const connectionId = this.getAttribute('data-connection-id');
+                    const tableName = this.getAttribute('data-table');
+                    generateTableSQL(connectionId, tableName);
+                });
+            });
+            
+            // ビュークリック
+            container.querySelectorAll('.view-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const connectionId = this.getAttribute('data-connection-id');
+                    const viewName = this.getAttribute('data-view');
+                    generateViewSQL(connectionId, viewName);
                 });
             });
         }
         
-        function updateActiveConnections(connections) {
-            const container = document.getElementById('activeConnectionsList');
-            if (!connections || connections.length === 0) {
-                container.innerHTML = '<div class="no-connections">接続されていません</div>';
-                return;
+        async function toggleConnection(connectionId) {
+            if (expandedConnections.has(connectionId)) {
+                expandedConnections.delete(connectionId);
+            } else {
+                expandedConnections.add(connectionId);
+                
+                // スキーマ情報を取得（キャッシュされていない場合）
+                if (!schemaCache[connectionId]) {
+                    vscode.postMessage({
+                        type: 'getSchema',
+                        data: { connectionId: connectionId }
+                    });
+                    return; // スキーマ取得後に再描画される
+                }
             }
             
-            container.innerHTML = connections.map(conn => {
-                const icon = getDbIcon(conn.type);
-                const details = conn.type === 'sqlite' ? conn.config.database : conn.config.host + ':' + conn.config.port;
-                return '<div class="connection-item active" data-connection-id="' + conn.id + '">' +
-                    '<div class="connection-info">' +
-                        '<div class="connection-name">' + icon + ' ' + conn.name + '</div>' +
-                        '<div class="connection-details">' + conn.type.toUpperCase() + ' - ' + details + '</div>' +
-                    '</div>' +
-                    '<div class="connection-actions">' +
-                        '<button class="btn-icon disconnect-btn" title="切断" data-connection-id="' + conn.id + '">' +
-                            '<span class="codicon codicon-debug-disconnect"></span>' +
-                        '</button>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-            
-            // Add event listeners for disconnect buttons
-            container.querySelectorAll('.disconnect-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const connectionId = this.getAttribute('data-connection-id');
-                    vscode.postMessage({
-                        type: 'disconnectConnection',
-                        data: { connectionId }
-                    });
-                });
+            // 現在の接続一覧で再描画
+            const connections = getCurrentConnections();
+            updateDatabaseTree(connections, schemaCache);
+        }
+        
+        function generateTableSQL(connectionId, tableName) {
+            // メインエディターにSELECT文を生成
+            vscode.postMessage({
+                type: 'insertSQL',
+                data: {
+                    connectionId: connectionId,
+                    sql: 'SELECT * FROM ' + tableName + ' LIMIT 100;'
+                }
             });
+        }
+        
+        function generateViewSQL(connectionId, viewName) {
+            // メインエディターにSELECT文を生成
+            vscode.postMessage({
+                type: 'insertSQL',
+                data: {
+                    connectionId: connectionId,
+                    sql: 'SELECT * FROM ' + viewName + ' LIMIT 100;'
+                }
+            });
+        }
+        
+        let currentConnections = [];
+        function getCurrentConnections() {
+            return currentConnections;
+        }
+
+        function updateSavedConnections(connections) {
+            currentConnections = connections;
+            updateDatabaseTree(connections, schemaCache);
+        }
+        
+        function updateActiveConnections(connections) {
+            // アクティブ接続の表示は不要（ツリーで統合管理）
+            // スキーマ情報の更新のみ行う
         }
         
         function getDbIcon(type) {
@@ -693,6 +797,15 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             // アクティブ接続一覧の更新
             if (message.type === 'activeConnections') {
                 updateActiveConnections(message.data.connections);
+            }
+            
+            // スキーマ情報の更新
+            if (message.type === 'schemaData') {
+                if (message.data.success && message.data.schema) {
+                    const connectionId = message.data.connectionId;
+                    schemaCache[connectionId] = message.data.schema;
+                    updateDatabaseTree(currentConnections, schemaCache);
+                }
             }
             
             // 接続状況の更新

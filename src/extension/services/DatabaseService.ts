@@ -411,9 +411,9 @@ export class DatabaseService {
   }
 
   /**
-   * クエリをターミナルで実行して結果を表示
+   * クエリを下部パネルで実行して結果を表示（ターミナル表示）
    */
-  async executeQueryInTerminal(query: string, connectionId?: string): Promise<void> {
+  async executeQueryInTerminal(_query: string, connectionId?: string): Promise<void> {
     // 接続IDが指定されていない場合は最初のアクティブ接続を使用
     const targetConnectionId = connectionId || Array.from(this.activeConnections.keys())[0]
     const connection = this.activeConnections.get(targetConnectionId)
@@ -427,20 +427,89 @@ export class DatabaseService {
       return
     }
 
-    // ターミナルを作成または既存のものを取得
-    const terminalName = `DB Query - ${connection.name}`
-    let terminal = vscode.window.terminals.find((t) => t.name === terminalName)
-    if (!terminal) {
-      terminal = vscode.window.createTerminal({
-        name: terminalName,
-        iconPath: new vscode.ThemeIcon("database"),
-      })
+    // この機能は削除されました（ターミナル表示不要のため）
+    vscode.window.showWarningMessage(
+      "この機能は削除されました。代わりに executeQueryWithResults を使用してください。"
+    )
+  }
+
+  /**
+   * クエリを下部パネルで実行して結果を表示（WebViewパネル）
+   */
+  async executeQueryInOutput(query: string, connectionId?: string): Promise<void> {
+    // 接続IDが指定されていない場合は最初のアクティブ接続を使用
+    const targetConnectionId = connectionId || Array.from(this.activeConnections.keys())[0]
+    const connection = this.activeConnections.get(targetConnectionId)
+
+    if (!connection || !connection.isConnected) {
+      const message = connectionId
+        ? `指定された接続 (${connectionId}) が見つからないか、切断されています`
+        : "データベースに接続されていません"
+
+      vscode.window.showWarningMessage(message)
+      return
     }
 
-    terminal.show()
-    terminal.sendText(`echo "🔍 Executing query on ${connection.name}..."`)
-    terminal.sendText(`echo "Query: ${query.replace(/"/g, '\\"')}"`)
-    terminal.sendText(`echo "----------------------------------------"`)
+    try {
+      const startTime = Date.now()
+      const result = await connection.proxy.query(query)
+      const executionTime = Date.now() - startTime
+
+      // ResultsPanelに結果を表示
+      const { ResultsPanel } = await import("../ResultsPanel")
+      const resultsPanel = ResultsPanel.getInstance(
+        this.extensionContext?.extensionUri || vscode.Uri.file("")
+      )
+
+      if (result.success) {
+        vscode.window.showInformationMessage(
+          `クエリ実行成功: ${result.rowCount}行取得 (${executionTime}ms) - ${connection.name}`
+        )
+
+        await resultsPanel.showResults({
+          query,
+          connectionName: connection.name,
+          success: true,
+          results: result.rows || [],
+          rowCount: result.rowCount || 0,
+          executionTime,
+        })
+      } else {
+        throw new Error(result.error || "クエリ実行に失敗しました")
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
+      vscode.window.showErrorMessage(`クエリエラー: ${errorMessage}`)
+
+      // エラーもResultsPanelに表示
+      const { ResultsPanel } = await import("../ResultsPanel")
+      const resultsPanel = ResultsPanel.getInstance(
+        this.extensionContext?.extensionUri || vscode.Uri.file("")
+      )
+      await resultsPanel.showResults({
+        query,
+        connectionName: connection?.name || "Unknown",
+        success: false,
+        error: errorMessage,
+      })
+    }
+  }
+
+  /**
+   * クエリを実行してResultsPanelに表示（指定された接続で）
+   */
+  async executeQueryWithResults(query: string, connectionId?: string): Promise<void> {
+    const targetConnectionId = connectionId || Array.from(this.activeConnections.keys())[0]
+    const connection = this.activeConnections.get(targetConnectionId)
+
+    if (!connection || !connection.isConnected) {
+      const message = connectionId
+        ? `指定された接続 (${connectionId}) が見つからないか、切断されています`
+        : "データベースに接続されていません"
+
+      vscode.window.showWarningMessage(message)
+      return
+    }
 
     try {
       const startTime = Date.now()
@@ -448,42 +517,42 @@ export class DatabaseService {
       const executionTime = Date.now() - startTime
 
       if (result.success) {
-        terminal.sendText(`echo "✅ Query executed successfully in ${executionTime}ms"`)
-        if (result.rows && result.rows.length > 0) {
-          terminal.sendText(`echo "📊 Results (${result.rows.length} rows):"`)
-          terminal.sendText(`echo "----------------------------------------"`)
+        vscode.window.showInformationMessage(
+          `クエリ実行成功: ${result.rowCount}行取得 (${executionTime}ms) - ${connection.name}`
+        )
 
-          // ヘッダーを表示
-          const headers = Object.keys(result.rows[0])
-          terminal.sendText(`echo "${headers.join(" | ")}"`)
-          terminal.sendText(`echo "${headers.map(() => "---").join(" | ")}"`)
-
-          // データを表示（最初の10行のみ）
-          const displayRows = result.rows.slice(0, 10)
-          for (const row of displayRows) {
-            const values = headers.map((header) => {
-              const value = row[header]
-              return value === null || value === undefined ? "NULL" : String(value)
-            })
-            terminal.sendText(`echo "${values.join(" | ")}"`)
-          }
-
-          if (result.rows.length > 10) {
-            terminal.sendText(`echo "... and ${result.rows.length - 10} more rows"`)
-          }
-        } else {
-          terminal.sendText(`echo "📝 Query executed successfully but returned no data"`)
-        }
+        // ResultsPanelに結果を表示
+        const { ResultsPanel } = await import("../ResultsPanel")
+        const resultsPanel = ResultsPanel.getInstance(
+          this.extensionContext?.extensionUri || vscode.Uri.file("")
+        )
+        await resultsPanel.showResults({
+          query,
+          connectionName: connection.name,
+          success: true,
+          results: result.rows || [],
+          rowCount: result.rowCount || 0,
+          executionTime,
+        })
       } else {
-        terminal.sendText(`echo "❌ Query failed: ${result.error || "Unknown error"}"`)
+        throw new Error(result.error || "クエリ実行に失敗しました")
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "不明なエラー"
-      terminal.sendText(`echo "❌ Execution error: ${errorMessage}"`)
-    }
+      vscode.window.showErrorMessage(`クエリエラー: ${errorMessage}`)
 
-    terminal.sendText(`echo "----------------------------------------"`)
-    terminal.sendText(`echo ""`)
+      // エラーもResultsPanelに表示
+      const { ResultsPanel } = await import("../ResultsPanel")
+      const resultsPanel = ResultsPanel.getInstance(
+        this.extensionContext?.extensionUri || vscode.Uri.file("")
+      )
+      await resultsPanel.showResults({
+        query,
+        connectionName: connection?.name || "Unknown",
+        success: false,
+        error: errorMessage,
+      })
+    }
   }
 
   /**
