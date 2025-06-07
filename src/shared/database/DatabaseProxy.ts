@@ -51,14 +51,21 @@ export class DatabaseProxy {
           throw new Error(`Unsupported database type: ${this.config.type}`)
       }
 
-      // 接続テスト
+      // 接続が作成されたので、一時的にisConnectedをtrueに設定してテストクエリを実行
+      this.isConnected = true
       const result = await this.query("SELECT 1 as test")
-      this.isConnected = result.success
+
+      if (!result.success) {
+        this.isConnected = false
+        throw new Error(`Connection test failed: ${result.error || "Unknown error"}`)
+      }
+
       return this.isConnected
     } catch (error) {
       console.error("Database connection failed:", error)
       this.isConnected = false
-      return false
+      // エラーを上位に投げて詳細な情報を保持
+      throw error
     }
   }
 
@@ -178,15 +185,24 @@ export class DatabaseProxy {
 
   private async connectPostgreSQL(): Promise<PostgreSQLClient> {
     const { Client } = await import("pg")
-    const client = new Client({
+
+    const connectionConfig = {
       host: this.config.host,
       port: this.config.port,
       user: this.config.username,
       password: this.config.password,
       database: this.config.database,
-    })
-    await client.connect()
-    return client
+    }
+
+    const client = new Client(connectionConfig)
+
+    try {
+      await client.connect()
+      return client
+    } catch (error) {
+      console.error("PostgreSQL client.connect() failed:", error)
+      throw error
+    }
   }
 
   private async connectSQLite(): Promise<import("./drivers/SQLiteWebDriver").SQLiteWebDriver> {

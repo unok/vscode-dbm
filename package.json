@@ -35,6 +35,12 @@
         "title": "Open Dashboard",
         "category": "DB Manager",
         "icon": "$(dashboard)"
+      },
+      {
+        "command": "vscode-dbm.runQueryInTerminal",
+        "title": "Run SQL Query in Terminal",
+        "category": "DB Manager",
+        "icon": "$(terminal)"
       }
     ],
     "views": {
@@ -69,6 +75,9 @@
         },
         {
           "command": "vscode-dbm.openDashboard"
+        },
+        {
+          "command": "vscode-dbm.runQueryInTerminal"
         }
       ],
       "view/title": [
@@ -77,8 +86,28 @@
           "when": "view == dbManager.webview",
           "group": "navigation"
         }
+      ],
+      "editor/context": [
+        {
+          "command": "vscode-dbm.runQueryInTerminal",
+          "when": "editorTextFocus && (resourceExtname == .sql || editorLangId == sql)",
+          "group": "dbmanager@1"
+        }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "vscode-dbm.runQueryInTerminal",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "vscode-dbm.newQuery",
+        "key": "ctrl+shift+q",
+        "mac": "cmd+shift+q"
+      }
+    ]
   },
   "configuration": {
     "title": "Database Manager",

@@ -93,13 +93,6 @@ export interface ShowErrorMessage extends BaseMessage {
   }
 }
 
-export interface DisconnectConnectionMessage extends BaseMessage {
-  type: "disconnectConnection"
-  data: {
-    connectionId: string
-  }
-}
-
 export interface GetTableDataMessage extends BaseMessage {
   type: "getTableData"
   data: {
@@ -150,6 +143,21 @@ export interface GetDefaultConnectionConfigMessage extends BaseMessage {
   type: "getDefaultConnectionConfig"
 }
 
+export interface GetSavedConnectionsMessage extends BaseMessage {
+  type: "getSavedConnections"
+}
+
+export interface GetActiveConnectionsMessage extends BaseMessage {
+  type: "getActiveConnections"
+}
+
+export interface DisconnectConnectionMessage extends BaseMessage {
+  type: "disconnectConnection"
+  data: {
+    connectionId: string
+  }
+}
+
 export interface TableDataMessage extends BaseMessage {
   type: "tableData"
   data: {
@@ -166,6 +174,41 @@ export interface SchemaDataMessage extends BaseMessage {
     success: boolean
     schema?: DatabaseInfo
     error?: string
+  }
+}
+
+export interface ActiveConnectionsMessage extends BaseMessage {
+  type: "activeConnections"
+  data: {
+    connections: Array<{
+      id: string
+      name: string
+      type: string
+      config: {
+        host: string
+        port: number
+        database: string
+        username: string
+      }
+      isConnected: boolean
+      connectedAt: Date
+    }>
+  }
+}
+
+export interface SavedConnectionsMessage extends BaseMessage {
+  type: "savedConnections"
+  data: {
+    connections: Array<{
+      id: string
+      name: string
+      type: "mysql" | "postgresql" | "sqlite"
+      host: string
+      port: number
+      database: string
+      username: string
+      ssl?: boolean
+    }>
   }
 }
 
@@ -231,6 +274,8 @@ export type ExtensionMessage =
   | ChangeViewMessage
   | TableDataMessage
   | SchemaDataMessage
+  | ActiveConnectionsMessage
+  | SavedConnectionsMessage
 
 export type WebViewMessage =
   | GetConnectionStatusMessage
@@ -245,3 +290,5 @@ export type WebViewMessage =
   | SaveConnectionMessage
   | TestConnectionMessage
   | GetDefaultConnectionConfigMessage
+  | GetSavedConnectionsMessage
+  | GetActiveConnectionsMessage

@@ -260,17 +260,11 @@ async function handleMessage(message: WebViewMessage, panel: vscode.WebviewPanel
       break
     }
 
-    case "getDefaultConnectionConfig": {
-      const config = vscode.workspace.getConfiguration("vscode-dbm")
-      const defaultConfig = {
-        host: config.get("mysql.host") || "localhost",
-        port: config.get("mysql.port") || 3307,
-        database: config.get("mysql.database") || "test_db",
-        username: config.get("mysql.username") || "test_user",
-      }
+    case "getSavedConnections": {
+      const connections = databaseService.getSavedConnections()
       panel.webview.postMessage({
-        type: "defaultConnectionConfig",
-        data: defaultConfig,
+        type: "savedConnections",
+        data: { connections },
       })
       break
     }

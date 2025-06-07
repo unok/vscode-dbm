@@ -79,8 +79,14 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         case "testConnection":
           await this._handleTestConnection(message.data)
           break
-        case "getDefaultConnectionConfig":
-          this._sendDefaultConnectionConfig()
+        case "getSavedConnections":
+          this._sendSavedConnections()
+          break
+        case "getActiveConnections":
+          this._sendActiveConnections()
+          break
+        case "disconnectConnection":
+          await this._handleDisconnectConnection(message.data)
           break
       }
     })
@@ -219,7 +225,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             // ヘッダー行
             html += '<thead><tr>';
             headers.forEach(header => {
-                html += \`<th>\${header}</th>\`;
+                html += '<th>' + header + '</th>';
             });
             html += '</tr></thead>';
             
@@ -229,7 +235,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                 html += '<tr>';
                 headers.forEach(header => {
                     const value = row[header] !== null && row[header] !== undefined ? row[header] : 'NULL';
-                    html += \`<td>\${value}</td>\`;
+                    html += '<td>' + value + '</td>';
                 });
                 html += '</tr>';
             });
@@ -245,7 +251,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             // 接続状況の更新
             if (message.type === 'connectionStatus') {
                 const status = message.data.connected ? 
-                    \`データベース: 接続済み (\${message.data.activeConnection})\` : 
+                    'データベース: 接続済み (' + message.data.activeConnection + ')' : 
                     'データベース: 未接続';
                 document.getElementById('connectionStatus').textContent = status;
             }
@@ -254,7 +260,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             if (message.type === 'connectionResult') {
                 const statusEl = document.getElementById('connectionStatus');
                 if (message.data.success) {
-                    statusEl.textContent = \`データベース: \${message.data.message}\`;
+                    statusEl.textContent = 'データベース: ' + message.data.message;
                     statusEl.style.color = 'var(--vscode-testing-iconPassed)';
                 } else {
                     statusEl.textContent = \`接続エラー: \${message.data.message}\`;
@@ -268,7 +274,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                 const resultsEl = document.getElementById('queryResults');
                 
                 if (message.data.success) {
-                    statusEl.textContent = \`クエリ成功: \${message.data.message} (\${message.data.executionTime}ms)\`;
+                    statusEl.textContent = 'クエリ成功: ' + message.data.message + ' (' + message.data.executionTime + 'ms)';
                     statusEl.style.color = 'var(--vscode-testing-iconPassed)';
                     console.log('Query results:', message.data.results);
                     
@@ -280,7 +286,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                         resultsEl.innerHTML = '<p>結果なし</p>';
                     }
                 } else {
-                    statusEl.textContent = \`クエリエラー: \${message.data.message}\`;
+                    statusEl.textContent = 'クエリエラー: ' + message.data.message;
                     statusEl.style.color = 'var(--vscode-testing-iconFailed)';
                     resultsEl.innerHTML = '';
                 }
@@ -344,22 +350,117 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         button:hover {
             background: var(--vscode-button-hoverBackground);
         }
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 16px;
-            margin-top: 20px;
-        }
-        .feature-card {
+        /* Connection Management Styles */
+        .connection-section, .schema-section {
+            margin-bottom: 24px;
+            padding: 12px;
             background: var(--vscode-editorWidget-background);
-            padding: 16px;
-            border-radius: 8px;
             border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
         }
-        .feature-title {
+        .section-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .section-title {
             color: var(--vscode-textLink-foreground);
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin: 0;
+            flex: 1;
+        }
+        .subsection {
+            margin-bottom: 16px;
+        }
+        .subsection-title {
+            color: var(--vscode-editor-foreground);
+            font-size: 12px;
+            font-weight: 500;
+            margin: 0 0 8px 0;
+            opacity: 0.8;
+        }
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--vscode-icon-foreground);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-icon:hover {
+            background: var(--vscode-toolbar-hoverBackground);
+        }
+        .connection-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .connection-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            background: var(--vscode-input-background);
+        }
+        .connection-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        .connection-item.active {
+            background: var(--vscode-list-activeSelectionBackground);
+            border-color: var(--vscode-focusBorder);
+        }
+        .connection-info {
+            flex: 1;
+        }
+        .connection-name {
+            font-weight: 500;
+            color: var(--vscode-editor-foreground);
+            font-size: 12px;
+        }
+        .connection-details {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            margin-top: 2px;
+        }
+        .connection-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .loading, .no-connections {
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+            padding: 16px;
+            font-style: italic;
+        }
+        .schema-tree {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .schema-item {
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .schema-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        .schema-item.folder {
+            font-weight: 500;
+        }
+        .schema-item.table {
+            padding-left: 16px;
+            color: var(--vscode-descriptionForeground);
         }
         table {
             width: 100%;
@@ -388,25 +489,42 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         <div class="status" id="connectionStatus">データベース: 未接続</div>
     </div>
 
-    <div class="feature-grid">
-        <div class="feature-card">
-            <div class="feature-title">データベース接続</div>
-            <p>各データベースタイプに接続をテストします</p>
-            <button id="connectMySQLBtn">MySQL接続 (Docker:3307)</button>
-            <button id="connectPostgreBtn">PostgreSQL接続 (Docker:5433)</button>
-            <button id="connectSQLiteBtn">SQLite接続 (Memory)</button>
+    <!-- Connection Management Section -->
+    <div class="connection-section">
+        <div class="section-header">
+            <h3 class="section-title">データベース接続</h3>
+            <button id="newConnectionBtn" class="btn-icon" title="新しい接続を追加">
+                <span class="codicon codicon-add"></span>
+            </button>
         </div>
         
-        <div class="feature-card">
-            <div class="feature-title">クエリ実行</div>
-            <p>サンプルクエリを実行してデータを取得します</p>
-            <button id="queryBtn">デモクエリ実行</button>
+        <!-- Saved Connections -->
+        <div class="subsection">
+            <h4 class="subsection-title">保存された接続</h4>
+            <div id="savedConnectionsList" class="connection-list">
+                <div class="loading">読み込み中...</div>
+            </div>
         </div>
         
-        <div class="feature-card">
-            <div class="feature-title">メッセージAPI</div>
-            <p>VSCode拡張機能とのメッセージ通信をテストします</p>
-            <button id="testBtn">メッセージテスト</button>
+        <!-- Active Connections -->
+        <div class="subsection">
+            <h4 class="subsection-title">アクティブな接続</h4>
+            <div id="activeConnectionsList" class="connection-list">
+                <div class="no-connections">接続されていません</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schema Explorer Section -->
+    <div class="schema-section">
+        <div class="section-header">
+            <h3 class="section-title">スキーマエクスプローラー</h3>
+            <button id="refreshSchemaBtn" class="btn-icon" title="スキーマを更新">
+                <span class="codicon codicon-refresh"></span>
+            </button>
+        </div>
+        <div id="schemaTree" class="schema-tree">
+            <div class="no-connections">接続を選択してください</div>
         </div>
     </div>
 
@@ -420,50 +538,120 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         }
         const vscode = window.vscode;
         
-        // MySQL接続テスト
-        document.getElementById('connectMySQLBtn').addEventListener('click', function() {
-            console.log('Development: MySQL Connect button clicked');
-            vscode.postMessage({
-                type: 'openConnection',
-                data: { type: 'mysql' }
-            });
-        });
         
-        // PostgreSQL接続テスト
-        document.getElementById('connectPostgreBtn').addEventListener('click', function() {
-            console.log('Development: PostgreSQL Connect button clicked');
-            vscode.postMessage({
-                type: 'openConnection',
-                data: { type: 'postgresql' }
-            });
-        });
-        
-        // SQLite接続テスト
-        document.getElementById('connectSQLiteBtn').addEventListener('click', function() {
-            console.log('Development: SQLite Connect button clicked');
-            vscode.postMessage({
-                type: 'openConnection',
-                data: { type: 'sqlite' }
-            });
-        });
-        
-        // クエリテスト
-        document.getElementById('queryBtn').addEventListener('click', function() {
-            console.log('Development: Query button clicked');
-            vscode.postMessage({
-                type: 'executeQuery',
-                data: { query: 'SELECT * FROM users' }
-            });
-        });
-        
-        // メッセージテスト
-        document.getElementById('testBtn').addEventListener('click', function() {
-            console.log('Development: Test button clicked');
+        // New Connection button
+        document.getElementById('newConnectionBtn').addEventListener('click', function() {
+            console.log('New Connection button clicked');
             vscode.postMessage({
                 type: 'showInfo',
-                data: { message: '開発環境でのメッセージテスト成功！' }
+                data: { message: 'メインパネルの "New Connection" から接続を追加してください' }
             });
         });
+        
+        // Refresh Schema button
+        document.getElementById('refreshSchemaBtn').addEventListener('click', function() {
+            console.log('Refresh Schema button clicked');
+            vscode.postMessage({
+                type: 'getSavedConnections',
+                data: {}
+            });
+        });
+        
+        // Initialize - Load saved and active connections
+        vscode.postMessage({
+            type: 'getSavedConnections',
+            data: {}
+        });
+        
+        vscode.postMessage({
+            type: 'getActiveConnections',
+            data: {}
+        });
+        
+        // Connection list management functions
+        function updateSavedConnections(connections) {
+            const container = document.getElementById('savedConnectionsList');
+            if (!connections || connections.length === 0) {
+                container.innerHTML = '<div class="no-connections">保存された接続がありません</div>';
+                return;
+            }
+            
+            container.innerHTML = connections.map(conn => {
+                const icon = getDbIcon(conn.type);
+                const details = conn.type === 'sqlite' ? conn.database : conn.host + ':' + conn.port;
+                return '<div class="connection-item" data-connection-id="' + conn.id + '">' +
+                    '<div class="connection-info">' +
+                        '<div class="connection-name">' + icon + ' ' + conn.name + '</div>' +
+                        '<div class="connection-details">' + conn.type.toUpperCase() + ' - ' + details + '</div>' +
+                    '</div>' +
+                    '<div class="connection-actions">' +
+                        '<button class="btn-icon connect-btn" title="接続" data-connection-id="' + conn.id + '">' +
+                            '<span class="codicon codicon-plug"></span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+            
+            // Add event listeners for connect buttons
+            container.querySelectorAll('.connect-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const connectionId = this.getAttribute('data-connection-id');
+                    const connection = connections.find(c => c.id === connectionId);
+                    if (connection) {
+                        vscode.postMessage({
+                            type: 'openConnection',
+                            data: connection
+                        });
+                    }
+                });
+            });
+        }
+        
+        function updateActiveConnections(connections) {
+            const container = document.getElementById('activeConnectionsList');
+            if (!connections || connections.length === 0) {
+                container.innerHTML = '<div class="no-connections">接続されていません</div>';
+                return;
+            }
+            
+            container.innerHTML = connections.map(conn => {
+                const icon = getDbIcon(conn.type);
+                const details = conn.type === 'sqlite' ? conn.config.database : conn.config.host + ':' + conn.config.port;
+                return '<div class="connection-item active" data-connection-id="' + conn.id + '">' +
+                    '<div class="connection-info">' +
+                        '<div class="connection-name">' + icon + ' ' + conn.name + '</div>' +
+                        '<div class="connection-details">' + conn.type.toUpperCase() + ' - ' + details + '</div>' +
+                    '</div>' +
+                    '<div class="connection-actions">' +
+                        '<button class="btn-icon disconnect-btn" title="切断" data-connection-id="' + conn.id + '">' +
+                            '<span class="codicon codicon-debug-disconnect"></span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+            
+            // Add event listeners for disconnect buttons
+            container.querySelectorAll('.disconnect-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const connectionId = this.getAttribute('data-connection-id');
+                    vscode.postMessage({
+                        type: 'disconnectConnection',
+                        data: { connectionId }
+                    });
+                });
+            });
+        }
+        
+        function getDbIcon(type) {
+            switch (type) {
+                case 'mysql': return '🐬';
+                case 'postgresql': return '🐘';
+                case 'sqlite': return '📁';
+                default: return '🗄️';
+            }
+        }
         
         // テーブル作成関数
         function createResultTable(rows) {
@@ -474,7 +662,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             
             html += '<thead><tr>';
             headers.forEach(header => {
-                html += \`<th>\${header}</th>\`;
+                html += '<th>' + header + '</th>';
             });
             html += '</tr></thead>';
             
@@ -483,7 +671,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                 html += '<tr>';
                 headers.forEach(header => {
                     const value = row[header] !== null && row[header] !== undefined ? row[header] : 'NULL';
-                    html += \`<td>\${value}</td>\`;
+                    html += '<td>' + value + '</td>';
                 });
                 html += '</tr>';
             });
@@ -497,10 +685,20 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             console.log('Development: Received message:', event.data);
             const message = event.data;
             
+            // 保存された接続一覧の更新
+            if (message.type === 'savedConnections') {
+                updateSavedConnections(message.data.connections);
+            }
+            
+            // アクティブ接続一覧の更新
+            if (message.type === 'activeConnections') {
+                updateActiveConnections(message.data.connections);
+            }
+            
             // 接続状況の更新
             if (message.type === 'connectionStatus') {
                 const status = message.data.connected ? 
-                    \`データベース: 接続済み (\${message.data.activeConnection})\` : 
+                    'データベース: 接続済み (' + message.data.databases.length + '件)' : 
                     'データベース: 未接続';
                 document.getElementById('connectionStatus').textContent = status;
             }
@@ -509,7 +707,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             if (message.type === 'connectionResult') {
                 const statusEl = document.getElementById('connectionStatus');
                 if (message.data.success) {
-                    statusEl.textContent = \`データベース: \${message.data.message}\`;
+                    statusEl.textContent = 'データベース: ' + message.data.message;
                     statusEl.style.color = 'var(--vscode-testing-iconPassed)';
                 } else {
                     statusEl.textContent = \`接続エラー: \${message.data.message}\`;
@@ -523,7 +721,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                 const resultsEl = document.getElementById('queryResults');
                 
                 if (message.data.success) {
-                    statusEl.textContent = \`クエリ成功: \${message.data.message} (\${message.data.executionTime}ms)\`;
+                    statusEl.textContent = 'クエリ成功: ' + message.data.message + ' (' + message.data.executionTime + 'ms)';
                     statusEl.style.color = 'var(--vscode-testing-iconPassed)';
                     
                     if (message.data.results && message.data.results.length > 0) {
@@ -533,7 +731,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                         resultsEl.innerHTML = '<p>結果なし</p>';
                     }
                 } else {
-                    statusEl.textContent = \`クエリエラー: \${message.data.message}\`;
+                    statusEl.textContent = 'クエリエラー: ' + message.data.message;
                     statusEl.style.color = 'var(--vscode-testing-iconFailed)';
                     resultsEl.innerHTML = '';
                 }
@@ -825,20 +1023,37 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private _sendDefaultConnectionConfig() {
+  private _sendSavedConnections() {
     if (!this._view) return
 
-    const config = vscode.workspace.getConfiguration("vscode-dbm")
-    const defaultConfig = {
-      host: config.get("mysql.host") || "localhost",
-      port: config.get("mysql.port") || 3307,
-      database: config.get("mysql.database") || "test_db",
-      username: config.get("mysql.username") || "test_user",
-    }
+    const connections = this.databaseService.getSavedConnections()
     this._view.webview.postMessage({
-      type: "defaultConnectionConfig",
-      data: defaultConfig,
+      type: "savedConnections",
+      data: { connections },
     })
+  }
+
+  private _sendActiveConnections() {
+    if (!this._view) return
+
+    const connections = this.databaseService.getActiveConnections()
+    this._view.webview.postMessage({
+      type: "activeConnections",
+      data: { connections },
+    })
+  }
+
+  private async _handleDisconnectConnection(data: { connectionId: string }) {
+    try {
+      await this.databaseService.disconnect(data.connectionId)
+      // 切断後、更新された接続一覧を送信
+      this._sendActiveConnections()
+      this._sendConnectionStatus()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      console.error("Disconnect connection error:", error)
+      vscode.window.showErrorMessage(`Failed to disconnect: ${errorMessage}`)
+    }
   }
 
   // Public methods for external communication

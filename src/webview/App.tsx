@@ -23,6 +23,7 @@ export const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false)
   const [showConnectionDialog, setShowConnectionDialog] = useState(false)
   const [editingConnection, setEditingConnection] = useState<DatabaseConfig | undefined>()
+  const [savedConnections, setSavedConnections] = useState<DatabaseConfig[]>([])
 
   // Debug logging for state changes (removed for production)
   const theme = useVSCodeTheme()
@@ -46,7 +47,8 @@ export const App: React.FC = () => {
     })
 
     service.registerAction("refresh-connections", () => {
-      vscodeApi.showInfo("Refreshing connections...")
+      // 保存された接続を取得
+      vscodeApi.postMessage("getSavedConnections", {})
     })
 
     service.registerAction("new-query", () => {
@@ -96,6 +98,9 @@ export const App: React.FC = () => {
     setShowConnectionDialog(false)
     setEditingConnection(undefined)
     vscodeApi.showInfo(`Connection "${config.name}" saved successfully`)
+
+    // 保存後に接続一覧を更新
+    vscodeApi.postMessage("getSavedConnections", {})
   }
 
   const handleConnectionTest = async (
@@ -143,11 +148,19 @@ export const App: React.FC = () => {
       }
     })
 
-    // Request initial theme
+    // Listen for saved connections response
+    vscodeApi.onMessage("savedConnections", (data) => {
+      const messageData = data as { connections: DatabaseConfig[] }
+      setSavedConnections(messageData.connections || [])
+    })
+
+    // Request initial theme and connections
     vscodeApi.getTheme()
+    vscodeApi.postMessage("getSavedConnections", {})
 
     return () => {
       vscodeApi.removeMessageHandler("changeView")
+      vscodeApi.removeMessageHandler("savedConnections")
     }
   }, [vscodeApi])
 
@@ -166,7 +179,7 @@ export const App: React.FC = () => {
       case "sql":
         return <SQLEditor />
       default:
-        return <DashboardView onViewChange={handleViewChange} />
+        return <DashboardView onViewChange={handleViewChange} savedConnections={savedConnections} />
     }
   }
 
@@ -200,7 +213,10 @@ export const App: React.FC = () => {
   )
 }
 
-const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onViewChange }) => {
+const DashboardView: React.FC<{
+  onViewChange: (view: View) => void
+  savedConnections: DatabaseConfig[]
+}> = ({ onViewChange, savedConnections }) => {
   const vscodeApi = useVSCodeAPI()
 
   const handleTestConnection = async () => {
@@ -236,6 +252,31 @@ const DashboardView: React.FC<{ onViewChange: (view: View) => void }> = ({ onVie
             <button type='button' className='btn-secondary' onClick={handleTestConnection}>
               API Test
             </button>
+          </div>
+
+          {/* 保存された接続一覧 */}
+          <div className='mt-4'>
+            <h3 className='text-sm font-medium text-gray-300 mb-2'>
+              保存された接続 ({savedConnections.length})
+            </h3>
+            {savedConnections.length === 0 ? (
+              <p className='text-xs text-gray-500'>接続が保存されていません</p>
+            ) : (
+              <div className='space-y-1'>
+                {savedConnections.slice(0, 3).map((conn) => (
+                  <div
+                    key={conn.id}
+                    className='flex items-center justify-between bg-gray-700 px-2 py-1 rounded text-xs'
+                  >
+                    <span className='text-gray-300'>{conn.name}</span>
+                    <span className='text-gray-500 capitalize'>{conn.type}</span>
+                  </div>
+                ))}
+                {savedConnections.length > 3 && (
+                  <p className='text-xs text-gray-500'>他 {savedConnections.length - 3} 件...</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

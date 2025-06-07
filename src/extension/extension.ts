@@ -41,11 +41,34 @@ export async function activate(context: vscode.ExtensionContext) {
       createOrShow(context.extensionUri, "dashboard")
     })
 
+    const runQueryInTerminalCommand = vscode.commands.registerCommand(
+      "vscode-dbm.runQueryInTerminal",
+      async () => {
+        const editor = vscode.window.activeTextEditor
+        if (!editor) {
+          vscode.window.showWarningMessage("アクティブなエディタがありません")
+          return
+        }
+
+        const query = editor.selection.isEmpty
+          ? editor.document.getText()
+          : editor.document.getText(editor.selection)
+
+        if (!query.trim()) {
+          vscode.window.showWarningMessage("実行するクエリが選択されていません")
+          return
+        }
+
+        await databaseService.executeQueryInTerminal(query.trim())
+      }
+    )
+
     context.subscriptions.push(
       openConnectionCommand,
       newQueryCommand,
       openDataGridCommand,
-      openDashboardCommand
+      openDashboardCommand,
+      runQueryInTerminalCommand
     )
 
     // Context setup

@@ -18,11 +18,19 @@ import type {
  * データベース接続とクエリ実行を管理する中央サービス
  * サイドバーとパネルの両方から利用可能
  */
+interface ActiveConnection {
+  id: string
+  name: string
+  type: string
+  proxy: DatabaseProxy
+  config: DatabaseConfig
+  isConnected: boolean
+  connectedAt: Date
+}
+
 export class DatabaseService {
   private static instance: DatabaseService | undefined
-  private databaseProxy?: DatabaseProxy
-  private isConnected = false
-  private connectionType?: string
+  private activeConnections: Map<string, ActiveConnection> = new Map()
   private listeners: Map<string, (message: BaseMessage) => void> = new Map()
   private savedConnections: DatabaseConfig[] = []
   private extensionContext?: vscode.ExtensionContext
@@ -70,125 +78,191 @@ export class DatabaseService {
   }
 
   /**
+   * アクティブ接続一覧の更新をブロードキャスト
+   */
+  private broadcastActiveConnections() {
+    this.broadcastMessage({
+      type: "activeConnections",
+      data: {
+        connections: this.getActiveConnections(),
+      },
+    })
+  }
+
+  /**
    * 接続状態を取得
    */
   getConnectionStatus(): ConnectionStatusMessage["data"] {
-    const databases: DatabaseInfo[] =
-      this.isConnected && this.connectionType
-        ? [
-            {
-              name: this.connectionType.split(" ")[0].toLowerCase(),
-              type: this.connectionType.includes("MySQL")
-                ? "mysql"
-                : this.connectionType.includes("PostgreSQL")
-                  ? "postgresql"
-                  : "sqlite",
-              tables: [],
-              views: [],
-            },
-          ]
-        : []
+    const databases: DatabaseInfo[] = []
+
+    // アクティブな接続から情報を構築
+    for (const connection of this.activeConnections.values()) {
+      if (connection.isConnected) {
+        databases.push({
+          name: connection.config.database || connection.name,
+          type: connection.config.type,
+          tables: [], // 実際のテーブル一覧は別途取得
+          views: [],
+        })
+      }
+    }
+
+    // 最初にアクティブな接続を代表として返す（後で改善）
+    const firstActiveConnection = Array.from(this.activeConnections.values()).find(
+      (conn) => conn.isConnected
+    )
 
     return {
-      connected: this.isConnected,
+      connected:
+        this.activeConnections.size > 0 &&
+        Array.from(this.activeConnections.values()).some((c) => c.isConnected),
       databases,
-      activeConnection:
-        this.isConnected && this.connectionType
-          ? {
-              id: `conn_${Date.now()}`,
-              name: this.connectionType,
-              type: this.connectionType.includes("MySQL")
-                ? "mysql"
-                : this.connectionType.includes("PostgreSQL")
-                  ? "postgresql"
-                  : "sqlite",
-              host: "localhost",
-              port: 0,
-              database: "",
-              username: "",
-              isConnected: true,
-            }
-          : undefined,
+      activeConnection: firstActiveConnection
+        ? {
+            id: firstActiveConnection.id,
+            name: firstActiveConnection.name,
+            type: firstActiveConnection.config.type,
+            host: firstActiveConnection.config.host || "",
+            port: firstActiveConnection.config.port || 0,
+            database: firstActiveConnection.config.database || "",
+            username: firstActiveConnection.config.username || "",
+            isConnected: firstActiveConnection.isConnected,
+          }
+        : undefined,
     }
   }
 
   /**
-   * データベースに接続
+   * すべてのアクティブ接続を取得
+   */
+  getActiveConnections(): ActiveConnection[] {
+    return Array.from(this.activeConnections.values())
+  }
+
+  /**
+   * 特定の接続を取得
+   */
+  getConnection(connectionId: string): ActiveConnection | undefined {
+    return this.activeConnections.get(connectionId)
+  }
+
+  /**
+   * データベースに接続（複数接続対応）
    */
   async connect(
-    data: Partial<OpenConnectionMessage["data"]>
-  ): Promise<{ success: boolean; message: string }> {
+    data: Partial<OpenConnectionMessage["data"]>,
+    connectionId?: string
+  ): Promise<{ success: boolean; message: string; connectionId?: string }> {
     try {
-      // 接続中の場合は切断
-      if (this.databaseProxy) {
-        await this.databaseProxy.disconnect()
+      // 接続IDを生成（指定されていない場合）
+      const finalConnectionId =
+        connectionId || `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      // 既存の同じIDの接続があれば切断
+      const existingConnection = this.activeConnections.get(finalConnectionId)
+      if (existingConnection) {
+        await existingConnection.proxy.disconnect()
+        this.activeConnections.delete(finalConnectionId)
       }
 
       // 設定を環境変数、VSCode設定、ユーザー入力の順で取得
-      const vscodeConfig = vscode.workspace.getConfiguration("vscode-dbm")
+      // ワークスペースが開かれていない場合でも安全にアクセス
+      let vscodeConfig: vscode.WorkspaceConfiguration
+      try {
+        vscodeConfig = vscode.workspace.getConfiguration("vscode-dbm")
+      } catch (error) {
+        console.warn("Could not access workspace configuration, using defaults:", error)
+        // 空の設定オブジェクトを作成
+        vscodeConfig = {
+          get: () => undefined,
+          has: () => false,
+          inspect: () => undefined,
+          update: () => Promise.resolve(),
+        } as vscode.WorkspaceConfiguration
+      }
 
       const dbType =
         data.type === "postgresql" ? "postgresql" : data.type === "sqlite" ? "sqlite" : "mysql"
 
+      // ユーザーが指定した値または環境変数のみを使用（デフォルト値なし）
+      const getStringConfigValue = (
+        userValue: unknown,
+        envVar: string | undefined,
+        configKey: string
+      ): string | undefined => {
+        if (userValue !== undefined && userValue !== null && userValue !== "") {
+          return String(userValue)
+        }
+        if (envVar && process.env[envVar]) {
+          return process.env[envVar]
+        }
+        try {
+          const configValue = vscodeConfig.get(configKey)
+          if (configValue !== undefined && configValue !== null && configValue !== "") {
+            return String(configValue)
+          }
+        } catch (_error) {
+          // VSCode設定アクセスエラーは無視
+        }
+        return undefined
+      }
+
+      const getNumberConfigValue = (
+        userValue: unknown,
+        envVar: string | undefined,
+        configKey: string
+      ): number | undefined => {
+        if (userValue !== undefined && userValue !== null && userValue !== "") {
+          return Number(userValue)
+        }
+        if (envVar && process.env[envVar]) {
+          return Number(process.env[envVar])
+        }
+        try {
+          const configValue = vscodeConfig.get(configKey)
+          if (configValue !== undefined && configValue !== null && configValue !== "") {
+            return Number(configValue)
+          }
+        } catch (_error) {
+          // VSCode設定アクセスエラーは無視
+        }
+        return undefined
+      }
+
       const defaultConfigs = {
         mysql: {
-          host:
-            data.host || process.env.MYSQL_HOST || vscodeConfig.get("mysql.host") || "localhost",
-          port:
-            data.port ||
-            (process.env.MYSQL_PORT ? Number.parseInt(process.env.MYSQL_PORT, 10) : null) ||
-            vscodeConfig.get("mysql.port") ||
-            3307,
-          database:
-            data.database ||
-            process.env.MYSQL_DATABASE ||
-            vscodeConfig.get("mysql.database") ||
-            "test_db",
-          username:
-            data.username ||
-            process.env.MYSQL_USER ||
-            vscodeConfig.get("mysql.username") ||
-            "test_user",
-          password:
-            data.password ||
-            process.env.MYSQL_PASSWORD ||
-            vscodeConfig.get("mysql.password") ||
-            "test_password",
+          host: getStringConfigValue(data.host, "MYSQL_HOST", "mysql.host") || "localhost",
+          port: getNumberConfigValue(data.port, "MYSQL_PORT", "mysql.port") || 3306,
+          database: getStringConfigValue(data.database, "MYSQL_DATABASE", "mysql.database"),
+          username: getStringConfigValue(data.username, "MYSQL_USER", "mysql.username"),
+          password: getStringConfigValue(data.password, "MYSQL_PASSWORD", "mysql.password"),
         },
         postgresql: {
-          host:
-            data.host ||
-            process.env.POSTGRES_HOST ||
-            vscodeConfig.get("postgresql.host") ||
-            "localhost",
-          port:
-            data.port ||
-            (process.env.POSTGRES_PORT ? Number.parseInt(process.env.POSTGRES_PORT, 10) : null) ||
-            vscodeConfig.get("postgresql.port") ||
-            5433,
-          database:
-            data.database ||
-            process.env.POSTGRES_DB ||
-            vscodeConfig.get("postgresql.database") ||
-            "test_db",
-          username:
-            data.username ||
-            process.env.POSTGRES_USER ||
-            vscodeConfig.get("postgresql.username") ||
-            "test_user",
-          password:
-            data.password ||
-            process.env.POSTGRES_PASSWORD ||
-            vscodeConfig.get("postgresql.password") ||
-            "test_password",
+          host: getStringConfigValue(data.host, "POSTGRES_HOST", "postgresql.host") || "localhost",
+          port: getNumberConfigValue(data.port, "POSTGRES_PORT", "postgresql.port") || 5432,
+          database: getStringConfigValue(data.database, "POSTGRES_DB", "postgresql.database"),
+          username: getStringConfigValue(data.username, "POSTGRES_USER", "postgresql.username"),
+          password: getStringConfigValue(data.password, "POSTGRES_PASSWORD", "postgresql.password"),
         },
         sqlite: {
           database:
-            data.database ||
-            process.env.SQLITE_DATABASE ||
-            vscodeConfig.get("sqlite.database") ||
-            ":memory:",
+            getStringConfigValue(data.database, "SQLITE_DATABASE", "sqlite.database") || ":memory:",
         },
+      }
+
+      // 必須フィールドのバリデーション
+      if (dbType !== "sqlite") {
+        if (!defaultConfigs[dbType].database) {
+          throw new Error(`データベース名が指定されていません (${dbType})`)
+        }
+        if (!defaultConfigs[dbType].username) {
+          throw new Error(`ユーザー名が指定されていません (${dbType})`)
+        }
+      } else if (!defaultConfigs.sqlite.database || defaultConfigs.sqlite.database === ":memory:") {
+        // SQLiteの場合、データベースパスが必要
+        if (!data.database) {
+          throw new Error("SQLiteデータベースのパスが指定されていません")
+        }
       }
 
       // データベースタイプに応じて接続
@@ -200,11 +274,11 @@ export class DatabaseService {
             type: "mysql",
             host: mysqlConfig.host,
             port: mysqlConfig.port,
-            database: mysqlConfig.database,
-            username: mysqlConfig.username,
-            password: mysqlConfig.password,
+            database: mysqlConfig.database || "",
+            username: mysqlConfig.username || "",
+            password: mysqlConfig.password || "",
           }
-          this.connectionType = `MySQL (${mysqlConfig.host}:${mysqlConfig.port})`
+          // connectionType property removed - using connection objects instead
           break
         }
         case "postgresql": {
@@ -213,11 +287,11 @@ export class DatabaseService {
             type: "postgresql",
             host: pgConfig.host,
             port: pgConfig.port,
-            database: pgConfig.database,
-            username: pgConfig.username,
-            password: pgConfig.password,
+            database: pgConfig.database || "",
+            username: pgConfig.username || "",
+            password: pgConfig.password || "",
           }
-          this.connectionType = `PostgreSQL (${pgConfig.host}:${pgConfig.port})`
+          // connectionType property removed - using connection objects instead
           break
         }
         case "sqlite": {
@@ -230,97 +304,209 @@ export class DatabaseService {
             username: "",
             password: "",
           }
-          this.connectionType = `SQLite (${sqliteConfig.database})`
+          // connectionType property removed - using connection objects instead
           break
         }
         default:
           throw new Error(`Unsupported database type: ${dbType}`)
       }
 
-      this.databaseProxy = DatabaseProxyFactory.create(config)
-      const connected = await this.databaseProxy.connect()
-      this.isConnected = connected
+      try {
+        const proxy = DatabaseProxyFactory.create(config)
 
-      if (connected) {
-        vscode.window.showInformationMessage(`${this.connectionType} 接続成功`)
-        this.broadcastMessage({
-          type: "connectionStatus",
-          data: this.getConnectionStatus(),
-        })
-        return { success: true, message: `${this.connectionType} に接続しました` }
+        const connected = await proxy.connect()
+
+        if (connected) {
+          // アクティブ接続として保存
+          const activeConnection: ActiveConnection = {
+            id: finalConnectionId,
+            name: (data as { name?: string }).name || `${dbType.toUpperCase()} Connection`,
+            type: config.type,
+            proxy: proxy,
+            config: config as DatabaseConfig,
+            isConnected: true,
+            connectedAt: new Date(),
+          }
+
+          this.activeConnections.set(finalConnectionId, activeConnection)
+
+          const connectionType = `${dbType.toUpperCase()} (${config.host}:${config.port})`
+          vscode.window.showInformationMessage(`${connectionType} 接続成功`)
+
+          this.broadcastMessage({
+            type: "connectionStatus",
+            data: this.getConnectionStatus(),
+          })
+
+          // アクティブ接続一覧も更新
+          this.broadcastActiveConnections()
+
+          return {
+            success: true,
+            message: `${connectionType} に接続しました`,
+            connectionId: finalConnectionId,
+          }
+        }
+
+        throw new Error("データベース接続に失敗しました - connect()がfalseを返しました")
+      } catch (proxyError) {
+        console.error(`DatabaseProxy error for ${dbType}:`, proxyError)
+        throw proxyError
       }
-
-      // フォールバック: SQLiteに自動切り替え
-      if (dbType !== "sqlite") {
-        console.warn(`${dbType} connection failed, falling back to SQLite`)
-        return await this.connect({
-          type: "sqlite",
-          database: ":memory:",
-          host: "",
-          port: 0,
-          username: "",
-          password: "",
-        })
-      }
-
-      throw new Error("データベース接続に失敗しました")
     } catch (error) {
       console.error("Database connection failed:", error)
 
-      // フォールバック: SQLiteに自動切り替え
-      if (data.type !== "sqlite") {
-        console.warn(`${data.type} connection failed with error: ${error}, falling back to SQLite`)
-        try {
-          return await this.connect({
-            type: "sqlite",
-            database: ":memory:",
-            host: "",
-            port: 0,
-            username: "",
-            password: "",
-          })
-        } catch (fallbackError) {
-          console.error("SQLite fallback also failed:", fallbackError)
+      // より詳細なエラー情報を提供
+      let detailedError = "不明なエラー"
+      if (error instanceof Error) {
+        detailedError = error.message
+
+        // 一般的な接続エラーの原因を提示
+        if (error.message.includes("ECONNREFUSED")) {
+          detailedError +=
+            "\n\n考えられる原因：\n- データベースサーバーが起動していない\n- ホスト名またはポートが間違っている"
+        } else if (
+          error.message.includes("authentication failed") ||
+          error.message.includes("Access denied")
+        ) {
+          detailedError +=
+            "\n\n考えられる原因：\n- ユーザー名またはパスワードが間違っている\n- データベースユーザーに接続権限がない"
+        } else if (error.message.includes("does not exist")) {
+          detailedError += "\n\n考えられる原因：\n- 指定されたデータベース名が存在しない"
         }
       }
 
-      this.isConnected = false
-      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
-      vscode.window.showErrorMessage(`接続エラー: ${errorMessage}`)
-      return { success: false, message: errorMessage }
+      vscode.window.showErrorMessage(`${data.type || "データベース"}接続エラー: ${detailedError}`)
+      return { success: false, message: detailedError }
     }
   }
 
   /**
-   * データベースから切断
+   * データベースから切断（特定の接続または全て）
    */
-  async disconnect(): Promise<void> {
-    if (this.databaseProxy) {
-      await this.databaseProxy.disconnect()
-      this.databaseProxy = undefined
+  async disconnect(connectionId?: string): Promise<void> {
+    if (connectionId) {
+      // 特定の接続を切断
+      const connection = this.activeConnections.get(connectionId)
+      if (connection) {
+        await connection.proxy.disconnect()
+        this.activeConnections.delete(connectionId)
+        vscode.window.showInformationMessage(`${connection.name} を切断しました`)
+      }
+    } else {
+      // 全ての接続を切断
+      for (const connection of this.activeConnections.values()) {
+        await connection.proxy.disconnect()
+      }
+      this.activeConnections.clear()
     }
-    this.isConnected = false
-    this.connectionType = undefined
 
     this.broadcastMessage({
       type: "connectionStatus",
       data: this.getConnectionStatus(),
     })
+
+    // アクティブ接続一覧も更新
+    this.broadcastActiveConnections()
   }
 
   /**
-   * クエリを実行
+   * クエリをターミナルで実行して結果を表示
    */
-  async executeQuery(data: ExecuteQueryMessage["data"]): Promise<void> {
-    if (!this.databaseProxy || !this.isConnected) {
-      vscode.window.showWarningMessage("データベースに接続されていません")
+  async executeQueryInTerminal(query: string, connectionId?: string): Promise<void> {
+    // 接続IDが指定されていない場合は最初のアクティブ接続を使用
+    const targetConnectionId = connectionId || Array.from(this.activeConnections.keys())[0]
+    const connection = this.activeConnections.get(targetConnectionId)
+
+    if (!connection || !connection.isConnected) {
+      const message = connectionId
+        ? `指定された接続 (${connectionId}) が見つからないか、切断されています`
+        : "データベースに接続されていません"
+
+      vscode.window.showWarningMessage(message)
+      return
+    }
+
+    // ターミナルを作成または既存のものを取得
+    const terminalName = `DB Query - ${connection.name}`
+    let terminal = vscode.window.terminals.find((t) => t.name === terminalName)
+    if (!terminal) {
+      terminal = vscode.window.createTerminal({
+        name: terminalName,
+        iconPath: new vscode.ThemeIcon("database"),
+      })
+    }
+
+    terminal.show()
+    terminal.sendText(`echo "🔍 Executing query on ${connection.name}..."`)
+    terminal.sendText(`echo "Query: ${query.replace(/"/g, '\\"')}"`)
+    terminal.sendText(`echo "----------------------------------------"`)
+
+    try {
+      const startTime = Date.now()
+      const result = await connection.proxy.query(query)
+      const executionTime = Date.now() - startTime
+
+      if (result.success) {
+        terminal.sendText(`echo "✅ Query executed successfully in ${executionTime}ms"`)
+        if (result.rows && result.rows.length > 0) {
+          terminal.sendText(`echo "📊 Results (${result.rows.length} rows):"`)
+          terminal.sendText(`echo "----------------------------------------"`)
+
+          // ヘッダーを表示
+          const headers = Object.keys(result.rows[0])
+          terminal.sendText(`echo "${headers.join(" | ")}"`)
+          terminal.sendText(`echo "${headers.map(() => "---").join(" | ")}"`)
+
+          // データを表示（最初の10行のみ）
+          const displayRows = result.rows.slice(0, 10)
+          for (const row of displayRows) {
+            const values = headers.map((header) => {
+              const value = row[header]
+              return value === null || value === undefined ? "NULL" : String(value)
+            })
+            terminal.sendText(`echo "${values.join(" | ")}"`)
+          }
+
+          if (result.rows.length > 10) {
+            terminal.sendText(`echo "... and ${result.rows.length - 10} more rows"`)
+          }
+        } else {
+          terminal.sendText(`echo "📝 Query executed successfully but returned no data"`)
+        }
+      } else {
+        terminal.sendText(`echo "❌ Query failed: ${result.error || "Unknown error"}"`)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
+      terminal.sendText(`echo "❌ Execution error: ${errorMessage}"`)
+    }
+
+    terminal.sendText(`echo "----------------------------------------"`)
+    terminal.sendText(`echo ""`)
+  }
+
+  /**
+   * クエリを実行（指定された接続で）
+   */
+  async executeQuery(data: ExecuteQueryMessage["data"], connectionId?: string): Promise<void> {
+    // 接続IDが指定されていない場合は最初のアクティブ接続を使用
+    const targetConnectionId = connectionId || Array.from(this.activeConnections.keys())[0]
+    const connection = this.activeConnections.get(targetConnectionId)
+
+    if (!connection || !connection.isConnected) {
+      const message = connectionId
+        ? `指定された接続 (${connectionId}) が見つからないか、切断されています`
+        : "データベースに接続されていません"
+
+      vscode.window.showWarningMessage(message)
 
       this.broadcastMessage({
         type: "queryResult",
         data: {
           success: false,
           results: [],
-          message: "データベースに接続されていません",
+          message: message,
         },
       })
       return
@@ -328,11 +514,11 @@ export class DatabaseService {
 
     try {
       const query = data.query || "SELECT * FROM users LIMIT 10"
-      const result = await this.databaseProxy.query(query)
+      const result = await connection.proxy.query(query)
 
       if (result.success) {
         vscode.window.showInformationMessage(
-          `クエリ実行成功: ${result.rowCount}行取得 (${result.executionTime}ms) - ${this.connectionType}`
+          `クエリ実行成功: ${result.rowCount}行取得 (${result.executionTime}ms) - ${connection.name}`
         )
 
         this.broadcastMessage({
@@ -342,7 +528,7 @@ export class DatabaseService {
             results: result.rows || [],
             rowCount: result.rowCount || 0,
             executionTime: result.executionTime || 0,
-            message: `${result.rowCount}行を取得しました (${this.connectionType})`,
+            message: `${result.rowCount}行を取得しました (${connection.name})`,
           },
         })
       } else {
@@ -364,13 +550,16 @@ export class DatabaseService {
   }
 
   /**
-   * テーブル一覧を取得
+   * テーブル一覧を取得（指定された接続から）
    */
-  async getTables(): Promise<{ name: string; type: string }[]> {
-    if (!this.databaseProxy || !this.isConnected) {
+  async getTables(connectionId?: string): Promise<{ name: string; type: string }[]> {
+    const targetConnectionId = connectionId || Array.from(this.activeConnections.keys())[0]
+    const connection = this.activeConnections.get(targetConnectionId)
+
+    if (!connection || !connection.isConnected) {
       return []
     }
-    return await this.databaseProxy.getTables()
+    return await connection.proxy.getTables()
   }
 
   /**
@@ -415,7 +604,7 @@ export class DatabaseService {
    * クリーンアップ
    */
   async cleanup(): Promise<void> {
-    await this.disconnect()
+    await this.disconnect() // 全ての接続を切断
     this.listeners.clear()
   }
 }
