@@ -1,6 +1,5 @@
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
-import { EncryptionService } from "../../shared/security/EncryptionService"
 import type { DatabaseConfig } from "../../shared/types"
 import { useVSCodeAPI } from "../api/vscode"
 
@@ -20,7 +19,6 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
   onTest,
 }) => {
   const vscodeApi = useVSCodeAPI()
-  const [encryptionService] = useState(() => new EncryptionService())
   const [isTestingConnection, setIsTestingConnection] = useState(false)
   const [testResult, setTestResult] = useState<{
     success: boolean
@@ -188,14 +186,10 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
 
     const finalConfig = { ...config } as DatabaseConfig
 
-    // Encrypt password before saving
-    if (finalConfig.password) {
-      finalConfig.password = encryptionService.encryptPassword(finalConfig.password)
-    }
-
+    // Note: Password encryption is handled on the extension side
     onSave(finalConfig)
     vscodeApi.showInfo("Connection saved successfully")
-  }, [config, encryptionService, onSave, validateConfig, vscodeApi])
+  }, [config, onSave, validateConfig, vscodeApi])
 
   if (!isOpen) {
     return null
@@ -203,15 +197,18 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
 
   return (
     <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-      <div className='bg-white rounded-lg shadow-xl w-full max-w-md p-6'>
-        <h2 className='text-xl font-bold mb-4'>
+      <div className='bg-vscode-editor-background rounded-lg shadow-xl w-full max-w-md p-6 border border-vscode-panel-border'>
+        <h2 className='text-xl font-bold mb-4 text-vscode-editor-foreground'>
           {initialConfig ? "Edit Connection" : "New Connection"}
         </h2>
 
         <form onSubmit={(e) => e.preventDefault()} className='space-y-4'>
           {/* Connection Name */}
           <div>
-            <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='name'
+              className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+            >
               Connection Name <span className='text-red-500'>*</span>
             </label>
             <input
@@ -219,7 +216,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
               type='text'
               value={config.name || ""}
               onChange={handleInputChange("name")}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
               placeholder='My Database'
               required
             />
@@ -227,14 +224,17 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
 
           {/* Database Type */}
           <div>
-            <label htmlFor='type' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='type'
+              className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+            >
               Database Type <span className='text-red-500'>*</span>
             </label>
             <select
               id='type'
               value={config.type || "mysql"}
               onChange={handleTypeChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
             >
               <option value='mysql'>MySQL</option>
               <option value='postgresql'>PostgreSQL</option>
@@ -247,7 +247,10 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
             <>
               <div className='grid grid-cols-3 gap-4'>
                 <div className='col-span-2'>
-                  <label htmlFor='host' className='block text-sm font-medium text-gray-700 mb-1'>
+                  <label
+                    htmlFor='host'
+                    className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+                  >
                     Host <span className='text-red-500'>*</span>
                   </label>
                   <input
@@ -255,13 +258,16 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
                     type='text'
                     value={config.host || ""}
                     onChange={handleInputChange("host")}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
                     placeholder='localhost'
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor='port' className='block text-sm font-medium text-gray-700 mb-1'>
+                  <label
+                    htmlFor='port'
+                    className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+                  >
                     Port <span className='text-red-500'>*</span>
                   </label>
                   <input
@@ -269,7 +275,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
                     type='number'
                     value={config.port || 3306}
                     onChange={handleInputChange("port")}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
                     required
                   />
                 </div>
@@ -277,7 +283,10 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
 
               {/* Username */}
               <div>
-                <label htmlFor='username' className='block text-sm font-medium text-gray-700 mb-1'>
+                <label
+                  htmlFor='username'
+                  className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+                >
                   Username <span className='text-red-500'>*</span>
                 </label>
                 <input
@@ -285,7 +294,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
                   type='text'
                   value={config.username || ""}
                   onChange={handleInputChange("username")}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
                   placeholder='root'
                   required
                 />
@@ -293,7 +302,10 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
 
               {/* Password */}
               <div>
-                <label htmlFor='password' className='block text-sm font-medium text-gray-700 mb-1'>
+                <label
+                  htmlFor='password'
+                  className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+                >
                   Password
                 </label>
                 <input
@@ -301,7 +313,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
                   type='password'
                   value={config.password || ""}
                   onChange={handleInputChange("password")}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
                   placeholder='••••••••'
                 />
               </div>
@@ -310,7 +322,10 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
 
           {/* Database */}
           <div>
-            <label htmlFor='database' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='database'
+              className='block text-sm font-medium text-vscode-editor-foreground mb-1'
+            >
               {config.type === "sqlite" ? "Database Path" : "Database Name"}{" "}
               <span className='text-red-500'>*</span>
             </label>
@@ -319,7 +334,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
               type='text'
               value={config.database || ""}
               onChange={handleInputChange("database")}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full px-3 py-2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded-md focus:outline-none focus:border-vscode-focusBorder'
               placeholder={config.type === "sqlite" ? "/path/to/database.db" : "mydatabase"}
               required
             />
@@ -333,9 +348,9 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
                 type='checkbox'
                 checked={typeof config.ssl === "boolean" ? config.ssl : false}
                 onChange={handleInputChange("ssl")}
-                className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                className='h-4 w-4 text-vscode-checkbox-foreground bg-vscode-checkbox-background border border-vscode-checkbox-border rounded'
               />
-              <label htmlFor='ssl' className='ml-2 block text-sm text-gray-700'>
+              <label htmlFor='ssl' className='ml-2 block text-sm text-vscode-editor-foreground'>
                 Use SSL/TLS
               </label>
             </div>
@@ -344,10 +359,10 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
           {/* Test Result */}
           {testResult && (
             <div
-              className={`p-3 rounded-md ${
+              className={`p-3 rounded-md border ${
                 testResult.success
-                  ? "bg-green-100 text-green-800 border border-green-300"
-                  : "bg-red-100 text-red-800 border border-red-300"
+                  ? "bg-vscode-terminal-ansiGreen bg-opacity-20 text-vscode-terminal-ansiGreen border-vscode-terminal-ansiGreen"
+                  : "bg-vscode-errorForeground bg-opacity-20 text-vscode-errorForeground border-vscode-errorForeground"
               }`}
             >
               <p className='text-sm'>{testResult.message}</p>
@@ -359,7 +374,7 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
             <button
               type='button'
               onClick={onCancel}
-              className='px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500'
+              className='px-4 py-2 border border-vscode-button-border rounded-md text-vscode-button-foreground bg-vscode-button-secondaryBackground hover:bg-vscode-button-secondaryHoverBackground focus:outline-none'
             >
               Cancel
             </button>
@@ -367,14 +382,14 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
               type='button'
               onClick={handleTestConnection}
               disabled={isTestingConnection}
-              className='px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:bg-yellow-300'
+              className='px-4 py-2 bg-vscode-button-background text-vscode-button-foreground rounded-md hover:bg-vscode-button-hoverBackground focus:outline-none disabled:opacity-50'
             >
               {isTestingConnection ? "Testing..." : "Test Connection"}
             </button>
             <button
               type='button'
               onClick={handleSave}
-              className='px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='px-4 py-2 bg-vscode-button-background text-vscode-button-foreground rounded-md hover:bg-vscode-button-hoverBackground focus:outline-none'
             >
               Save
             </button>

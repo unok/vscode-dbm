@@ -4,6 +4,7 @@ import {
   type DatabaseProxyConfig,
   DatabaseProxyFactory,
 } from "../../shared/database/DatabaseProxy"
+import type { DatabaseConfig } from "../../shared/types"
 import type {
   BaseMessage,
   ConnectionInfo,
@@ -23,6 +24,8 @@ export class DatabaseService {
   private isConnected = false
   private connectionType?: string
   private listeners: Map<string, (message: BaseMessage) => void> = new Map()
+  private savedConnections: DatabaseConfig[] = []
+  private extensionContext?: vscode.ExtensionContext
 
   private constructor() {}
 
@@ -34,6 +37,13 @@ export class DatabaseService {
       DatabaseService.instance = new DatabaseService()
     }
     return DatabaseService.instance
+  }
+
+  /**
+   * VSCode Extension Contextを設定
+   */
+  setExtensionContext(context: vscode.ExtensionContext): void {
+    this.extensionContext = context
   }
 
   /**
@@ -361,6 +371,44 @@ export class DatabaseService {
       return []
     }
     return await this.databaseProxy.getTables()
+  }
+
+  /**
+   * 接続設定を保存
+   */
+  async saveConnection(config: DatabaseConfig): Promise<void> {
+    const existingIndex = this.savedConnections.findIndex((c) => c.id === config.id)
+    if (existingIndex >= 0) {
+      this.savedConnections[existingIndex] = config
+    } else {
+      this.savedConnections.push(config)
+    }
+
+    // Save to extension context if available
+    if (this.extensionContext) {
+      await this.extensionContext.globalState.update(
+        "vscode-dbm.connections",
+        this.savedConnections
+      )
+    }
+  }
+
+  /**
+   * 保存された接続設定を取得
+   */
+  getSavedConnections(): DatabaseConfig[] {
+    return [...this.savedConnections]
+  }
+
+  /**
+   * 接続設定を読み込み
+   */
+  async loadConnections(): Promise<void> {
+    if (this.extensionContext) {
+      const connections =
+        (this.extensionContext.globalState.get("vscode-dbm.connections") as DatabaseConfig[]) || []
+      this.savedConnections = connections
+    }
   }
 
   /**

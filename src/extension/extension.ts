@@ -5,10 +5,14 @@ import { DatabaseService } from "./services/DatabaseService"
 
 let webViewProvider: DatabaseWebViewProvider | undefined
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   try {
-    // Initialize database service
-    const _databaseService = DatabaseService.getInstance()
+    // Initialize database service with extension context
+    const databaseService = DatabaseService.getInstance()
+    databaseService.setExtensionContext(context)
+
+    // Load saved connections
+    await databaseService.loadConnections()
 
     // WebView provider for sidebar
     webViewProvider = new DatabaseWebViewProvider(context.extensionUri)

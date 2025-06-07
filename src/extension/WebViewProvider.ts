@@ -1,5 +1,6 @@
 import * as path from "node:path"
 import * as vscode from "vscode"
+import type { DatabaseConfig } from "../shared/types"
 import type {
   BaseMessage,
   ConnectionInfo,
@@ -72,6 +73,15 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         case "getTheme":
           this._sendTheme()
           break
+        case "saveConnection":
+          await this._handleSaveConnection(message.data)
+          break
+        case "testConnection":
+          await this._handleTestConnection(message.data)
+          break
+        case "getDefaultConnectionConfig":
+          this._sendDefaultConnectionConfig()
+          break
       }
     })
 
@@ -98,7 +108,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; font-src ${webview.cspSource} https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}';">
     <title>DB Manager</title>
     <style>
         body {
@@ -299,7 +309,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://cdnjs.cloudflare.com; font-src https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}';">
     <title>Database Manager - Development</title>
     <style>
         body {
@@ -568,7 +578,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; connect-src ${webview.cspSource} https: ws:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com; connect-src ${webview.cspSource} https: ws:;">
     <title>Database DataGrid Manager</title>
     <style>
         body {
@@ -651,7 +661,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; connect-src ${webview.cspSource} https: ws:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com; connect-src ${webview.cspSource} https: ws:;">
     <title>Database DataGrid Manager</title>
     <style>
         body {
@@ -758,6 +768,77 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         data: result,
       })
     }
+  }
+
+  private async _handleSaveConnection(data: DatabaseConfig) {
+    try {
+      // Save connection using DatabaseService
+      await this.databaseService.saveConnection(data)
+      vscode.window.showInformationMessage(`Connection "${data.name}" saved successfully`)
+
+      if (this._view) {
+        this._view.webview.postMessage({
+          type: "connectionSaved",
+          data: { success: true, connection: data },
+        })
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      console.error("Save connection error:", error)
+      vscode.window.showErrorMessage(`Failed to save connection: ${errorMessage}`)
+      if (this._view) {
+        this._view.webview.postMessage({
+          type: "connectionSaved",
+          data: { success: false, error: errorMessage },
+        })
+      }
+    }
+  }
+
+  private async _handleTestConnection(data: DatabaseConfig) {
+    try {
+      // Convert DatabaseConfig to compatible format for database service
+      const connectionData = {
+        type: data.type,
+        host: data.host || "",
+        port: data.port || 0,
+        database: data.database,
+        username: data.username || "",
+        password: data.password || "",
+        ssl: typeof data.ssl === "boolean" ? data.ssl : false,
+      }
+      const result = await this.databaseService.connect(connectionData)
+      if (this._view) {
+        this._view.webview.postMessage({
+          type: "connectionTestResult",
+          data: result,
+        })
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      if (this._view) {
+        this._view.webview.postMessage({
+          type: "connectionTestResult",
+          data: { success: false, message: errorMessage },
+        })
+      }
+    }
+  }
+
+  private _sendDefaultConnectionConfig() {
+    if (!this._view) return
+
+    const config = vscode.workspace.getConfiguration("vscode-dbm")
+    const defaultConfig = {
+      host: config.get("mysql.host") || "localhost",
+      port: config.get("mysql.port") || 3307,
+      database: config.get("mysql.database") || "test_db",
+      username: config.get("mysql.username") || "test_user",
+    }
+    this._view.webview.postMessage({
+      type: "defaultConnectionConfig",
+      data: defaultConfig,
+    })
   }
 
   // Public methods for external communication

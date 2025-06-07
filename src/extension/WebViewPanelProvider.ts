@@ -1,5 +1,6 @@
 import * as path from "node:path"
 import * as vscode from "vscode"
+import type { DatabaseConfig } from "../shared/types"
 import type { BaseMessage, WebViewMessage } from "../shared/types/messages"
 import { DatabaseService } from "./services/DatabaseService"
 
@@ -207,6 +208,72 @@ async function handleMessage(message: WebViewMessage, panel: vscode.WebviewPanel
     case "showError":
       vscode.window.showErrorMessage(message.data.message)
       break
+
+    case "saveConnection": {
+      try {
+        // Save connection using DatabaseService
+        await databaseService.saveConnection(message.data)
+        vscode.window.showInformationMessage(`Connection "${message.data.name}" saved successfully`)
+
+        panel.webview.postMessage({
+          type: "connectionSaved",
+          data: { success: true, connection: message.data },
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        console.error("Save connection error:", error)
+        vscode.window.showErrorMessage(`Failed to save connection: ${errorMessage}`)
+        panel.webview.postMessage({
+          type: "connectionSaved",
+          data: { success: false, error: errorMessage },
+        })
+      }
+      break
+    }
+
+    case "testConnection": {
+      try {
+        // Test the connection using database service
+        // Convert DatabaseConfig to compatible format
+        const data = message.data
+        const connectionData = {
+          type: data.type,
+          host: data.host || "",
+          port: data.port || 0,
+          database: data.database,
+          username: data.username || "",
+          password: data.password || "",
+          ssl: typeof data.ssl === "boolean" ? data.ssl : false,
+        }
+        const result = await databaseService.connect(connectionData)
+        panel.webview.postMessage({
+          type: "connectionTestResult",
+          data: result,
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        panel.webview.postMessage({
+          type: "connectionTestResult",
+          data: { success: false, message: errorMessage },
+        })
+      }
+      break
+    }
+
+    case "getDefaultConnectionConfig": {
+      const config = vscode.workspace.getConfiguration("vscode-dbm")
+      const defaultConfig = {
+        host: config.get("mysql.host") || "localhost",
+        port: config.get("mysql.port") || 3307,
+        database: config.get("mysql.database") || "test_db",
+        username: config.get("mysql.username") || "test_user",
+      }
+      panel.webview.postMessage({
+        type: "defaultConnectionConfig",
+        data: defaultConfig,
+      })
+      break
+    }
   }
 }
 

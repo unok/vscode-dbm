@@ -5,6 +5,7 @@ import type {
   ToolbarItem,
   WebViewToolbarService,
 } from "../services/WebViewToolbarService"
+import { Icon } from "./Icon"
 
 interface CustomizableToolbarProps {
   toolbarService: WebViewToolbarService
@@ -62,7 +63,7 @@ export const CustomizableToolbar: React.FC<CustomizableToolbarProps> = ({
           title={item.tooltip || item.label}
           aria-label={item.label}
         >
-          <span className='mr-2'>{item.icon}</span>
+          <Icon name={item.icon} className='mr-2' />
           <span>{item.label}</span>
         </button>
       )

@@ -117,6 +117,39 @@ export interface GetSchemaMessage extends BaseMessage {
   }
 }
 
+export interface SaveConnectionMessage extends BaseMessage {
+  type: "saveConnection"
+  data: {
+    id: string
+    name: string
+    type: "mysql" | "postgresql" | "sqlite"
+    host: string
+    port: number
+    database: string
+    username: string
+    password?: string
+    ssl?: boolean
+  }
+}
+
+export interface TestConnectionMessage extends BaseMessage {
+  type: "testConnection"
+  data: {
+    name: string
+    type: "mysql" | "postgresql" | "sqlite"
+    host: string
+    port: number
+    database: string
+    username: string
+    password?: string
+    ssl?: boolean
+  }
+}
+
+export interface GetDefaultConnectionConfigMessage extends BaseMessage {
+  type: "getDefaultConnectionConfig"
+}
+
 export interface TableDataMessage extends BaseMessage {
   type: "tableData"
   data: {
@@ -209,3 +242,6 @@ export type WebViewMessage =
   | DisconnectConnectionMessage
   | GetTableDataMessage
   | GetSchemaMessage
+  | SaveConnectionMessage
+  | TestConnectionMessage
+  | GetDefaultConnectionConfigMessage

@@ -57,7 +57,7 @@ export class WebViewToolbarService {
           {
             id: "new-connection",
             label: "New Connection",
-            icon: "$(plug)",
+            icon: "plug",
             action: "new-connection",
             position: "left",
             visible: true,
@@ -66,7 +66,7 @@ export class WebViewToolbarService {
           {
             id: "refresh-connections",
             label: "Refresh",
-            icon: "$(refresh)",
+            icon: "refresh",
             action: "refresh-connections",
             position: "left",
             visible: true,
@@ -83,7 +83,7 @@ export class WebViewToolbarService {
           {
             id: "new-query",
             label: "New Query",
-            icon: "$(file-code)",
+            icon: "file-code",
             action: "new-query",
             position: "center",
             visible: true,
@@ -92,7 +92,7 @@ export class WebViewToolbarService {
           {
             id: "execute-query",
             label: "Execute",
-            icon: "$(play)",
+            icon: "play",
             action: "execute-query",
             position: "center",
             visible: true,
@@ -101,7 +101,7 @@ export class WebViewToolbarService {
           {
             id: "format-sql",
             label: "Format SQL",
-            icon: "$(symbol-keyword)",
+            icon: "symbol-keyword",
             action: "format-sql",
             position: "center",
             visible: true,
@@ -110,7 +110,7 @@ export class WebViewToolbarService {
           {
             id: "save-query",
             label: "Save",
-            icon: "$(save)",
+            icon: "save",
             action: "save-query",
             position: "center",
             visible: true,
@@ -127,7 +127,7 @@ export class WebViewToolbarService {
           {
             id: "import-data",
             label: "Import",
-            icon: "$(cloud-upload)",
+            icon: "cloud-upload",
             action: "import-data",
             position: "right",
             visible: true,
@@ -136,7 +136,7 @@ export class WebViewToolbarService {
           {
             id: "table-manager",
             label: "Tables",
-            icon: "$(table)",
+            icon: "table",
             action: "table-manager",
             position: "right",
             visible: true,
@@ -145,7 +145,7 @@ export class WebViewToolbarService {
           {
             id: "database-explorer",
             label: "Explorer",
-            icon: "$(database)",
+            icon: "database",
             action: "database-explorer",
             position: "right",
             visible: true,
@@ -154,7 +154,7 @@ export class WebViewToolbarService {
           {
             id: "query-history",
             label: "History",
-            icon: "$(history)",
+            icon: "history",
             action: "query-history",
             position: "right",
             visible: true,

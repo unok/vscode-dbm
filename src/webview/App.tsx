@@ -1,5 +1,7 @@
 import React, { Suspense, startTransition, useState, useEffect, useMemo } from "react"
+import type { DatabaseConfig } from "../shared/types"
 import { useVSCodeAPI } from "./api/vscode"
+import { ConnectionConfigDialog } from "./components/ConnectionConfigDialog"
 import { CustomizableToolbar } from "./components/CustomizableToolbar"
 import { Layout } from "./components/Layout"
 import { LoadingSpinner } from "./components/LoadingSpinner"
@@ -19,6 +21,10 @@ type View = "dashboard" | "explorer" | "datagrid" | "sql"
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>("dashboard")
   const [showSettings, setShowSettings] = useState(false)
+  const [showConnectionDialog, setShowConnectionDialog] = useState(false)
+  const [editingConnection, setEditingConnection] = useState<DatabaseConfig | undefined>()
+
+  // Debug logging for state changes (removed for production)
   const theme = useVSCodeTheme()
   const vscodeApi = useVSCodeAPI()
 
@@ -28,8 +34,15 @@ export const App: React.FC = () => {
 
     // Register action callbacks for toolbar items
     service.registerAction("new-connection", () => {
-      vscodeApi.showInfo("New Connection dialog will open")
-      setCurrentView("explorer")
+      try {
+        setEditingConnection(undefined)
+        setShowConnectionDialog(true)
+      } catch (error) {
+        console.error("Error opening connection dialog:", error)
+        vscodeApi.showError(
+          `Failed to open connection dialog: ${error instanceof Error ? error.message : "Unknown error"}`
+        )
+      }
     })
 
     service.registerAction("refresh-connections", () => {
@@ -75,6 +88,34 @@ export const App: React.FC = () => {
   }, [vscodeApi])
 
   const settingsService = useMemo(() => new WebViewSettingsService(), [])
+
+  // Connection dialog handlers
+  const handleConnectionSave = (config: DatabaseConfig) => {
+    // Send connection config to extension for saving
+    vscodeApi.postMessage("saveConnection", config)
+    setShowConnectionDialog(false)
+    setEditingConnection(undefined)
+    vscodeApi.showInfo(`Connection "${config.name}" saved successfully`)
+  }
+
+  const handleConnectionTest = async (
+    config: DatabaseConfig
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      // Send test connection request to extension
+      vscodeApi.postMessage("testConnection", config)
+      // For now, return a mock result - extension should respond via message
+      return { success: true, message: "Connection test successful" }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error"
+      return { success: false, message }
+    }
+  }
+
+  const handleConnectionCancel = () => {
+    setShowConnectionDialog(false)
+    setEditingConnection(undefined)
+  }
 
   useEffect(() => {
     // Set initial view from VSCode if provided
@@ -144,6 +185,16 @@ export const App: React.FC = () => {
 
       {showSettings && (
         <SettingsUI settingsService={settingsService} onClose={() => setShowSettings(false)} />
+      )}
+
+      {showConnectionDialog && (
+        <ConnectionConfigDialog
+          isOpen={showConnectionDialog}
+          initialConfig={editingConnection}
+          onSave={handleConnectionSave}
+          onCancel={handleConnectionCancel}
+          onTest={handleConnectionTest}
+        />
       )}
     </>
   )

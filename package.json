@@ -137,6 +137,53 @@
         "type": "string",
         "default": ":memory:",
         "description": "SQLite database path"
+      },
+      "vscode-dbm.connections": {
+        "type": "array",
+        "default": [],
+        "description": "Saved database connections",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique connection identifier"
+            },
+            "name": {
+              "type": "string",
+              "description": "Connection display name"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["mysql", "postgresql", "sqlite"],
+              "description": "Database type"
+            },
+            "host": {
+              "type": "string",
+              "description": "Database host"
+            },
+            "port": {
+              "type": "number",
+              "description": "Database port"
+            },
+            "database": {
+              "type": "string",
+              "description": "Database name or file path"
+            },
+            "username": {
+              "type": "string",
+              "description": "Database username"
+            },
+            "password": {
+              "type": "string",
+              "description": "Database password (encrypted)"
+            },
+            "ssl": {
+              "type": "boolean",
+              "description": "Use SSL connection"
+            }
+          }
+        }
       }
     }
   },
