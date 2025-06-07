@@ -1,7 +1,11 @@
 /**
- * DatabaseProxy - VSCode拡張機能でのネイティブモジュール問題を回避
- * HTTP APIを通じてデータベースに接続
+ * DatabaseProxy - データベース接続とクエリ実行を管理
+ * 実際のデータベースドライバーを使用して接続
  */
+
+import type { Database as SQLiteDatabase } from "better-sqlite3"
+import type { Connection as MySQLConnection } from "mysql2/promise"
+import type { Client as PostgreSQLClient } from "pg"
 
 export interface DatabaseProxyConfig {
   type: "mysql" | "postgresql" | "sqlite"
@@ -22,6 +26,8 @@ export interface QueryResult {
 
 export class DatabaseProxy {
   private config: DatabaseProxyConfig
+  private connection: MySQLConnection | PostgreSQLClient | SQLiteDatabase | null = null
+  private isConnected = false
 
   constructor(config: DatabaseProxyConfig) {
     this.config = config
@@ -29,26 +35,55 @@ export class DatabaseProxy {
 
   async connect(): Promise<boolean> {
     try {
-      // 接続テスト用の軽量クエリ
+      await this.disconnect() // 既存の接続を閉じる
+
+      switch (this.config.type) {
+        case "mysql":
+          this.connection = await this.connectMySQL()
+          break
+        case "postgresql":
+          this.connection = await this.connectPostgreSQL()
+          break
+        case "sqlite":
+          this.connection = await this.connectSQLite()
+          break
+        default:
+          throw new Error(`Unsupported database type: ${this.config.type}`)
+      }
+
+      // 接続テスト
       const result = await this.query("SELECT 1 as test")
-      return result.success
+      this.isConnected = result.success
+      return this.isConnected
     } catch (error) {
       console.error("Database connection failed:", error)
+      this.isConnected = false
       return false
     }
   }
 
-  async query(sql: string, _params?: unknown[]): Promise<QueryResult> {
+  async query(sql: string, params?: unknown[]): Promise<QueryResult> {
     const startTime = Date.now()
 
-    try {
-      // 実際のデータベース接続の代わりに、サンプルデータを返す
-      // 将来的にはHTTP APIまたは別の方法で実装
-
-      if (sql.toLowerCase().includes("select")) {
-        return this.mockSelectQuery(sql, startTime)
+    if (!this.isConnected || !this.connection) {
+      return {
+        success: false,
+        error: "Database not connected",
+        executionTime: Date.now() - startTime,
       }
-      return this.mockNonSelectQuery(sql, startTime)
+    }
+
+    try {
+      switch (this.config.type) {
+        case "mysql":
+          return await this.executeMySQL(sql, params || [], startTime)
+        case "postgresql":
+          return await this.executePostgreSQL(sql, params || [], startTime)
+        case "sqlite":
+          return await this.executeSQLite(sql, params || [], startTime)
+        default:
+          throw new Error(`Unsupported database type: ${this.config.type}`)
+      }
     } catch (error) {
       return {
         success: false,
@@ -58,71 +93,169 @@ export class DatabaseProxy {
     }
   }
 
-  private mockSelectQuery(sql: string, startTime: number): QueryResult {
-    // SQLに基づいてサンプルデータを返す
-    if (sql.toLowerCase().includes("users")) {
-      return {
-        success: true,
-        rows: [
-          { id: 1, name: "Alice", email: "alice@example.com", created_at: "2024-01-01 10:00:00" },
-          { id: 2, name: "Bob", email: "bob@example.com", created_at: "2024-01-01 11:00:00" },
-          {
-            id: 3,
-            name: "Charlie",
-            email: "charlie@example.com",
-            created_at: "2024-01-01 12:00:00",
-          },
-        ],
-        rowCount: 3,
-        executionTime: Date.now() - startTime,
-      }
-    }
-    if (sql.toLowerCase().includes("products")) {
-      return {
-        success: true,
-        rows: [
-          { id: 1, name: "Laptop", price: 999.99, category: "Electronics" },
-          { id: 2, name: "Book", price: 19.99, category: "Education" },
-          { id: 3, name: "Coffee", price: 4.5, category: "Food" },
-        ],
-        rowCount: 3,
-        executionTime: Date.now() - startTime,
-      }
-    }
-    return {
-      success: true,
-      rows: [{ test: 1 }],
-      rowCount: 1,
-      executionTime: Date.now() - startTime,
-    }
-  }
-
-  private mockNonSelectQuery(_sql: string, startTime: number): QueryResult {
-    // INSERT、UPDATE、DELETE等の操作
-    return {
-      success: true,
-      rows: [],
-      rowCount: 1, // 影響を受けた行数
-      executionTime: Date.now() - startTime,
-    }
-  }
-
   async getTables(): Promise<{ name: string; type: string }[]> {
-    // テーブル一覧を返す
-    return [
-      { name: "users", type: "table" },
-      { name: "products", type: "table" },
-      { name: "orders", type: "table" },
-      { name: "user_orders", type: "view" },
-    ]
+    if (!this.isConnected || !this.connection) {
+      return []
+    }
+
+    try {
+      let tablesQuery = ""
+      switch (this.config.type) {
+        case "mysql":
+          tablesQuery = "SHOW TABLES"
+          break
+        case "postgresql":
+          tablesQuery = `
+            SELECT table_name as name, 'table' as type 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+            UNION ALL
+            SELECT table_name as name, 'view' as type 
+            FROM information_schema.views 
+            WHERE table_schema = 'public'
+          `
+          break
+        case "sqlite":
+          tablesQuery = `
+            SELECT name, type 
+            FROM sqlite_master 
+            WHERE type IN ('table', 'view') 
+            AND name NOT LIKE 'sqlite_%'
+          `
+          break
+      }
+
+      const result = await this.query(tablesQuery)
+      if (result.success && result.rows) {
+        return result.rows.map((row) => ({
+          name: String(row.name || row[Object.keys(row)[0]]),
+          type: String(row.type || "table"),
+        }))
+      }
+      return []
+    } catch (error) {
+      console.error("Error getting tables:", error)
+      return []
+    }
   }
 
   async disconnect(): Promise<void> {
-    // Cleanup logic will be implemented when needed
+    if (this.connection) {
+      try {
+        switch (this.config.type) {
+          case "mysql":
+            await (this.connection as MySQLConnection).end()
+            break
+          case "postgresql":
+            await (this.connection as PostgreSQLClient).end()
+            break
+          case "sqlite":
+            ;(this.connection as SQLiteDatabase).close()
+            break
+        }
+      } catch (error) {
+        console.error("Error disconnecting from database:", error)
+      } finally {
+        this.connection = null
+        this.isConnected = false
+      }
+    }
   }
 
   getConnectionInfo(): DatabaseProxyConfig {
     return { ...this.config }
+  }
+
+  // 実際のデータベース接続メソッド
+  private async connectMySQL(): Promise<MySQLConnection> {
+    const mysql = await import("mysql2/promise")
+    return await mysql.createConnection({
+      host: this.config.host,
+      port: this.config.port,
+      user: this.config.username,
+      password: this.config.password,
+      database: this.config.database,
+    })
+  }
+
+  private async connectPostgreSQL(): Promise<PostgreSQLClient> {
+    const { Client } = await import("pg")
+    const client = new Client({
+      host: this.config.host,
+      port: this.config.port,
+      user: this.config.username,
+      password: this.config.password,
+      database: this.config.database,
+    })
+    await client.connect()
+    return client
+  }
+
+  private async connectSQLite(): Promise<SQLiteDatabase> {
+    const Database = (await import("better-sqlite3")).default
+    return new Database(this.config.database)
+  }
+
+  // 実際のクエリ実行メソッド
+  private async executeMySQL(
+    sql: string,
+    params: unknown[],
+    startTime: number
+  ): Promise<QueryResult> {
+    const connection = this.connection as MySQLConnection
+    const [rows] = await connection.execute(sql, params)
+
+    return {
+      success: true,
+      rows: Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [],
+      rowCount: Array.isArray(rows) ? rows.length : 0,
+      executionTime: Date.now() - startTime,
+    }
+  }
+
+  private async executePostgreSQL(
+    sql: string,
+    params: unknown[],
+    startTime: number
+  ): Promise<QueryResult> {
+    const client = this.connection as PostgreSQLClient
+    const result = await client.query(sql, params)
+
+    return {
+      success: true,
+      rows: result.rows,
+      rowCount: result.rowCount || 0,
+      executionTime: Date.now() - startTime,
+    }
+  }
+
+  private async executeSQLite(
+    sql: string,
+    params: unknown[],
+    startTime: number
+  ): Promise<QueryResult> {
+    const db = this.connection as SQLiteDatabase
+
+    if (sql.toLowerCase().trim().startsWith("select")) {
+      const stmt = db.prepare(sql)
+      const rows = stmt.all(params) as Record<string, unknown>[]
+
+      return {
+        success: true,
+        rows: rows,
+        rowCount: rows.length,
+        executionTime: Date.now() - startTime,
+      }
+    }
+    const stmt = db.prepare(sql)
+    const result = stmt.run(params)
+
+    return {
+      success: true,
+      rows: [],
+      rowCount: result.changes,
+      executionTime: Date.now() - startTime,
+    }
   }
 }
 
@@ -134,29 +267,41 @@ export const DatabaseProxyFactory = {
     return new DatabaseProxy(config)
   },
 
-  createMySQL(host = "localhost", port = 3307): DatabaseProxy {
+  createMySQL(
+    host: string,
+    port: number,
+    database: string,
+    username: string,
+    password: string
+  ): DatabaseProxy {
     return new DatabaseProxy({
       type: "mysql",
       host,
       port,
-      database: "test_db",
-      username: "dev_user",
-      password: "dev_password",
+      database,
+      username,
+      password,
     })
   },
 
-  createPostgreSQL(host = "localhost", port = 5433): DatabaseProxy {
+  createPostgreSQL(
+    host: string,
+    port: number,
+    database: string,
+    username: string,
+    password: string
+  ): DatabaseProxy {
     return new DatabaseProxy({
       type: "postgresql",
       host,
       port,
-      database: "test_db",
-      username: "dev_user",
-      password: "dev_password",
+      database,
+      username,
+      password,
     })
   },
 
-  createSQLite(database = ":memory:"): DatabaseProxy {
+  createSQLite(database: string): DatabaseProxy {
     return new DatabaseProxy({
       type: "sqlite",
       host: "",

@@ -34,27 +34,112 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
-  private async _connectDatabase(type: "mysql" | "postgresql" | "sqlite"): Promise<boolean> {
+  private async _connectDatabase(
+    type: "mysql" | "postgresql" | "sqlite",
+    config?: Partial<DatabaseProxyConfig>
+  ): Promise<boolean> {
     try {
       // 接続中の場合は切断
       if (this._databaseProxy) {
         await this._databaseProxy.disconnect()
       }
 
+      // 設定を環境変数、VSCode設定、ユーザー入力の順で取得
+      const vscodeConfig = vscode.workspace.getConfiguration("vscode-dbm")
+
+      const defaultConfigs = {
+        mysql: {
+          host:
+            config?.host || process.env.MYSQL_HOST || vscodeConfig.get("mysql.host") || "localhost",
+          port:
+            config?.port ||
+            (process.env.MYSQL_PORT ? Number.parseInt(process.env.MYSQL_PORT, 10) : null) ||
+            vscodeConfig.get("mysql.port") ||
+            3306,
+          database:
+            config?.database ||
+            process.env.MYSQL_DATABASE ||
+            vscodeConfig.get("mysql.database") ||
+            "test_db",
+          username:
+            config?.username ||
+            process.env.MYSQL_USER ||
+            vscodeConfig.get("mysql.username") ||
+            "root",
+          password:
+            config?.password ||
+            process.env.MYSQL_PASSWORD ||
+            vscodeConfig.get("mysql.password") ||
+            "",
+        },
+        postgresql: {
+          host:
+            config?.host ||
+            process.env.POSTGRES_HOST ||
+            vscodeConfig.get("postgresql.host") ||
+            "localhost",
+          port:
+            config?.port ||
+            (process.env.POSTGRES_PORT ? Number.parseInt(process.env.POSTGRES_PORT, 10) : null) ||
+            vscodeConfig.get("postgresql.port") ||
+            5432,
+          database:
+            config?.database ||
+            process.env.POSTGRES_DB ||
+            vscodeConfig.get("postgresql.database") ||
+            "postgres",
+          username:
+            config?.username ||
+            process.env.POSTGRES_USER ||
+            vscodeConfig.get("postgresql.username") ||
+            "postgres",
+          password:
+            config?.password ||
+            process.env.POSTGRES_PASSWORD ||
+            vscodeConfig.get("postgresql.password") ||
+            "",
+        },
+        sqlite: {
+          database:
+            config?.database ||
+            process.env.SQLITE_DATABASE ||
+            vscodeConfig.get("sqlite.database") ||
+            ":memory:",
+        },
+      }
+
       // データベースタイプに応じて接続
       switch (type) {
-        case "mysql":
-          this._databaseProxy = DatabaseProxyFactory.createMySQL()
-          this._connectionType = "MySQL (Docker:3307)"
+        case "mysql": {
+          const mysqlConfig = defaultConfigs.mysql
+          this._databaseProxy = DatabaseProxyFactory.createMySQL(
+            mysqlConfig.host,
+            mysqlConfig.port,
+            mysqlConfig.database,
+            mysqlConfig.username,
+            mysqlConfig.password
+          )
+          this._connectionType = `MySQL (${mysqlConfig.host}:${mysqlConfig.port})`
           break
-        case "postgresql":
-          this._databaseProxy = DatabaseProxyFactory.createPostgreSQL()
-          this._connectionType = "PostgreSQL (Docker:5433)"
+        }
+        case "postgresql": {
+          const pgConfig = defaultConfigs.postgresql
+          this._databaseProxy = DatabaseProxyFactory.createPostgreSQL(
+            pgConfig.host,
+            pgConfig.port,
+            pgConfig.database,
+            pgConfig.username,
+            pgConfig.password
+          )
+          this._connectionType = `PostgreSQL (${pgConfig.host}:${pgConfig.port})`
           break
-        case "sqlite":
-          this._databaseProxy = DatabaseProxyFactory.createSQLite()
-          this._connectionType = "SQLite (Memory)"
+        }
+        case "sqlite": {
+          const sqliteConfig = defaultConfigs.sqlite
+          this._databaseProxy = DatabaseProxyFactory.createSQLite(sqliteConfig.database)
+          this._connectionType = `SQLite (${sqliteConfig.database})`
           break
+        }
         default:
           throw new Error(`Unsupported database type: ${type}`)
       }
@@ -794,13 +879,22 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     })
   }
 
-  private async _handleOpenConnection(data: { type?: string }) {
+  private async _handleOpenConnection(data: OpenConnectionMessage["data"]) {
     try {
       // データベースタイプを決定（デフォルトはMySQL）
       const dbType =
         data.type === "postgresql" ? "postgresql" : data.type === "sqlite" ? "sqlite" : "mysql"
 
-      const success = await this._connectDatabase(dbType)
+      // 接続設定を渡す
+      const config: Partial<DatabaseProxyConfig> = {
+        host: data.host,
+        port: data.port,
+        database: data.database,
+        username: data.username,
+        password: data.password,
+      }
+
+      const success = await this._connectDatabase(dbType, config)
 
       if (success) {
         vscode.window.showInformationMessage(`${this._connectionType} 接続成功`)

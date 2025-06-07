@@ -53,7 +53,8 @@ export class CursorAIIntegration {
   constructor(config?: Partial<CursorAIConfig>) {
     this.config = {
       model: "cursor-composer-v2",
-      endpoint: "https://api.cursor.so/v1/composer",
+      endpoint: process.env.CURSOR_AI_ENDPOINT || "https://api.cursor.so/v1/composer",
+      apiKey: process.env.CURSOR_AI_API_KEY || config?.apiKey,
       timeout: 10000,
       retryAttempts: 3,
       cacheEnabled: true,
@@ -286,8 +287,113 @@ export class CursorAIIntegration {
 
     this.rateLimiter.set(operation, now)
 
-    // For now, return mock responses since we don't have actual Cursor AI API
-    return this.getMockAIResponse(prompt, operation)
+    // If API key is not configured, fall back to mock responses
+    if (!this.config.apiKey) {
+      console.info("Cursor AI API key not configured, using mock responses")
+      return this.getMockAIResponse(prompt, operation)
+    }
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+
+      const response = await fetch(this.config.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "X-Model": this.config.model,
+        },
+        body: JSON.stringify({
+          prompt,
+          operation,
+          model: this.config.model,
+          temperature: 0.7,
+          max_tokens: 1000,
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      return this.parseAPIResponse(data, operation)
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("API request timeout")
+      }
+      console.warn(`Cursor AI API call failed for ${operation}:`, error)
+      // Fall back to mock response on error
+      return this.getMockAIResponse(prompt, operation)
+    }
+  }
+
+  private parseAPIResponse(data: any, operation: string): Record<string, unknown> {
+    // Parse actual API response based on operation type
+    switch (operation) {
+      case "generate-defaults":
+        if (data.suggestions && Array.isArray(data.suggestions)) {
+          return {
+            suggestions: data.suggestions.map((s: any) => ({
+              column: s.column || s.field,
+              value: s.value || s.default,
+              confidence: s.confidence || s.score || 0.7,
+              reasoning: s.reasoning || s.explanation,
+            })),
+            metadata: data.metadata,
+          }
+        }
+        break
+
+      case "analyze-patterns":
+        if (data.patterns) {
+          return {
+            patterns: data.patterns,
+            metadata: data.metadata,
+          }
+        }
+        break
+
+      case "get-suggestions":
+        if (data.completions && Array.isArray(data.completions)) {
+          return {
+            suggestions: data.completions.map((c: any) => ({
+              value: c.text || c.value,
+              confidence: c.confidence || c.score || 0.7,
+            })),
+          }
+        }
+        break
+
+      case "validate-quality":
+        if (data.validation) {
+          return {
+            issues: data.validation.issues || [],
+            confidence: data.validation.confidence || 0.7,
+            suggestions: data.validation.suggestions || [],
+            severity: data.validation.severity || "info",
+          }
+        }
+        break
+
+      case "suggest-transformation":
+        if (data.transformation) {
+          return {
+            transformation: new Function("value", data.transformation.code || "return value"),
+            preview: data.transformation.preview || [],
+            confidence: data.transformation.confidence || 0.7,
+            description: data.transformation.description || "",
+          }
+        }
+        break
+    }
+
+    // If response format is not recognized, return raw data
+    return data
   }
 
   private getMockAIResponse(prompt: string, operation: string): Record<string, unknown> {
@@ -596,5 +702,31 @@ Common transformations: extract initials, format phone numbers, standardize date
 
   updateConfig(newConfig: Partial<CursorAIConfig>): void {
     this.config = { ...this.config, ...newConfig }
+  }
+
+  /**
+   * Check if API is configured and available
+   */
+  isAPIConfigured(): boolean {
+    return Boolean(this.config.apiKey)
+  }
+
+  /**
+   * Get API configuration status
+   */
+  getAPIStatus(): {
+    configured: boolean
+    endpoint: string
+    model: string
+    cacheEnabled: boolean
+    fallbackEnabled: boolean
+  } {
+    return {
+      configured: this.isAPIConfigured(),
+      endpoint: this.config.endpoint,
+      model: this.config.model,
+      cacheEnabled: this.config.cacheEnabled,
+      fallbackEnabled: true, // Always have fallback to mock responses
+    }
   }
 }

@@ -2,47 +2,56 @@ import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { useVSCodeAPI } from "../api/vscode"
 
-interface SampleRow {
-  id: number
-  name: string
-  email: string
-  created_at: string
+interface TableRow {
+  [key: string]: unknown
 }
 
 const DataGrid: React.FC = () => {
-  const [data, setData] = useState<SampleRow[]>([])
+  const [data, setData] = useState<TableRow[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedTable, setSelectedTable] = useState<"users" | "products" | "orders">("users")
+  const [selectedTable, setSelectedTable] = useState<string>("users")
+  const [columns, setColumns] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
   const vscodeApi = useVSCodeAPI()
 
-  const sampleData = {
-    users: [
-      { id: 1, name: "Alice", email: "alice@example.com", created_at: "2024-01-01 10:00:00" },
-      { id: 2, name: "Bob", email: "bob@example.com", created_at: "2024-01-01 11:00:00" },
-      { id: 3, name: "Charlie", email: "charlie@example.com", created_at: "2024-01-01 12:00:00" },
-    ],
-    products: [
-      { id: 1, name: "Laptop", email: "999.99", created_at: "Electronics" },
-      { id: 2, name: "Book", email: "19.99", created_at: "Education" },
-      { id: 3, name: "Coffee", email: "4.50", created_at: "Food" },
-    ],
-    orders: [
-      { id: 1, name: "Order #1001", email: "Alice", created_at: "2024-01-01" },
-      { id: 2, name: "Order #1002", email: "Bob", created_at: "2024-01-01" },
-    ],
-  }
+  // メッセージリスナーを設定
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data
+      if (message.type === "queryResult") {
+        if (message.data.success) {
+          const results = message.data.results || []
+          setData(results)
+          // カラム名を動的に設定
+          if (results.length > 0) {
+            setColumns(Object.keys(results[0]))
+          } else {
+            setColumns([])
+          }
+          setError(null)
+        } else {
+          setError(message.data.message || "クエリ実行エラー")
+          setData([])
+          setColumns([])
+        }
+        setIsLoading(false)
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [])
 
   const loadTableData = useCallback(
-    async (tableName: typeof selectedTable) => {
+    async (tableName: string) => {
       setIsLoading(true)
+      setError(null)
       try {
-        // シミュレーション: 実際にはVSCode APIを通じてデータを取得
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setData(sampleData[tableName])
-        vscodeApi.showInfo(`${tableName} テーブルを読み込みました`)
+        // VSCode APIを通じて実際のデータベースからデータを取得
+        vscodeApi.postMessage("executeQuery", { query: `SELECT * FROM ${tableName} LIMIT 100` })
       } catch (error) {
         console.error("Failed to load table data:", error)
-      } finally {
+        setError("データの読み込みに失敗しました")
         setIsLoading(false)
       }
     },
@@ -62,16 +71,8 @@ const DataGrid: React.FC = () => {
   }
 
   const getColumnHeaders = () => {
-    switch (selectedTable) {
-      case "users":
-        return ["ID", "名前", "メール", "作成日時"]
-      case "products":
-        return ["ID", "商品名", "価格", "カテゴリ"]
-      case "orders":
-        return ["ID", "注文番号", "顧客", "注文日"]
-      default:
-        return ["ID", "名前", "メール", "作成日時"]
-    }
+    // 実際のカラム名をそのまま表示
+    return columns
   }
 
   const renderCellValue = (value: unknown) => {
@@ -106,69 +107,77 @@ const DataGrid: React.FC = () => {
           </div>
         </div>
 
-        {/* Table Selector */}
-        <div className='flex space-x-2'>
-          {(["users", "products", "orders"] as const).map((table) => (
-            <button
-              type='button'
-              key={table}
-              onClick={() => setSelectedTable(table)}
-              className={`px-3 py-1 text-sm rounded border ${
-                selectedTable === table
-                  ? "bg-vscode-button-background text-vscode-button-foreground border-vscode-button-background"
-                  : "border-vscode-input-border text-vscode-input-foreground hover:bg-vscode-list-hoverBackground"
-              }`}
-            >
-              {table}
-            </button>
-          ))}
+        {/* Table Input */}
+        <div className='flex items-center space-x-2'>
+          <label className='text-sm text-vscode-editor-foreground'>テーブル名:</label>
+          <input
+            type='text'
+            value={selectedTable}
+            onChange={(e) => setSelectedTable(e.target.value)}
+            className='px-2 py-1 text-sm bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-focusBorder'
+            placeholder='テーブル名を入力'
+          />
+          <button
+            type='button'
+            onClick={() => loadTableData(selectedTable)}
+            disabled={isLoading || !selectedTable}
+            className='px-3 py-1 text-sm bg-vscode-button-background text-vscode-button-foreground rounded hover:bg-vscode-button-hoverBackground disabled:opacity-50'
+          >
+            読み込み
+          </button>
         </div>
       </div>
 
       {/* Data Grid */}
       <div className='flex-1 overflow-auto'>
-        {isLoading ? (
+        {error ? (
+          <div className='flex items-center justify-center h-32'>
+            <div className='text-red-500'>エラー: {error}</div>
+          </div>
+        ) : isLoading ? (
           <div className='flex items-center justify-center h-32'>
             <div className='text-vscode-descriptionForeground'>データを読み込み中...</div>
           </div>
         ) : (
           <div className='p-4'>
             <div className='bg-vscode-editorWidget-background border border-vscode-panel-border rounded overflow-hidden'>
-              <table className='w-full'>
-                <thead className='bg-vscode-editorWidget-background border-b border-vscode-panel-border'>
-                  <tr>
-                    {getColumnHeaders().map((header, index) => (
-                      <th
-                        key={index}
-                        className='text-left p-3 font-medium text-vscode-editor-foreground border-r border-vscode-panel-border last:border-r-0'
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((row, _rowIndex) => (
-                    <tr
-                      key={row.id}
-                      className='hover:bg-vscode-list-hoverBackground border-b border-vscode-panel-border last:border-b-0'
-                    >
-                      <td className='p-3 border-r border-vscode-panel-border last:border-r-0 text-vscode-editor-foreground'>
-                        {renderCellValue(row.id)}
-                      </td>
-                      <td className='p-3 border-r border-vscode-panel-border last:border-r-0 text-vscode-editor-foreground'>
-                        {renderCellValue(row.name)}
-                      </td>
-                      <td className='p-3 border-r border-vscode-panel-border last:border-r-0 text-vscode-editor-foreground'>
-                        {renderCellValue(row.email)}
-                      </td>
-                      <td className='p-3 border-r border-vscode-panel-border last:border-r-0 text-vscode-editor-foreground'>
-                        {renderCellValue(row.created_at)}
-                      </td>
+              {data.length === 0 ? (
+                <div className='p-8 text-center text-vscode-descriptionForeground'>
+                  データがありません
+                </div>
+              ) : (
+                <table className='w-full'>
+                  <thead className='bg-vscode-editorWidget-background border-b border-vscode-panel-border'>
+                    <tr>
+                      {getColumnHeaders().map((header, index) => (
+                        <th
+                          key={index}
+                          className='text-left p-3 font-medium text-vscode-editor-foreground border-r border-vscode-panel-border last:border-r-0'
+                        >
+                          {header}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.map((row, rowIndex) => (
+                      <tr
+                        key={rowIndex}
+                        className='hover:bg-vscode-list-hoverBackground border-b border-vscode-panel-border last:border-b-0'
+                      >
+                        {columns.map((column, colIndex) => (
+                          <td
+                            key={colIndex}
+                            className='p-3 border-r border-vscode-panel-border last:border-r-0 text-vscode-editor-foreground'
+                          >
+                            {renderCellValue(row[column])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             <div className='mt-4 flex items-center justify-between text-sm text-vscode-descriptionForeground'>

@@ -9,9 +9,16 @@ export const isHMREnabled = () => {
   return typeof (import.meta as { hot?: unknown }).hot !== "undefined"
 }
 
+// Vite dev server configuration
+const getViteDevPort = (): string => {
+  // 環境変数から読み込み、デフォルトは5173
+  return process.env.VITE_DEV_PORT || "5173"
+}
+
 // Vite dev server detection
 export const isViteDevServer = () => {
-  return typeof window !== "undefined" && window.location.port === "5173" && isDevelopment
+  const devPort = getViteDevPort()
+  return typeof window !== "undefined" && window.location.port === devPort && isDevelopment
 }
 
 // Environment info

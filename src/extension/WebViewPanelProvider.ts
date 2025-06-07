@@ -1,8 +1,20 @@
 import * as path from "node:path"
 import * as vscode from "vscode"
 import type { BaseMessage, WebViewMessage } from "../shared/types/messages"
+import type { DatabaseWebViewProvider } from "./WebViewProvider"
 
 let currentPanel: vscode.WebviewPanel | undefined
+let sidebarWebViewProvider: DatabaseWebViewProvider | undefined
+
+// Function to set the sidebar provider reference
+export function setSidebarWebViewProvider(provider: DatabaseWebViewProvider) {
+  sidebarWebViewProvider = provider
+}
+
+// Function to get the sidebar provider reference
+function getSidebarWebViewProvider(): DatabaseWebViewProvider | undefined {
+  return sidebarWebViewProvider
+}
 
 export function createOrShow(extensionUri: vscode.Uri, viewType: "datagrid" | "sql" | "dashboard") {
   const column = vscode.window.activeTextEditor
@@ -168,28 +180,49 @@ function getNonce() {
 }
 
 function handleMessage(message: WebViewMessage, panel: vscode.WebviewPanel) {
+  // Get the sidebar WebView provider instance for database operations
+  const webViewProvider = getSidebarWebViewProvider()
+
   switch (message.type) {
     case "getConnectionStatus":
-      panel.webview.postMessage({
-        type: "connectionStatus",
-        data: { connected: false, databases: [] },
-      })
+      if (webViewProvider) {
+        // Forward to sidebar provider which has DB connection logic
+        webViewProvider.postMessage({
+          type: "getConnectionStatus",
+          data: {},
+        })
+      } else {
+        panel.webview.postMessage({
+          type: "connectionStatus",
+          data: { connected: false, databases: [] },
+        })
+      }
       break
 
     case "openConnection":
-      vscode.window.showInformationMessage(`Opening connection: ${message.data.type}`)
-      panel.webview.postMessage({
-        type: "connectionResult",
-        data: { success: true, message: "Connection logic integration pending" },
-      })
+      if (webViewProvider) {
+        // Forward connection request to sidebar provider
+        webViewProvider.postMessage(message)
+      } else {
+        vscode.window.showInformationMessage(`Opening connection: ${message.data.type}`)
+        panel.webview.postMessage({
+          type: "connectionResult",
+          data: { success: true, message: "Connection logic integration pending" },
+        })
+      }
       break
 
     case "executeQuery":
-      vscode.window.showInformationMessage(`Executing query: ${message.data.query}`)
-      panel.webview.postMessage({
-        type: "queryResult",
-        data: { success: true, results: [], message: "Query execution pending" },
-      })
+      if (webViewProvider) {
+        // Forward query execution to sidebar provider and relay results back
+        forwardQueryToSidebar(message, panel, webViewProvider)
+      } else {
+        vscode.window.showInformationMessage(`Executing query: ${message.data.query}`)
+        panel.webview.postMessage({
+          type: "queryResult",
+          data: { success: true, results: [], message: "No database connection available" },
+        })
+      }
       break
 
     case "showInfo":
@@ -199,6 +232,54 @@ function handleMessage(message: WebViewMessage, panel: vscode.WebviewPanel) {
     case "showError":
       vscode.window.showErrorMessage(message.data.message)
       break
+  }
+}
+
+// Function to forward query execution to sidebar and relay results
+function forwardQueryToSidebar(
+  message: WebViewMessage,
+  panel: vscode.WebviewPanel,
+  webViewProvider: DatabaseWebViewProvider
+) {
+  try {
+    if ("_handleExecuteQuery" in webViewProvider) {
+      // Create a temporary override to capture the result
+      const originalView = (webViewProvider as any)._view
+
+      const mockView = {
+        webview: {
+          postMessage: (responseMessage: BaseMessage) => {
+            // Forward the result to the panel instead of sidebar
+            panel.webview.postMessage(responseMessage)
+          },
+        },
+      }
+
+      // Temporarily override the view
+      ;(webViewProvider as any)._view = mockView
+      
+      // Execute the query
+      ;(webViewProvider as any)._handleExecuteQuery(message.data)
+
+      // Restore original view
+      ;(webViewProvider as any)._view = originalView
+    } else {
+      // Fallback: send error message
+      panel.webview.postMessage({
+        type: "queryResult",
+        data: { success: false, results: [], message: "Database provider method not available" },
+      })
+    }
+  } catch (error) {
+    console.error("[WebViewPanelProvider] Error in forwardQueryToSidebar:", error)
+    panel.webview.postMessage({
+      type: "queryResult",
+      data: {
+        success: false,
+        results: [],
+        message: `Query execution failed: ${error instanceof Error ? error.message : String(error)}`,
+      },
+    })
   }
 }
 

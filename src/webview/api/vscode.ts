@@ -64,17 +64,24 @@ class VSCodeWebViewAPI {
   }
 
   private setupDevMode() {
-    // Mock VSCode API for development
+    // 開発モードでは実際のVSCode APIが必要
+    // モックAPIは提供せず、エラーを明確に報告
+    console.error("VSCode API is required. Please run this extension within VSCode.")
+
+    // 基本的なAPIのみ提供（エラー報告用）
     this.vscode = {
-      postMessage: (_message: Record<string, unknown>) => {
-        /* VSCode API mock */
+      postMessage: (message: Record<string, unknown>) => {
+        console.warn("VSCode API not available. Message not sent:", message)
       },
-      getState: () => ({}),
-      setState: (_state: Record<string, unknown>) => {
-        /* VSCode API mock */
+      getState: () => {
+        console.warn("VSCode API not available. Cannot get state.")
+        return {}
+      },
+      setState: (state: Record<string, unknown>) => {
+        console.warn("VSCode API not available. Cannot set state:", state)
       },
     }
-    this.isInitialized = true
+    this.isInitialized = false // 初期化を失敗とマーク
   }
 
   private handleMessage(event: MessageEvent) {
@@ -92,8 +99,10 @@ class VSCodeWebViewAPI {
     if (!this.isInitialized) {
       this.initialize()
     }
-    if (this.vscode) {
+    if (this.vscode && this.isInitialized) {
       this.vscode.postMessage({ type, data })
+    } else {
+      console.error(`Cannot send message "${type}": VSCode API not available`)
     }
   }
 
@@ -106,11 +115,19 @@ class VSCodeWebViewAPI {
   }
 
   public getState() {
-    return this.vscode?.getState() || {}
+    if (this.isInitialized) {
+      return this.vscode?.getState() || {}
+    }
+    console.error("Cannot get state: VSCode API not available")
+    return {}
   }
 
   public setState(state: Record<string, unknown>) {
-    this.vscode?.setState(state)
+    if (this.isInitialized) {
+      this.vscode?.setState(state)
+    } else {
+      console.error("Cannot set state: VSCode API not available")
+    }
   }
 
   public get isReady() {

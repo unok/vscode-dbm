@@ -1,12 +1,8 @@
-import type React from "react"
-import { useRef, useState } from "react"
+import React, { useRef, useState } from "react"
 import { useVSCodeAPI } from "../api/vscode"
 
 interface QueryResult {
-  id: number
-  name: string
-  email: string
-  created_at: string
+  [key: string]: unknown
 }
 
 const SQLEditor: React.FC = () => {
@@ -15,8 +11,33 @@ const SQLEditor: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false)
   const [executionTime, setExecutionTime] = useState<number | null>(null)
   const [error, setError] = useState<string>("")
+  const [rowCount, setRowCount] = useState<number>(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const vscodeApi = useVSCodeAPI()
+
+  // メッセージリスナーを設定
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data
+      if (message.type === "queryResult") {
+        setIsExecuting(false)
+        if (message.data.success) {
+          setResults(message.data.results || [])
+          setRowCount(message.data.rowCount || 0)
+          setExecutionTime(message.data.executionTime || 0)
+          setError("")
+        } else {
+          setError(message.data.message || "クエリ実行エラー")
+          setResults([])
+          setRowCount(0)
+        }
+      }
+    }
+    window.addEventListener("message", handleMessage)
+    return () => {
+      window.removeEventListener("message", handleMessage)
+    }
+  }, [])
 
   const sampleQueries = [
     "SELECT * FROM users LIMIT 10",
@@ -26,37 +47,15 @@ const SQLEditor: React.FC = () => {
     "UPDATE users SET email = 'updated@example.com' WHERE id = 1",
   ]
 
-  const handleExecuteQuery = async () => {
+  const handleExecuteQuery = () => {
     if (!query.trim()) {
       setError("クエリを入力してください")
       return
     }
-
     setIsExecuting(true)
     setError("")
-    const startTime = Date.now()
-
-    try {
-      // VSCode Extension APIを通じてクエリを実行
-      vscodeApi.postMessage("executeQuery", { query: query.trim() })
-
-      // 模擬実行結果（実際にはExtensionからメッセージで結果を受け取る）
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      const mockResults: QueryResult[] = [
-        { id: 1, name: "Alice", email: "alice@example.com", created_at: "2024-01-01 10:00:00" },
-        { id: 2, name: "Bob", email: "bob@example.com", created_at: "2024-01-01 11:00:00" },
-        { id: 3, name: "Charlie", email: "charlie@example.com", created_at: "2024-01-01 12:00:00" },
-      ]
-
-      setResults(mockResults)
-      setExecutionTime(Date.now() - startTime)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "クエリの実行に失敗しました")
-      setResults([])
-    } finally {
-      setIsExecuting(false)
-    }
+    setResults([])
+    vscodeApi.postMessage("executeQuery", { query: query.trim() })
   }
 
   const handleFormatSQL = () => {
@@ -146,9 +145,9 @@ const SQLEditor: React.FC = () => {
           </table>
         </div>
 
-        {executionTime && (
+        {executionTime !== null && (
           <div className='mt-2 text-sm text-vscode-descriptionForeground'>
-            実行時間: {executionTime}ms ({results.length}行)
+            実行時間: {executionTime}ms ({rowCount}行)
           </div>
         )}
       </div>

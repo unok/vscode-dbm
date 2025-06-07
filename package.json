@@ -80,6 +80,66 @@
       ]
     }
   },
+  "configuration": {
+    "title": "Database Manager",
+    "properties": {
+      "vscode-dbm.mysql.host": {
+        "type": "string",
+        "default": "localhost",
+        "description": "MySQL server hostname"
+      },
+      "vscode-dbm.mysql.port": {
+        "type": "number",
+        "default": 3306,
+        "description": "MySQL server port"
+      },
+      "vscode-dbm.mysql.database": {
+        "type": "string",
+        "default": "test_db",
+        "description": "MySQL database name"
+      },
+      "vscode-dbm.mysql.username": {
+        "type": "string",
+        "default": "root",
+        "description": "MySQL username"
+      },
+      "vscode-dbm.mysql.password": {
+        "type": "string",
+        "default": "",
+        "description": "MySQL password"
+      },
+      "vscode-dbm.postgresql.host": {
+        "type": "string",
+        "default": "localhost",
+        "description": "PostgreSQL server hostname"
+      },
+      "vscode-dbm.postgresql.port": {
+        "type": "number",
+        "default": 5432,
+        "description": "PostgreSQL server port"
+      },
+      "vscode-dbm.postgresql.database": {
+        "type": "string",
+        "default": "postgres",
+        "description": "PostgreSQL database name"
+      },
+      "vscode-dbm.postgresql.username": {
+        "type": "string",
+        "default": "postgres",
+        "description": "PostgreSQL username"
+      },
+      "vscode-dbm.postgresql.password": {
+        "type": "string",
+        "default": "",
+        "description": "PostgreSQL password"
+      },
+      "vscode-dbm.sqlite.database": {
+        "type": "string",
+        "default": ":memory:",
+        "description": "SQLite database path"
+      }
+    }
+  },
   "scripts": {
     "dev": "docker compose -f docker-compose.dev.yml up -d && npm run dev:vite",
     "dev:vite": "NODE_ENV=development npx vite --host 0.0.0.0",

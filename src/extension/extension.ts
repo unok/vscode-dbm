@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { createOrShow } from "./WebViewPanelProvider"
+import { createOrShow, setSidebarWebViewProvider } from "./WebViewPanelProvider"
 import { DatabaseWebViewProvider } from "./WebViewProvider"
 
 let webViewProvider: DatabaseWebViewProvider | undefined
@@ -11,6 +11,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(DatabaseWebViewProvider.viewType, webViewProvider)
     )
+
+    // Register the sidebar provider for panel queries
+    setSidebarWebViewProvider(webViewProvider)
 
     // Commands
     const openConnectionCommand = vscode.commands.registerCommand(

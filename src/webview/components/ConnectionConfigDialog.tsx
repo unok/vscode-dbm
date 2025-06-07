@@ -27,17 +27,52 @@ export const ConnectionConfigDialog: React.FC<ConnectionConfigDialogProps> = ({
     message: string
   } | null>(null)
 
-  const [config, setConfig] = useState<Partial<DatabaseConfig>>({
-    id: "",
-    name: "",
-    type: "mysql",
-    host: "localhost",
-    port: 3306,
-    database: "",
-    username: "",
-    password: "",
-    ssl: false,
-  })
+  // 環境変数やVSCode設定からデフォルト値を取得
+  const getDefaultConfig = useCallback(() => {
+    // WebView内では直接環境変数にアクセスできないため、VSCode APIから取得
+    return {
+      id: "",
+      name: "",
+      type: "mysql" as const,
+      host: "localhost", // デフォルト値、実際の値はVSCode設定から取得
+      port: 3306,
+      database: "",
+      username: "",
+      password: "",
+      ssl: false,
+    }
+  }, [])
+
+  const [config, setConfig] = useState<Partial<DatabaseConfig>>(getDefaultConfig())
+
+  // VSCode設定からデフォルト値を取得
+  useEffect(() => {
+    if (isOpen && !initialConfig) {
+      // VSCode設定を要求
+      vscodeApi.postMessage("getDefaultConnectionConfig", {})
+    }
+  }, [isOpen, initialConfig, vscodeApi])
+
+  // VSCodeからの設定レスポンスを処理
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data
+      if (message.type === "defaultConnectionConfig") {
+        const defaultConfig = message.data
+        setConfig((prev) => ({
+          ...prev,
+          host: defaultConfig.host || prev.host,
+          port: defaultConfig.port || prev.port,
+          database: defaultConfig.database || prev.database,
+          username: defaultConfig.username || prev.username,
+          // パスワードはセキュリティ上デフォルトで空
+        }))
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [])
 
   // Initialize config when dialog opens or initialConfig changes
   useEffect(() => {
