@@ -403,8 +403,9 @@ Return as JSON with:
       }
 
       throw new Error("Invalid response format");
-    } catch (_error) {
+    } catch (parseError) {
       // Fallback to local generation
+      console.warn("Failed to parse defaults response:", parseError);
       return this.generateFallbackDefaults(options);
     }
   }
@@ -432,7 +433,8 @@ Return as JSON with:
       }
 
       throw new Error("Invalid response format");
-    } catch (_error) {
+    } catch (parseError) {
+      console.warn("Failed to parse SQL response:", parseError);
       throw new Error("Failed to parse SQL response");
     }
   }
@@ -448,7 +450,8 @@ Return as JSON with:
       }
 
       throw new Error("Invalid response format");
-    } catch (_error) {
+    } catch (parseError) {
+      console.warn("Failed to parse pattern analysis response:", parseError);
       return {
         patterns: [],
         confidence: 0,
@@ -468,7 +471,8 @@ Return as JSON with:
       }
 
       throw new Error("Invalid response format");
-    } catch (_error) {
+    } catch (parseError) {
+      console.warn("Failed to parse quality response:", parseError);
       return {
         issues: [],
         improvements: [],
@@ -538,26 +542,32 @@ export class GitHubCopilotService implements AIServiceInterface {
   }
 
   async generateSQL(
-    _description: string,
-    _schema: DatabaseSchema,
+    description: string,
+    schema: DatabaseSchema,
   ): Promise<string> {
     if (!this.config.enabled || !(await this.isAvailable())) {
       throw new Error("GitHub Copilot service not available");
     }
+
+    // Log the request for debugging
+    console.info("GitHub Copilot SQL generation requested:", {
+      description,
+      tableCount: schema.tables.length,
+    });
 
     // GitHub Copilot SQL generation would go here
     throw new Error("GitHub Copilot SQL generation not yet implemented");
   }
 
   async analyzeDataPatterns(
-    _data: Record<string, CellValue>[],
+    /* data: Record<string, CellValue>[] - not implemented */
   ): Promise<PatternAnalysis> {
     throw new Error("GitHub Copilot pattern analysis not supported");
   }
 
   async suggestImprovements(
-    _data: Record<string, CellValue>[],
-    _schema: DatabaseSchema,
+    /* data: Record<string, CellValue>[] - not implemented */
+    /* schema: DatabaseSchema - not implemented */
   ): Promise<QualityReport> {
     throw new Error("GitHub Copilot quality analysis not supported");
   }
@@ -670,7 +680,8 @@ export class AIServiceManager {
   ): Promise<PatternAnalysis> {
     try {
       return await this.cursorAI.analyzeDataPatterns(data);
-    } catch (_error) {
+    } catch (analysisError) {
+      console.warn("Pattern analysis failed:", analysisError);
       return {
         patterns: [],
         confidence: 0,
@@ -685,7 +696,8 @@ export class AIServiceManager {
   ): Promise<QualityReport> {
     try {
       return await this.cursorAI.suggestImprovements(data, schema);
-    } catch (_error) {
+    } catch (qualityError) {
+      console.warn("Quality analysis failed:", qualityError);
       return {
         issues: [],
         improvements: [],

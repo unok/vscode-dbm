@@ -23,7 +23,7 @@ export const AdvancedCellEditor: React.FC<AdvancedCellEditorProps> = ({
   onChange,
 }) => {
   const [value, setValue] = useState<string>(String(cell.editedValue || ""));
-  const [validation, _setValidation] = useState<ValidationResult | null>(null);
+  const [validation] = useState<ValidationResult | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

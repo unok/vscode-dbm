@@ -127,7 +127,7 @@ export class CursorAIIntegration {
 
     try {
       const prompt = this.buildPatternAnalysisPrompt(rows, columns);
-      const _response = await this.callCursorAPI(prompt, "analyze-patterns");
+      await this.callCursorAPI(prompt, "analyze-patterns");
 
       const patterns: Record<string, CursorAIPattern> = {};
 
@@ -135,7 +135,7 @@ export class CursorAIIntegration {
         const columnData = rows
           .map((row) => row[column.id])
           .filter((val) => val != null);
-        patterns[column.id] = this.analyzeColumnPattern(columnData, column);
+        patterns[column.id] = this.analyzeColumnPattern(columnData);
       }
 
       if (this.config.cacheEnabled) {
@@ -694,10 +694,7 @@ Common transformations: extract initials, format phone numbers, standardize date
     return patterns;
   }
 
-  private analyzeColumnPattern(
-    data: CellValue[],
-    _column: ColumnDefinition,
-  ): CursorAIPattern {
+  private analyzeColumnPattern(data: CellValue[]): CursorAIPattern {
     if (data.length === 0) {
       return { pattern: "", confidence: 0, examples: [] };
     }

@@ -20,10 +20,10 @@ function getNonce() {
 export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dbManager.webview";
 
-  private _view?: vscode.WebviewView;
+  private view?: vscode.WebviewView;
   private databaseService: DatabaseService;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {
+  constructor(private readonly extensionUri: vscode.Uri) {
     this.databaseService = DatabaseService.getInstance();
   }
 
@@ -32,19 +32,19 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
-    this._view = webviewView;
+    this.view = webviewView;
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this._extensionUri],
+      localResourceRoots: [this.extensionUri],
     };
 
     webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
     // Register message listener for database service
     this.databaseService.addMessageListener("sidebar", (message) => {
-      if (this._view) {
-        this._view.webview.postMessage(message);
+      if (this.view) {
+        this.view.webview.postMessage(message);
       }
     });
 
@@ -858,7 +858,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private getProdHtml(webview: vscode.Webview) {
     // Find the actual JS file dynamically
     const webviewPath = vscode.Uri.joinPath(
-      this._extensionUri,
+      this.extensionUri,
       "dist",
       "webview",
     );
@@ -950,7 +950,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
   private getFallbackHtml(webview: vscode.Webview) {
     const webviewPath = vscode.Uri.joinPath(
-      this._extensionUri,
+      this.extensionUri,
       "dist",
       "webview",
     );
@@ -1067,20 +1067,20 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async sendConnectionStatus() {
-    if (!this._view) return;
+    if (!this.view) return;
 
     const status = this.databaseService.getConnectionStatus();
-    this._view.webview.postMessage({
+    this.view.webview.postMessage({
       type: "connectionStatus",
       data: status,
     });
   }
 
   private sendTheme() {
-    if (!this._view) return;
+    if (!this.view) return;
 
     const theme = vscode.window.activeColorTheme;
-    this._view.webview.postMessage({
+    this.view.webview.postMessage({
       type: "themeChanged",
       data: {
         kind: theme.kind === vscode.ColorThemeKind.Light ? "light" : "dark",
@@ -1091,8 +1091,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private async handleOpenConnection(data: OpenConnectionMessage["data"]) {
     const result = await this.databaseService.connect(data);
 
-    if (this._view) {
-      this._view.webview.postMessage({
+    if (this.view) {
+      this.view.webview.postMessage({
         type: "connectionResult",
         data: result,
       });
@@ -1107,8 +1107,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         `Connection "${data.name}" saved successfully`,
       );
 
-      if (this._view) {
-        this._view.webview.postMessage({
+      if (this.view) {
+        this.view.webview.postMessage({
           type: "connectionSaved",
           data: { success: true, connection: data },
         });
@@ -1120,8 +1120,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
       vscode.window.showErrorMessage(
         `Failed to save connection: ${errorMessage}`,
       );
-      if (this._view) {
-        this._view.webview.postMessage({
+      if (this.view) {
+        this.view.webview.postMessage({
           type: "connectionSaved",
           data: { success: false, error: errorMessage },
         });
@@ -1142,8 +1142,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         ssl: typeof data.ssl === "boolean" ? data.ssl : false,
       };
       const result = await this.databaseService.connect(connectionData);
-      if (this._view) {
-        this._view.webview.postMessage({
+      if (this.view) {
+        this.view.webview.postMessage({
           type: "connectionTestResult",
           data: result,
         });
@@ -1151,8 +1151,8 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      if (this._view) {
-        this._view.webview.postMessage({
+      if (this.view) {
+        this.view.webview.postMessage({
           type: "connectionTestResult",
           data: { success: false, message: errorMessage },
         });
@@ -1161,20 +1161,20 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private sendSavedConnections() {
-    if (!this._view) return;
+    if (!this.view) return;
 
     const connections = this.databaseService.getSavedConnections();
-    this._view.webview.postMessage({
+    this.view.webview.postMessage({
       type: "savedConnections",
       data: { connections },
     });
   }
 
   private sendActiveConnections() {
-    if (!this._view) return;
+    if (!this.view) return;
 
     const connections = this.databaseService.getActiveConnections();
-    this._view.webview.postMessage({
+    this.view.webview.postMessage({
       type: "activeConnections",
       data: { connections },
     });
@@ -1196,14 +1196,14 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
   // Public methods for external communication
   public postMessage(message: BaseMessage) {
-    if (this._view) {
-      this._view.webview.postMessage(message);
+    if (this.view) {
+      this.view.webview.postMessage(message);
     }
   }
 
   public reveal() {
-    if (this._view) {
-      this._view.show?.(true);
+    if (this.view) {
+      this.view.show?.(true);
     }
   }
 

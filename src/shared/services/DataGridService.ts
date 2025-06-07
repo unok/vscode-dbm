@@ -551,7 +551,7 @@ export class DataGridService {
    * Commit changes to database
    */
   async commitChanges(): Promise<void> {
-    const _statements = this.generateSQLStatements();
+    this.generateSQLStatements();
 
     // Clear changes after successful commit
     this.clearChanges();

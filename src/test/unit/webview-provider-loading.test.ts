@@ -62,10 +62,21 @@ describe("WebViewProvider Loading Issues", () => {
   });
 
   describe("本番環境でのHTML生成問題", () => {
+    let originalEnv: string | undefined;
+
     beforeEach(() => {
       // 本番環境をシミュレート
-      const _originalEnv = process.env.NODE_ENV;
+      originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
+    });
+
+    afterEach(() => {
+      // 環境変数を復元
+      if (originalEnv !== undefined) {
+        process.env.NODE_ENV = originalEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
     });
 
     it("ビルドファイルが存在しない場合、フォールバックHTMLが生成される", () => {
@@ -200,8 +211,8 @@ describe("WebViewProvider Loading Issues", () => {
   });
 
   describe("公開メソッド", () => {
-    it("postMessage が _view が存在しない場合でもエラーにならない", () => {
-      // Given: _view が未初期化
+    it("postMessage が view が存在しない場合でもエラーにならない", () => {
+      // Given: view が未初期化
 
       // When: postMessage を呼び出し
       expect(() => {
@@ -209,8 +220,8 @@ describe("WebViewProvider Loading Issues", () => {
       }).not.toThrow();
     });
 
-    it("reveal が _view が存在しない場合でもエラーにならない", () => {
-      // Given: _view が未初期化
+    it("reveal が view が存在しない場合でもエラーにならない", () => {
+      // Given: view が未初期化
 
       // When: reveal を呼び出し
       expect(() => {

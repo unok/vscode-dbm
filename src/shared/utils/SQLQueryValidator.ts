@@ -140,7 +140,6 @@ export class SQLQueryValidator {
    */
   validateSchema(query: string): ValidationError[] {
     const errors: ValidationError[] = [];
-    const _upperQuery = query.toUpperCase();
 
     // Find table references
     const tableMatches = query.match(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi);

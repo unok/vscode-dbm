@@ -212,8 +212,12 @@ export class DatabaseService {
           ) {
             return String(configValue);
           }
-        } catch (_error) {
+        } catch (configError) {
           // VSCode設定アクセスエラーは無視
+          console.warn(
+            `Failed to access VSCode config for ${configKey}:`,
+            configError,
+          );
         }
         return undefined;
       };
@@ -238,8 +242,12 @@ export class DatabaseService {
           ) {
             return Number(configValue);
           }
-        } catch (_error) {
+        } catch (configError) {
           // VSCode設定アクセスエラーは無視
+          console.warn(
+            `Failed to access VSCode config for ${configKey}:`,
+            configError,
+          );
         }
         return undefined;
       };

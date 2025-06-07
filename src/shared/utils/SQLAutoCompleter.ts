@@ -71,28 +71,28 @@ export class SQLAutoCompleter {
 
     // Get context-specific completions
     if (context.inSelect) {
-      completions.push(...this.getSelectCompletions(context, currentWord));
+      completions.push(...this.getSelectCompletions(context));
     } else if (context.inFrom) {
-      completions.push(...this.getFromCompletions(context, currentWord));
+      completions.push(...this.getFromCompletions());
     } else if (context.inJoin) {
-      completions.push(...this.getJoinCompletions(context, currentWord));
+      completions.push(...this.getJoinCompletions(context));
     } else if (context.inWhere || context.inHaving) {
-      completions.push(...this.getWhereCompletions(context, currentWord));
+      completions.push(...this.getWhereCompletions(context));
     } else if (
       precedingText.trim() === "" ||
       this.isStartOfStatement(precedingText)
     ) {
       completions.push(...this.getStatementStartCompletions());
     } else {
-      completions.push(...this.getGeneralCompletions(context, currentWord));
+      completions.push(...this.getGeneralCompletions());
     }
 
     // Add keywords, functions, and snippets based on context
-    completions.push(...this.getKeywordCompletions(currentWord, context));
-    completions.push(...this.getFunctionCompletions(currentWord, context));
+    completions.push(...this.getKeywordCompletions(currentWord));
+    completions.push(...this.getFunctionCompletions(currentWord));
 
     if (currentWord.length === 0) {
-      completions.push(...this.getSnippetCompletions(context));
+      completions.push(...this.getSnippetCompletions());
     }
 
     // Filter and sort completions
@@ -102,10 +102,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for SELECT clause
    */
-  private getSelectCompletions(
-    context: QueryContext,
-    _currentWord: string,
-  ): CompletionItem[] {
+  private getSelectCompletions(context: QueryContext): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     // Add columns from available tables
@@ -168,10 +165,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for FROM clause
    */
-  private getFromCompletions(
-    _context: QueryContext,
-    _currentWord: string,
-  ): CompletionItem[] {
+  private getFromCompletions(): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     // Add all tables
@@ -202,10 +196,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for JOIN clause
    */
-  private getJoinCompletions(
-    context: QueryContext,
-    _currentWord: string,
-  ): CompletionItem[] {
+  private getJoinCompletions(context: QueryContext): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     // Add tables that are not already in the query
@@ -244,10 +235,7 @@ export class SQLAutoCompleter {
   /**
    * Get completions for WHERE/HAVING clause
    */
-  private getWhereCompletions(
-    context: QueryContext,
-    _currentWord: string,
-  ): CompletionItem[] {
+  private getWhereCompletions(context: QueryContext): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     // Add columns from available tables
@@ -338,10 +326,7 @@ export class SQLAutoCompleter {
   /**
    * Get general completions
    */
-  private getGeneralCompletions(
-    _context: QueryContext,
-    _currentWord: string,
-  ): CompletionItem[] {
+  private getGeneralCompletions(): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     // Add clause keywords based on context
@@ -370,7 +355,6 @@ export class SQLAutoCompleter {
    */
   private getKeywordCompletions(
     currentWord: string,
-    _context: QueryContext,
   ): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
@@ -393,7 +377,6 @@ export class SQLAutoCompleter {
    */
   private getFunctionCompletions(
     currentWord: string,
-    _context: QueryContext,
   ): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
@@ -416,10 +399,11 @@ export class SQLAutoCompleter {
   /**
    * Get snippet completions
    */
-  private getSnippetCompletions(_context: QueryContext): CompletionItem[] {
-    return this.snippets.filter((_snippet) => {
+  private getSnippetCompletions(): CompletionItem[] {
+    return this.snippets.filter((snippet) => {
       // Return snippets based on context
-      return true; // Simplified for now
+      // Currently returns all snippets
+      return Boolean(snippet);
     });
   }
 

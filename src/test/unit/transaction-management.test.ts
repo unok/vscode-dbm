@@ -474,7 +474,7 @@ describe("TransactionService", () => {
     test("should get transaction statistics", async () => {
       const tx1 = await transactionService.beginTransaction(mockContext);
       const tx2 = await transactionService.beginTransaction(mockContext);
-      const _tx3 = await transactionService.beginTransaction(mockContext);
+      await transactionService.beginTransaction(mockContext);
 
       await transactionService.commitTransaction(
         tx1.transactionId,

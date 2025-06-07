@@ -136,8 +136,8 @@ describe("DatabaseConnection", () => {
       const connection = new DatabaseConnection(mockConfig);
       connection.createPool({ min: 1, max: 2 });
 
-      const _conn1 = await connection.getPoolConnection();
-      const _conn2 = await connection.getPoolConnection();
+      await connection.getPoolConnection();
+      await connection.getPoolConnection();
 
       expect(connection.getActiveConnectionsCount()).toBe(2);
 

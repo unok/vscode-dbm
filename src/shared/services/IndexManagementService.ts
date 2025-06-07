@@ -229,13 +229,25 @@ export class IndexManagementService {
    */
   analyzeIndexPerformance(
     index: IndexDefinition,
-    _availableColumns: string[] = [],
+    availableColumns: string[] = [],
   ): IndexPerformanceAnalysis {
     const suggestions: IndexOptimizationSuggestion[] = [];
     let estimatedSelectivity = 0.1; // Default assumption
 
     // Analyze column selectivity
     if (index.columns && index.columns.length > 0) {
+      // Check if all index columns are available
+      const missingColumns = index.columns.filter(
+        (col) => !availableColumns.includes(col),
+      );
+      if (missingColumns.length > 0) {
+        suggestions.push({
+          type: "warning",
+          priority: "high",
+          message: `Columns [${missingColumns.join(", ")}] not found in available columns. Index references non-existent columns`,
+        });
+      }
+
       // Single column index
       if (index.columns.length === 1) {
         const column = index.columns[0];

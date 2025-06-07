@@ -45,7 +45,7 @@ export class DataImportService {
   ): Promise<ImportPreview> {
     try {
       const rawData = await this.parseFile(file, options);
-      const preview = this.generatePreview(rawData, targetTable, options);
+      const preview = this.generatePreview(rawData, targetTable);
 
       return preview;
     } catch (error) {
@@ -112,9 +112,9 @@ export class DataImportService {
       case "csv":
         return this.parseCSV(text, options);
       case "json":
-        return this.parseJSON(text, options);
+        return this.parseJSON(text);
       case "sql":
-        return this.parseSQL(text, options);
+        return this.parseSQL(text);
       default:
         throw new Error(`Unsupported import format: ${options.format}`);
     }
@@ -217,7 +217,6 @@ export class DataImportService {
    */
   private parseJSON(
     text: string,
-    _options: ImportOptions,
   ): Record<string, CellValue>[] {
     try {
       const data = JSON.parse(text);
@@ -249,7 +248,6 @@ export class DataImportService {
    */
   private parseSQL(
     text: string,
-    _options: ImportOptions,
   ): Record<string, CellValue>[] {
     const insertRegex =
       /INSERT\s+INTO\s+(?:`?)(\w+)(?:`?)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/gi;
@@ -370,7 +368,6 @@ export class DataImportService {
   private generatePreview(
     rawData: Record<string, CellValue>[],
     targetTable: TableData | undefined,
-    _options: ImportOptions,
   ): ImportPreview {
     const previewRows = rawData.slice(0, this.maxPreviewRows);
     const allColumns = new Set<string>();
@@ -459,7 +456,7 @@ export class DataImportService {
       // Process each column in target table
       for (const column of targetTable.columns) {
         const value = row[column.name];
-        const validation = this.validateCellValue(value, column, i + 1);
+        const validation = this.validateCellValue(value, column);
 
         if (!validation.isValid) {
           hasErrors = true;
@@ -514,7 +511,6 @@ export class DataImportService {
   private validateCellValue(
     value: CellValue,
     column: ColumnDefinition,
-    _row: number,
   ): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];

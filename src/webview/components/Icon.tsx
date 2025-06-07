@@ -5,38 +5,7 @@ export interface IconProps {
   className?: string;
   size?: "sm" | "md" | "lg";
   title?: string;
-  fallback?: string;
 }
-
-/**
- * Unicode fallback icons for better compatibility
- */
-const FALLBACK_ICONS: Record<string, string> = {
-  plug: "🔌",
-  refresh: "🔄",
-  "file-code": "📄",
-  play: "▶️",
-  "symbol-keyword": "🔤",
-  save: "💾",
-  "cloud-upload": "☁️",
-  table: "📊",
-  database: "🗄️",
-  history: "📋",
-  "chevron-right": "▶",
-  "chevron-down": "▼",
-  folder: "📁",
-  "folder-opened": "📂",
-  add: "➕",
-  edit: "✏️",
-  trash: "🗑️",
-  close: "❌",
-  search: "🔍",
-  file: "📄",
-  "symbol-class": "🔧",
-  "symbol-interface": "🔗",
-  "symbol-function": "⚙️",
-  "symbol-field": "🏷️",
-};
 
 /**
  * VSCode Codicon アイコンコンポーネント
@@ -48,7 +17,6 @@ export const Icon: React.FC<IconProps> = ({
   className = "",
   size = "md",
   title,
-  fallback,
 }) => {
   const sizeClasses = {
     sm: "text-sm", // 14px
@@ -58,7 +26,6 @@ export const Icon: React.FC<IconProps> = ({
 
   // nameがすでにcodicon-で始まっている場合はそのまま使用、そうでなければ追加
   const iconClass = name.startsWith("codicon-") ? name : `codicon-${name}`;
-  const _fallbackIcon = fallback || FALLBACK_ICONS[name] || "❓";
 
   return (
     <span

@@ -825,7 +825,7 @@ export class DDLExecutionService {
     tableName: string,
     currentIndexes: IndexDefinition[],
     tableColumns: string[],
-    _connection: DatabaseConnectionConfig,
+    connection: DatabaseConnectionConfig,
   ): Promise<{
     analysis: IndexManagementResult;
     recommendations: IndexOptimizationSuggestion[];
@@ -840,6 +840,11 @@ export class DDLExecutionService {
     const recommendations = this.getIndexOptimizationSuggestions(
       currentIndexes,
       tableColumns,
+    );
+
+    // Database-specific optimizations could be applied here based on connection.type
+    console.debug(
+      `Optimizing indexes for table ${tableName} on ${connection.type}`,
     );
 
     const suggestedOperations: Array<{

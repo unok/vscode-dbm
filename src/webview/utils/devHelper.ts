@@ -110,6 +110,7 @@ export const DevelopmentOverlay: React.FC = () => {
 export const isReactRefreshEnabled = () => {
   return (
     typeof window !== "undefined" &&
+    // biome-ignore lint/style/useNamingConvention: React DevTools standard name
     (window as { __REACT_DEVTOOLS_GLOBAL_HOOK__?: unknown })
       .__REACT_DEVTOOLS_GLOBAL_HOOK__ &&
     isHMREnabled()
@@ -124,9 +125,6 @@ export const logPerformanceMetrics = () => {
     "performance" in window
   ) {
     setTimeout(() => {
-      const _navigation = performance.getEntriesByType(
-        "navigation",
-      )[0] as PerformanceNavigationTiming;
       console.group("⚡ Performance Metrics");
       console.groupEnd();
     }, 1000);

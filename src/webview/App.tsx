@@ -242,7 +242,7 @@ const DashboardView: React.FC<{
   const handleTestConnection = async () => {
     try {
       vscodeApi.showInfo("Testing VSCode API communication...");
-      const _status = await vscodeApi.getConnectionStatus();
+      await vscodeApi.getConnectionStatus();
     } catch (error) {
       console.error("Connection test failed:", error);
     }

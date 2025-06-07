@@ -86,7 +86,7 @@ export default defineConfig({
   },
   define: {
     // グローバル変数定義（必要に応じて）
-    __DEV__: JSON.stringify(process.env.NODE_ENV === "development"),
+    DEV: JSON.stringify(process.env.NODE_ENV === "development"),
   },
   optimizeDeps: {
     include: ["react", "react-dom", "@tanstack/react-table", "uuid"],

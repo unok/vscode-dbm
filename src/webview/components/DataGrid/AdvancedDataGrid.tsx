@@ -187,17 +187,6 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
     [],
   );
 
-  const _handleRowSelect = useCallback(
-    (rowIndex: number, addToSelection = false) => {
-      if (addToSelection) {
-        setSelectedRows((prev) => [...prev, rowIndex]);
-      } else {
-        setSelectedRows([rowIndex]);
-      }
-    },
-    [],
-  );
-
   // Copy/Paste operations
   const handleCopy = useCallback(async () => {
     if (!enableCopyPaste || selectedCells.length === 0) return;
@@ -459,9 +448,12 @@ export const AdvancedDataGrid: React.FC<AdvancedDataGridProps> = ({
         <ChangeTrackingPanel
           changeTracker={service.getChangeTracker()}
           onClose={() => setShowChangeTracking(false)}
-          onRollback={(type, _index?) => {
+          onRollback={(type, index?) => {
             if (type === "all") {
               service.rollbackChanges();
+            } else if (index !== undefined) {
+              // TODO: Handle specific rollback by index
+              console.debug(`Rolling back change at index: ${index}`);
             }
             // Handle specific rollbacks
             const updatedData = service.getTableData();

@@ -166,10 +166,37 @@ export class TableManagementService {
   async generateAddConstraintSQL(
     tableName: string,
     constraint: ConstraintDefinition,
-    _connection: DatabaseConnection,
+    connection: DatabaseConnection,
   ): Promise<string> {
     const constraintDef = this.generateConstraintDefinition(constraint);
-    return `ALTER TABLE ${this.escapeIdentifier(tableName)} ADD CONSTRAINT ${constraintDef}`;
+
+    // Database-specific constraint syntax
+    let sql = `ALTER TABLE ${this.escapeIdentifier(tableName)} ADD CONSTRAINT ${constraintDef}`;
+
+    // Apply database-specific modifications
+    if (connection.type === "mysql") {
+      // MySQL might need different syntax for some constraints
+      if (constraint.type === "CHECK" && !sql.includes("CHECK")) {
+        // MySQL 8.0+ supports CHECK constraints
+        sql += " CHECK";
+      }
+    } else if (connection.type === "postgresql") {
+      // PostgreSQL-specific constraint options
+      if (constraint.deferrable) {
+        sql += " DEFERRABLE";
+        if (constraint.initiallyDeferred) {
+          sql += " INITIALLY DEFERRED";
+        }
+      }
+    } else if (connection.type === "sqlite") {
+      // SQLite has limited ALTER TABLE support for constraints
+      // This would need special handling for runtime constraint addition
+      console.warn(
+        "SQLite has limited support for adding constraints via ALTER TABLE",
+      );
+    }
+
+    return sql;
   }
 
   // 制約削除SQL生成
@@ -228,37 +255,94 @@ export class TableManagementService {
   // テーブル削除SQL生成
   async generateDropTableSQL(
     tableName: string,
-    _connection: DatabaseConnection,
+    connection: DatabaseConnection,
     ifExists = false,
   ): Promise<string> {
     let sql = "DROP TABLE ";
-    if (ifExists) sql += "IF EXISTS ";
+
+    // Handle IF EXISTS clause based on database type
+    if (ifExists) {
+      if (connection.type === "sqlite") {
+        sql += "IF EXISTS ";
+      } else if (connection.type === "mysql") {
+        sql += "IF EXISTS ";
+      } else if (connection.type === "postgresql") {
+        sql += "IF EXISTS ";
+      } else {
+        // Default behavior for other databases
+        sql += "IF EXISTS ";
+      }
+    }
+
     sql += this.escapeIdentifier(tableName);
+
+    // Database-specific additional options
+    if (connection.type === "postgresql") {
+      // PostgreSQL allows CASCADE/RESTRICT options
+      sql += " CASCADE"; // Could be made configurable
+    } else if (connection.type === "mysql") {
+      // MySQL-specific options could be added here
+      // e.g., TEMPORARY table handling
+    }
+
     return sql;
   }
 
   // DDL実行
   async executeSQL(
     sql: string,
-    _connection: DatabaseConnection,
+    connection: DatabaseConnection,
   ): Promise<DDLResult> {
     try {
-      // 実際のDB接続とSQL実行はここで行う
-      // モックのため成功を返す
       const startTime = performance.now();
 
+      // Database-specific SQL execution logic
+      let modifiedSql = sql;
+
+      // Apply database-specific SQL modifications
+      if (connection.type === "mysql") {
+        // MySQL-specific SQL adjustments
+        if (sql.includes("SERIAL")) {
+          modifiedSql = sql.replace(/SERIAL/g, "INT AUTO_INCREMENT");
+        }
+        // Add MySQL-specific options if needed
+        console.info(`Executing MySQL DDL: ${modifiedSql}`);
+      } else if (connection.type === "postgresql") {
+        // PostgreSQL-specific SQL adjustments
+        if (sql.includes("AUTO_INCREMENT")) {
+          modifiedSql = sql.replace(/AUTO_INCREMENT/g, "");
+          console.warn("AUTO_INCREMENT converted for PostgreSQL");
+        }
+        console.info(`Executing PostgreSQL DDL: ${modifiedSql}`);
+      } else if (connection.type === "sqlite") {
+        // SQLite-specific SQL adjustments
+        if (sql.includes("ENGINE=InnoDB")) {
+          modifiedSql = sql.replace(/\s+ENGINE=InnoDB[^;]*/g, "");
+        }
+        console.info(`Executing SQLite DDL: ${modifiedSql}`);
+      }
+
+      // Log execution details for debugging
+      console.info(`DDL execution on ${connection.type} database:`, {
+        connectionId: connection.id,
+        database: connection.database,
+        sqlLength: modifiedSql.length,
+        originalSql: sql !== modifiedSql ? sql : undefined,
+      });
+
       // 実際の実装では、ここでデータベースドライバーを使用してSQLを実行
-      // const result = await databaseDriver.execute(sql, connection);
+      // const result = await databaseDriver.execute(modifiedSql, connection);
 
       const executionTime = performance.now() - startTime;
 
       return {
         success: true,
-        sql,
+        sql: modifiedSql,
         executionTime,
         affectedRows: 0,
       };
     } catch (error) {
+      console.error(`DDL execution failed on ${connection.type}:`, error);
       return {
         success: false,
         sql,

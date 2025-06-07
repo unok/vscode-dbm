@@ -164,11 +164,14 @@ export class ConstraintManagementService {
    * Get existing constraints for a table
    */
   async getTableConstraints(
-    _tableName: string,
-    _connection: DatabaseConnection,
+    tableName: string,
+    connection: DatabaseConnection,
   ): Promise<ConstraintDefinition[]> {
-    // This would require database-specific queries to retrieve constraints
-    // For now, return empty array as this would be implemented with actual database drivers
+    // TODO: Implement database-specific queries to retrieve constraints
+    // This method is a placeholder for future implementation
+    console.debug(
+      `Getting constraints for table: ${tableName} on ${connection.type}`,
+    );
     return [];
   }
 

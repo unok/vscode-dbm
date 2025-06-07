@@ -41,7 +41,6 @@ export class DataExportService {
         case "json":
           exportedData = await this.exportToJSON(
             tableData,
-            options,
             onProgress,
           );
           fileName += ".json";
@@ -139,7 +138,7 @@ export class DataExportService {
    */
   private async exportToJSON(
     tableData: TableData,
-    _options: ExportOptions,
+    /* options: ExportOptions - reserved for future JSON export options */
     onProgress?: (progress: ExportProgress) => void,
   ): Promise<string> {
     const result: Record<string, CellValue>[] = [];

@@ -5,10 +5,10 @@ import { DatabaseService } from "./services/DatabaseService";
 export class DatabaseTreeProvider
   implements vscode.TreeDataProvider<DatabaseTreeItem>
 {
-  private _onDidChangeTreeData = new vscode.EventEmitter<
+  private onDidChangeTreeDataEmitter = new vscode.EventEmitter<
     DatabaseTreeItem | undefined | null
   >();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
   private databaseService: DatabaseService;
   private schemaCache: Map<string, SchemaInfo> = new Map();
@@ -28,7 +28,7 @@ export class DatabaseTreeProvider
   }
 
   refresh(): void {
-    this._onDidChangeTreeData.fire(undefined);
+    this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 
   getTreeItem(element: DatabaseTreeItem): vscode.TreeItem {
@@ -166,7 +166,7 @@ export class DatabaseTreeProvider
     } else {
       this.schemaCache.clear();
     }
-    this._onDidChangeTreeData.fire(undefined);
+    this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 }
 

@@ -58,12 +58,12 @@ export class AdvancedSQLAutoCompleter {
 
     if (sqlContext.expectingFunction) {
       if (this.config.includeFunctions) {
-        suggestions.push(...this.getFunctionSuggestions(context));
+        suggestions.push(...this.getFunctionSuggestions());
       }
     }
 
     if (sqlContext.expectingJoin) {
-      suggestions.push(...this.getJoinSuggestions(sqlContext));
+      suggestions.push(...this.getJoinSuggestions());
     }
 
     if (sqlContext.expectingSubquery) {
@@ -208,7 +208,6 @@ export class AdvancedSQLAutoCompleter {
       if (token === "from" || token === "join") {
         // Look for alias after table name
         if (i + 2 < tokens.length) {
-          const _tableName = tokens[i + 1];
           const potentialAlias = tokens[i + 2];
 
           if (!this.isKeyword(potentialAlias)) {
@@ -282,9 +281,7 @@ export class AdvancedSQLAutoCompleter {
       }));
   }
 
-  private getFunctionSuggestions(
-    _context: CompletionContext,
-  ): CompletionSuggestion[] {
+  private getFunctionSuggestions(): CompletionSuggestion[] {
     return this.functions.map((func) => ({
       text: func,
       type: "function" as const,
@@ -295,7 +292,7 @@ export class AdvancedSQLAutoCompleter {
     }));
   }
 
-  private getJoinSuggestions(_sqlContext: SqlContext): CompletionSuggestion[] {
+  private getJoinSuggestions(): CompletionSuggestion[] {
     const suggestions: CompletionSuggestion[] = [];
 
     // Basic JOIN types

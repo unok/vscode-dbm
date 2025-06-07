@@ -543,10 +543,14 @@ export class TransactionService {
    * Execute transaction control statement (BEGIN, COMMIT, ROLLBACK, etc.)
    */
   private async executeTransactionControl(
-    _context: QueryExecutionContext,
+    context: QueryExecutionContext,
     sql: string,
   ): Promise<{ success: boolean; executionTime: number; error?: string }> {
     // Mock implementation - in real app, this would execute against the database
+    // using context.connectionId and context.databaseProxy
+    console.debug(
+      `Executing transaction control: ${sql} on connection ${context.connection.id}`,
+    );
     const startTime = Date.now();
 
     // Simulate execution time
@@ -568,10 +572,14 @@ export class TransactionService {
    * Execute a regular statement
    */
   private async executeStatement(
-    _context: QueryExecutionContext,
+    context: QueryExecutionContext,
     sql: string,
   ): Promise<{ success: boolean; affectedRows: number; error?: string }> {
     // Mock implementation - in real app, this would execute against the database
+    // using context.connectionId and context.databaseProxy
+    console.debug(
+      `Executing statement: ${sql} on connection ${context.connection.id}`,
+    );
 
     // Simulate execution
     await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));

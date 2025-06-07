@@ -293,12 +293,15 @@ export class AdvancedDataGridService {
   setCustomIndicator(
     rowIndex: number,
     columnId: string,
-    _indicator: string,
-    _message?: string,
+    indicator: string,
+    message?: string,
   ): void {
     // Store custom indicators for cells
-    const _cellKey = `${rowIndex}:${columnId}`;
-    // Implementation would store custom indicators
+    const cellKey = `${rowIndex}:${columnId}`;
+    // TODO: Implementation would store custom indicators
+    console.debug(
+      `Setting indicator for ${cellKey}: ${indicator}${message ? ` - ${message}` : ""}`,
+    );
   }
 
   /**

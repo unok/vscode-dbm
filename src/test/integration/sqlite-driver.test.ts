@@ -31,8 +31,9 @@ describe("SQLiteDriver統合テスト", () => {
     // テスト用データベースファイルを削除
     try {
       await fs.unlink(tempDbPath);
-    } catch (_error) {
+    } catch (error) {
       // ファイルが存在しない場合は無視
+      console.warn(`Failed to delete test database file: ${error}`);
     }
   });
 

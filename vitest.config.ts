@@ -63,6 +63,6 @@ export default defineConfig({
     },
   },
   define: {
-    __DEV__: JSON.stringify(true),
+    DEV: JSON.stringify(true),
   },
 });

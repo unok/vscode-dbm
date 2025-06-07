@@ -101,7 +101,7 @@ export class CellValidationEngine {
         isValid: errors.length === 0,
         errors,
         warnings,
-        suggestions: await this.getSuggestions(value, column, errors),
+        suggestions: await this.getSuggestions(value, errors),
       };
 
       // Cache the result
@@ -434,7 +434,6 @@ export class CellValidationEngine {
 
   private async getSuggestions(
     value: CellValue,
-    _column: ColumnDefinition,
     errors: string[],
   ): Promise<string[]> {
     const suggestions: string[] = [];

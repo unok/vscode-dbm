@@ -574,8 +574,13 @@ export class SQLFormatter {
     return dedentKeywords.includes(keyword.toUpperCase());
   }
 
-  private needsNoSpaceBefore(_keyword: string, prevToken: Token): boolean {
-    return prevToken.value === "(" || prevToken.type === "operator";
+  private needsNoSpaceBefore(keyword: string, prevToken: Token): boolean {
+    // Check if specific keywords or previous tokens require no space
+    return (
+      prevToken.value === "(" ||
+      prevToken.type === "operator" ||
+      (keyword.toLowerCase() === "(" && prevToken.type === "function")
+    );
   }
 
   private needsSpaceAround(operator: string): boolean {

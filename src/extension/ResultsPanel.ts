@@ -438,25 +438,3 @@ export class ResultsPanel {
     return text;
   }
 }
-
-interface QueryHistoryItem {
-  id: string;
-  query: string;
-  connectionName: string;
-  timestamp: Date;
-  success: boolean;
-  results?: Record<string, unknown>[];
-  rowCount?: number;
-  executionTime?: number;
-  error?: string;
-}
-
-interface QueryResult {
-  query: string;
-  connectionName: string;
-  success: boolean;
-  results?: Record<string, unknown>[];
-  rowCount?: number;
-  executionTime?: number;
-  error?: string;
-}

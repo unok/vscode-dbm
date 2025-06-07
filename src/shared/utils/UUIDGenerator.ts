@@ -173,7 +173,6 @@ export class UUIDGenerator {
     existingRows: Record<string, CellValue>[],
   ): CellValue {
     const columnName = column.name.toLowerCase();
-    const _columnType = column.type.toLowerCase();
 
     // Generate context-aware defaults based on column name patterns
     if (columnName.includes("email")) {

@@ -177,25 +177,6 @@ export const CursorAIPanel: React.FC<CursorAiPanelProps> = ({
     return patterns;
   };
 
-  const _getMostCommonValue = (values: CellValue[]) => {
-    const counts: Record<string, number> = {};
-    for (const val of values) {
-      const key = String(val);
-      counts[key] = (counts[key] || 0) + 1;
-    }
-
-    let maxCount = 0;
-    let mostCommon = null;
-    for (const [value, count] of Object.entries(counts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        mostCommon = value;
-      }
-    }
-
-    return { value: mostCommon, count: maxCount };
-  };
-
   return (
     <div className="cursor-ai-panel">
       <div className="panel-header">

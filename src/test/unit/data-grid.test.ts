@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DataGridService } from "../../shared/services/DataGridService";
-import type {
-  ColumnDefinition,
-  EditableCell,
-  TableData,
-} from "../../shared/types/datagrid";
+import type { ColumnDefinition, TableData } from "../../shared/types/datagrid";
 import { UUIDGenerator } from "../../shared/utils/UUIDGenerator";
 
 // Mock TanStack Table
@@ -118,13 +114,6 @@ describe("DataGridService", () => {
     });
 
     it("should handle empty tables", async () => {
-      // Arrange
-      const _emptyTableData: TableData = {
-        ...mockTableData,
-        rows: [],
-        totalRows: 0,
-      };
-
       // Act
       const result = await dataGridService.loadTableData("empty_table", {
         offset: 0,
@@ -224,16 +213,6 @@ describe("DataGridService", () => {
     });
 
     it("should create editable cell state", () => {
-      // Arrange
-      const _cell: EditableCell = {
-        rowIndex: 0,
-        columnId: "name",
-        originalValue: "John Doe",
-        editedValue: "John Updated",
-        isDirty: true,
-        isValid: true,
-      };
-
       // Act
       const result = dataGridService.createEditableCell(0, "name", "John Doe");
 
