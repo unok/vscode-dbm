@@ -1,6 +1,6 @@
-import "@testing-library/jest-dom"
-import { cleanup } from "@testing-library/react"
-import { afterAll, afterEach, beforeAll } from "vitest"
+import "@testing-library/jest-dom";
+import { cleanup } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll } from "vitest";
 
 // Jest互換のグローバルAPIをセットアップ
 beforeAll(() => {
@@ -27,7 +27,7 @@ beforeAll(() => {
         /* MediaQueryList mock */
       },
     }),
-  })
+  });
 
   // ResizeObserver モック
   global.ResizeObserver = class ResizeObserver {
@@ -40,7 +40,7 @@ beforeAll(() => {
     disconnect() {
       /* ResizeObserver mock */
     }
-  }
+  };
 
   // IntersectionObserver モック
   global.IntersectionObserver = class IntersectionObserver {
@@ -54,19 +54,19 @@ beforeAll(() => {
       /* IntersectionObserver mock */
     }
     takeRecords() {
-      return []
+      return [];
     }
-    root = null
-    rootMargin = ""
-    thresholds = []
-  }
-})
+    root = null;
+    rootMargin = "";
+    thresholds = [];
+  };
+});
 
 // 各テスト後のクリーンアップ
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 afterAll(() => {
   // 全テスト完了後のクリーンアップ
-})
+});

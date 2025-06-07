@@ -1,6 +1,6 @@
-import path from "node:path"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vitest/config"
+import path from "node:path";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [
@@ -12,7 +12,9 @@ export default defineConfig({
     globals: true,
     environment: "node",
     setupFiles: ["./src/test/integration-setup.ts"],
-    include: ["src/test/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    include: [
+      "src/test/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
+    ],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     testTimeout: 30000, // 統合テストは長めのタイムアウト
     hookTimeout: 15000,
@@ -37,4 +39,4 @@ export default defineConfig({
   define: {
     __DEV__: JSON.stringify(true),
   },
-})
+});

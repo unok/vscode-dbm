@@ -1,28 +1,50 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode";
+
+interface QueryHistoryItem {
+  id: string;
+  query: string;
+  connectionName: string;
+  timestamp: Date;
+  success: boolean;
+  results?: Record<string, unknown>[];
+  rowCount?: number;
+  executionTime?: number;
+  error?: string;
+}
+
+interface QueryResult {
+  query: string;
+  connectionName: string;
+  success: boolean;
+  results?: Record<string, unknown>[];
+  rowCount?: number;
+  executionTime?: number;
+  error?: string;
+}
 
 export class ResultsPanel {
-  public static readonly viewType = "dbManager.results"
+  public static readonly viewType = "dbManager.results";
 
-  private static _instance: ResultsPanel | undefined
-  private _panel?: vscode.WebviewPanel
-  private _extensionUri: vscode.Uri
-  private _queryHistory: QueryHistoryItem[] = []
+  private static instance: ResultsPanel | undefined;
+  private panel?: vscode.WebviewPanel;
+  private extensionUri: vscode.Uri;
+  private queryHistory: QueryHistoryItem[] = [];
 
   private constructor(extensionUri: vscode.Uri) {
-    this._extensionUri = extensionUri
+    this.extensionUri = extensionUri;
   }
 
   public static getInstance(extensionUri: vscode.Uri): ResultsPanel {
-    if (!ResultsPanel._instance) {
-      ResultsPanel._instance = new ResultsPanel(extensionUri)
+    if (!ResultsPanel.instance) {
+      ResultsPanel.instance = new ResultsPanel(extensionUri);
     }
-    return ResultsPanel._instance
+    return ResultsPanel.instance;
   }
 
   public async showResults(result: QueryResult): Promise<void> {
     // パネルがない場合は作成（下部に配置されるように設定）
-    if (!this._panel) {
-      this._panel = vscode.window.createWebviewPanel(
+    if (!this.panel) {
+      this.panel = vscode.window.createWebviewPanel(
         ResultsPanel.viewType,
         "DB Results",
         {
@@ -31,18 +53,18 @@ export class ResultsPanel {
         },
         {
           enableScripts: true,
-          localResourceRoots: [this._extensionUri],
+          localResourceRoots: [this.extensionUri],
           retainContextWhenHidden: true,
-        }
-      )
+        },
+      );
 
-      this._panel.onDidDispose(() => {
-        this._panel = undefined
-      })
+      this.panel.onDidDispose(() => {
+        this.panel = undefined;
+      });
     }
 
     // 履歴に追加
-    this._queryHistory.unshift({
+    this.queryHistory.unshift({
       id: Date.now().toString(),
       query: result.query,
       connectionName: result.connectionName,
@@ -52,20 +74,20 @@ export class ResultsPanel {
       rowCount: result.rowCount,
       executionTime: result.executionTime,
       error: result.error,
-    })
+    });
 
     // 履歴を最大100件に制限
-    if (this._queryHistory.length > 100) {
-      this._queryHistory = this._queryHistory.slice(0, 100)
+    if (this.queryHistory.length > 100) {
+      this.queryHistory = this.queryHistory.slice(0, 100);
     }
 
     // パネルを表示して内容を更新
-    this._panel.reveal(vscode.ViewColumn.Beside, true)
-    this._panel.webview.html = this._getWebviewContent()
+    this.panel.reveal(vscode.ViewColumn.Beside, true);
+    this.panel.webview.html = this.getWebviewContent();
   }
 
-  private _getWebviewContent(): string {
-    const nonce = this._getNonce()
+  private getWebviewContent(): string {
+    const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
 <html lang="ja">
@@ -254,7 +276,7 @@ export class ResultsPanel {
     </div>
     
     <div class="history-container">
-        ${this._renderHistory()}
+        ${this.renderHistory()}
     </div>
 
     <script nonce="${nonce}">
@@ -315,21 +337,21 @@ export class ResultsPanel {
         });
     </script>
 </body>
-</html>`
+</html>`;
   }
 
-  private _renderHistory(): string {
-    if (this._queryHistory.length === 0) {
-      return '<div class="no-results">クエリ履歴がありません</div>'
+  private renderHistory(): string {
+    if (this.queryHistory.length === 0) {
+      return '<div class="no-results">クエリ履歴がありません</div>';
     }
 
-    return this._queryHistory
+    return this.queryHistory
       .map(
         (item) => `
       <div class="history-item">
         <div class="query-header">
           <div class="query-info">
-            <div class="query-text">${this._escapeHtml(item.query)}</div>
+            <div class="query-text">${this.escapeHtml(item.query)}</div>
             <div class="query-meta">
               <span>📅 ${item.timestamp.toLocaleString()}</span>
               <span>🔗 ${item.connectionName}</span>
@@ -346,27 +368,27 @@ export class ResultsPanel {
           </div>
         </div>
         <div class="results-content">
-          ${item.success ? this._renderResults(item.results || []) : this._renderError(item.error || "Unknown error")}
+          ${item.success ? this.renderResults(item.results || []) : this.renderError(item.error || "Unknown error")}
         </div>
       </div>
-    `
+    `,
       )
-      .join("")
+      .join("");
   }
 
-  private _renderResults(results: Record<string, unknown>[]): string {
+  private renderResults(results: Record<string, unknown>[]): string {
     if (!results || results.length === 0) {
-      return '<div class="no-results">結果なし</div>'
+      return '<div class="no-results">結果なし</div>';
     }
 
-    const headers = Object.keys(results[0])
+    const headers = Object.keys(results[0]);
 
     return `
       <div class="table-container">
         <table class="results-table">
           <thead>
             <tr>
-              ${headers.map((header) => `<th>${this._escapeHtml(header)}</th>`).join("")}
+              ${headers.map((header) => `<th>${this.escapeHtml(header)}</th>`).join("")}
             </tr>
           </thead>
           <tbody>
@@ -376,64 +398,65 @@ export class ResultsPanel {
               <tr>
                 ${headers
                   .map((header) => {
-                    const value = row[header]
+                    const value = row[header];
                     if (value === null || value === undefined) {
-                      return '<td class="null-value">NULL</td>'
+                      return '<td class="null-value">NULL</td>';
                     }
-                    return `<td>${this._escapeHtml(String(value))}</td>`
+                    return `<td>${this.escapeHtml(String(value))}</td>`;
                   })
                   .join("")}
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
-    `
+    `;
   }
 
-  private _renderError(error: string): string {
-    return `<div class="error-message">${this._escapeHtml(error)}</div>`
+  private renderError(error: string): string {
+    return `<div class="error-message">${this.escapeHtml(error)}</div>`;
   }
 
-  private _escapeHtml(text: string): string {
+  private escapeHtml(text: string): string {
     return text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;")
+      .replace(/'/g, "&#39;");
   }
 
-  private _getNonce(): string {
-    let text = ""
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  private getNonce(): string {
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length))
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
-    return text
+    return text;
   }
 }
 
 interface QueryHistoryItem {
-  id: string
-  query: string
-  connectionName: string
-  timestamp: Date
-  success: boolean
-  results?: Record<string, unknown>[]
-  rowCount?: number
-  executionTime?: number
-  error?: string
+  id: string;
+  query: string;
+  connectionName: string;
+  timestamp: Date;
+  success: boolean;
+  results?: Record<string, unknown>[];
+  rowCount?: number;
+  executionTime?: number;
+  error?: string;
 }
 
 interface QueryResult {
-  query: string
-  connectionName: string
-  success: boolean
-  results?: Record<string, unknown>[]
-  rowCount?: number
-  executionTime?: number
-  error?: string
+  query: string;
+  connectionName: string;
+  success: boolean;
+  results?: Record<string, unknown>[];
+  rowCount?: number;
+  executionTime?: number;
+  error?: string;
 }

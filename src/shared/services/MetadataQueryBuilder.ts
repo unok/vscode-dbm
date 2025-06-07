@@ -3,26 +3,26 @@ import type {
   MySQLMetadataQuery,
   PostgreSQLMetadataQuery,
   SQLiteMetadataQuery,
-} from "../types/schema"
+} from "../types/schema";
 
 export class MetadataQueryBuilder {
   getQueries(dbType: "mysql" | "postgresql" | "sqlite"): MetadataQuery {
     switch (dbType) {
       case "mysql":
-        return new MySQLQueries()
+        return new MySqlQueries();
       case "postgresql":
-        return new PostgreSQLQueries()
+        return new PostgreSqlQueries();
       case "sqlite":
-        return new SQLiteQueries()
+        return new SqLiteQueries();
       default:
-        throw new Error(`Unsupported database type: ${dbType}`)
+        throw new Error(`Unsupported database type: ${dbType}`);
     }
   }
 }
 
-class MySQLQueries implements MySQLMetadataQuery {
+class MySqlQueries implements MySQLMetadataQuery {
   getTables(schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         TABLE_NAME as name,
@@ -34,11 +34,11 @@ class MySQLQueries implements MySQLMetadataQuery {
       FROM INFORMATION_SCHEMA.TABLES 
       WHERE TABLE_TYPE = 'BASE TABLE' ${schemaFilter}
       ORDER BY TABLE_NAME
-    `
+    `;
   }
 
   getViews(schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         TABLE_NAME as name,
@@ -48,11 +48,11 @@ class MySQLQueries implements MySQLMetadataQuery {
       FROM INFORMATION_SCHEMA.VIEWS 
       WHERE 1=1 ${schemaFilter}
       ORDER BY TABLE_NAME
-    `
+    `;
   }
 
   getColumns(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         c.COLUMN_NAME as name,
@@ -77,11 +77,11 @@ class MySQLQueries implements MySQLMetadataQuery {
         AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
       WHERE c.TABLE_NAME = '${table}' ${schemaFilter}
       ORDER BY c.ORDINAL_POSITION
-    `
+    `;
   }
 
   getIndexes(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         INDEX_NAME as name,
@@ -92,11 +92,11 @@ class MySQLQueries implements MySQLMetadataQuery {
       FROM INFORMATION_SCHEMA.STATISTICS 
       WHERE TABLE_NAME = '${table}' ${schemaFilter}
       ORDER BY INDEX_NAME, SEQ_IN_INDEX
-    `
+    `;
   }
 
   getConstraints(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         CONSTRAINT_NAME as name,
@@ -110,11 +110,11 @@ class MySQLQueries implements MySQLMetadataQuery {
         AND kcu.TABLE_SCHEMA = tc.TABLE_SCHEMA
       WHERE kcu.TABLE_NAME = '${table}' ${schemaFilter}
       ORDER BY CONSTRAINT_NAME
-    `
+    `;
   }
 
   getFunctions(schema?: string): string {
-    const schemaFilter = schema ? `AND ROUTINE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND ROUTINE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         ROUTINE_NAME as name,
@@ -125,12 +125,12 @@ class MySQLQueries implements MySQLMetadataQuery {
       FROM INFORMATION_SCHEMA.ROUTINES 
       WHERE ROUTINE_TYPE = 'FUNCTION' ${schemaFilter}
       ORDER BY ROUTINE_NAME
-    `
+    `;
   }
 
   getTriggers(table?: string, schema?: string): string {
-    const tableFilter = table ? `AND EVENT_OBJECT_TABLE = '${table}'` : ""
-    const schemaFilter = schema ? `AND TRIGGER_SCHEMA = '${schema}'` : ""
+    const tableFilter = table ? `AND EVENT_OBJECT_TABLE = '${table}'` : "";
+    const schemaFilter = schema ? `AND TRIGGER_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         TRIGGER_NAME as name,
@@ -141,36 +141,38 @@ class MySQLQueries implements MySQLMetadataQuery {
       FROM INFORMATION_SCHEMA.TRIGGERS 
       WHERE 1=1 ${tableFilter} ${schemaFilter}
       ORDER BY TRIGGER_NAME
-    `
+    `;
   }
 
   getRowCount(table: string, schema?: string): string {
-    const fullTableName = schema ? `\`${schema}\`.\`${table}\`` : `\`${table}\``
-    return `SELECT COUNT(*) as count FROM ${fullTableName}`
+    const fullTableName = schema
+      ? `\`${schema}\`.\`${table}\``
+      : `\`${table}\``;
+    return `SELECT COUNT(*) as count FROM ${fullTableName}`;
   }
 
   getTableSize(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT 
         DATA_LENGTH + INDEX_LENGTH as size_bytes,
         TABLE_ROWS as row_count
       FROM INFORMATION_SCHEMA.TABLES 
       WHERE TABLE_NAME = '${table}' ${schemaFilter}
-    `
+    `;
   }
 
   getAutoIncrementInfo(table: string, schema?: string): string {
-    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : ""
+    const schemaFilter = schema ? `AND TABLE_SCHEMA = '${schema}'` : "";
     return `
       SELECT AUTO_INCREMENT as next_value
       FROM INFORMATION_SCHEMA.TABLES 
       WHERE TABLE_NAME = '${table}' ${schemaFilter}
-    `
+    `;
   }
 }
 
-class PostgreSQLQueries implements PostgreSQLMetadataQuery {
+class PostgreSqlQueries implements PostgreSQLMetadataQuery {
   getTables(schema = "public"): string {
     return `
       SELECT 
@@ -183,7 +185,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       WHERE t.table_type = 'BASE TABLE' 
         AND t.table_schema = '${schema}'
       ORDER BY t.table_name
-    `
+    `;
   }
 
   getViews(schema = "public"): string {
@@ -195,7 +197,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       FROM information_schema.views 
       WHERE table_schema = '${schema}'
       ORDER BY table_name
-    `
+    `;
   }
 
   getColumns(table: string, schema = "public"): string {
@@ -253,7 +255,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       WHERE c.table_name = '${table}' 
         AND c.table_schema = '${schema}'
       ORDER BY c.ordinal_position
-    `
+    `;
   }
 
   getIndexes(table: string, schema = "public"): string {
@@ -274,7 +276,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
         AND n.nspname = '${schema}'
       GROUP BY i.relname, ix.indisunique, ix.indisprimary, am.amname
       ORDER BY i.relname
-    `
+    `;
   }
 
   getConstraints(table: string, schema = "public"): string {
@@ -293,7 +295,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       WHERE tc.table_name = '${table}' 
         AND tc.table_schema = '${schema}'
       ORDER BY tc.constraint_name
-    `
+    `;
   }
 
   getFunctions(schema = "public"): string {
@@ -308,11 +310,11 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       WHERE n.nspname = '${schema}'
         AND p.prokind = 'f'
       ORDER BY p.proname
-    `
+    `;
   }
 
   getTriggers(table?: string, schema = "public"): string {
-    const tableFilter = table ? `AND t.relname = '${table}'` : ""
+    const tableFilter = table ? `AND t.relname = '${table}'` : "";
     return `
       SELECT 
         trig.tgname as name,
@@ -333,11 +335,11 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       WHERE n.nspname = '${schema}' ${tableFilter}
         AND NOT trig.tgisinternal
       ORDER BY trig.tgname
-    `
+    `;
   }
 
   getRowCount(table: string, schema = "public"): string {
-    return `SELECT COUNT(*) as count FROM "${schema}"."${table}"`
+    return `SELECT COUNT(*) as count FROM "${schema}"."${table}"`;
   }
 
   getSequences(schema = "public"): string {
@@ -352,7 +354,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       FROM information_schema.sequences
       WHERE sequence_schema = '${schema}'
       ORDER BY sequence_name
-    `
+    `;
   }
 
   getEnums(schema = "public"): string {
@@ -366,7 +368,7 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
       WHERE n.nspname = '${schema}'
       GROUP BY t.typname
       ORDER BY t.typname
-    `
+    `;
   }
 
   getTablespaces(): string {
@@ -376,11 +378,11 @@ class PostgreSQLQueries implements PostgreSQLMetadataQuery {
         pg_tablespace_location(oid) as location
       FROM pg_tablespace
       ORDER BY spcname
-    `
+    `;
   }
 }
 
-class SQLiteQueries implements SQLiteMetadataQuery {
+class SqLiteQueries implements SQLiteMetadataQuery {
   getTables(): string {
     return `
       SELECT 
@@ -391,7 +393,7 @@ class SQLiteQueries implements SQLiteMetadataQuery {
       WHERE type = 'table' 
         AND name NOT LIKE 'sqlite_%'
       ORDER BY name
-    `
+    `;
   }
 
   getViews(): string {
@@ -402,15 +404,15 @@ class SQLiteQueries implements SQLiteMetadataQuery {
       FROM sqlite_master 
       WHERE type = 'view'
       ORDER BY name
-    `
+    `;
   }
 
   getColumns(table: string): string {
-    return `PRAGMA table_info("${table}")`
+    return `PRAGMA table_info("${table}")`;
   }
 
   getIndexes(table: string): string {
-    return `PRAGMA index_list("${table}")`
+    return `PRAGMA index_list("${table}")`;
   }
 
   getConstraints(table: string): string {
@@ -419,16 +421,16 @@ class SQLiteQueries implements SQLiteMetadataQuery {
       FROM sqlite_master 
       WHERE type = 'table' 
         AND name = '${table}'
-    `
+    `;
   }
 
   getFunctions(): string {
     // SQLite doesn't have user-defined functions in the same way
-    return "SELECT NULL as name WHERE 1=0"
+    return "SELECT NULL as name WHERE 1=0";
   }
 
   getTriggers(table?: string): string {
-    const tableFilter = table ? `AND tbl_name = '${table}'` : ""
+    const tableFilter = table ? `AND tbl_name = '${table}'` : "";
     return `
       SELECT 
         name,
@@ -437,18 +439,18 @@ class SQLiteQueries implements SQLiteMetadataQuery {
       FROM sqlite_master 
       WHERE type = 'trigger' ${tableFilter}
       ORDER BY name
-    `
+    `;
   }
 
   getRowCount(table: string): string {
-    return `SELECT COUNT(*) as count FROM "${table}"`
+    return `SELECT COUNT(*) as count FROM "${table}"`;
   }
 
   getPragmaInfo(table: string): string {
-    return `PRAGMA table_info("${table}")`
+    return `PRAGMA table_info("${table}")`;
   }
 
   getForeignKeys(table: string): string {
-    return `PRAGMA foreign_key_list("${table}")`
+    return `PRAGMA foreign_key_list("${table}")`;
   }
 }

@@ -1,45 +1,45 @@
-import * as fs from "node:fs"
-import * as path from "node:path"
-import * as vscode from "vscode"
+import * as fs from "node:fs";
+import * as vscode from "vscode";
 
 /**
  * WebView用のリソースマネージャー
  * WSL環境でのファイルパス解決とCSP管理を行う
  */
 export class WebViewResourceManager {
-  private extensionUri: vscode.Uri
-  private webview: vscode.Webview
-  private nonce: string
+  private extensionUri: vscode.Uri;
+  private webview: vscode.Webview;
+  private nonce: string;
 
   constructor(webview: vscode.Webview, extensionUri: vscode.Uri) {
-    this.webview = webview
-    this.extensionUri = extensionUri
-    this.nonce = this.generateNonce()
+    this.webview = webview;
+    this.extensionUri = extensionUri;
+    this.nonce = this.generateNonce();
   }
 
   /**
    * CSP用のnonceを生成
    */
   private generateNonce(): string {
-    let text = ""
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length))
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
-    return text
+    return text;
   }
 
   /**
    * WebView用のHTMLを生成
    */
   public getHtmlContent(viewType: string): string {
-    const isDevelopment = process.env.NODE_ENV === "development"
+    const isDevelopment = process.env.NODE_ENV === "development";
 
     if (isDevelopment) {
-      return this.getDevHtml(viewType)
+      return this.getDevHtml(viewType);
     }
 
-    return this.getProdHtml(viewType)
+    return this.getProdHtml(viewType);
   }
 
   /**
@@ -60,41 +60,49 @@ export class WebViewResourceManager {
     </script>
     <script type="module" src="http://localhost:5173/src/webview/main.tsx"></script>
 </body>
-</html>`
+</html>`;
   }
 
   /**
    * プロダクション環境用HTML
    */
   private getProdHtml(viewType: string): string {
-    const webviewPath = vscode.Uri.joinPath(this.extensionUri, "dist", "webview")
+    const webviewPath = vscode.Uri.joinPath(
+      this.extensionUri,
+      "dist",
+      "webview",
+    );
 
     try {
       // ビルドされたindex.htmlを読み込む
-      const indexHtmlPath = vscode.Uri.joinPath(webviewPath, "index.html")
-      let htmlContent = fs.readFileSync(indexHtmlPath.fsPath, "utf8")
+      const indexHtmlPath = vscode.Uri.joinPath(webviewPath, "index.html");
+      let htmlContent = fs.readFileSync(indexHtmlPath.fsPath, "utf8");
 
       // アセットファイルを検出
-      const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
-      const assetFiles = this.findAssetFiles(assetsPath)
+      const assetsPath = vscode.Uri.joinPath(webviewPath, "assets");
+      const assetFiles = this.findAssetFiles(assetsPath);
 
       // CSPヘッダーを追加
-      const cspContent = this.generateCSP()
-      htmlContent = this.insertCSP(htmlContent, cspContent)
+      const cspContent = this.generateCSP();
+      htmlContent = this.insertCSP(htmlContent, cspContent);
 
       // アセットパスを変換
-      htmlContent = this.transformAssetPaths(htmlContent, webviewPath, assetFiles)
+      htmlContent = this.transformAssetPaths(
+        htmlContent,
+        webviewPath,
+        assetFiles,
+      );
 
       // nonceをスクリプトタグに追加
-      htmlContent = this.addNonceToScripts(htmlContent)
+      htmlContent = this.addNonceToScripts(htmlContent);
 
       // VSCode APIを初期化
-      htmlContent = this.injectVSCodeAPI(htmlContent, viewType)
+      htmlContent = this.injectVSCodeAPI(htmlContent, viewType);
 
-      return htmlContent
+      return htmlContent;
     } catch (error) {
-      console.error("Failed to load HTML:", error)
-      return this.getFallbackHtml(viewType)
+      console.error("Failed to load HTML:", error);
+      return this.getFallbackHtml(viewType);
     }
   }
 
@@ -102,32 +110,32 @@ export class WebViewResourceManager {
    * アセットファイルを検出
    */
   private findAssetFiles(assetsPath: vscode.Uri): Map<string, string> {
-    const assetMap = new Map<string, string>()
+    const assetMap = new Map<string, string>();
 
     try {
-      const files = fs.readdirSync(assetsPath.fsPath)
+      const files = fs.readdirSync(assetsPath.fsPath);
 
       for (const file of files) {
         if (file.startsWith("index-") && file.endsWith(".js")) {
-          assetMap.set("main.js", file)
+          assetMap.set("main.js", file);
         } else if (file.startsWith("index-") && file.endsWith(".css")) {
-          assetMap.set("main.css", file)
+          assetMap.set("main.css", file);
         }
         // その他のアセット（フォントなど）も記録
-        assetMap.set(file, file)
+        assetMap.set(file, file);
       }
     } catch (error) {
-      console.error("Failed to find assets:", error)
+      console.error("Failed to find assets:", error);
     }
 
-    return assetMap
+    return assetMap;
   }
 
   /**
    * CSPヘッダーを生成
    */
   private generateCSP(): string {
-    return `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.webview.cspSource} 'unsafe-inline'; img-src ${this.webview.cspSource} https: data:; script-src 'nonce-${this.nonce}'; font-src ${this.webview.cspSource} data:; connect-src ${this.webview.cspSource} https: ws:;">`
+    return `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.webview.cspSource} 'unsafe-inline'; img-src ${this.webview.cspSource} https: data:; script-src 'nonce-${this.nonce}'; font-src ${this.webview.cspSource} data:; connect-src ${this.webview.cspSource} https: ws:;">`;
   }
 
   /**
@@ -135,10 +143,13 @@ export class WebViewResourceManager {
    */
   private insertCSP(html: string, csp: string): string {
     // 既存のCSPメタタグを削除
-    const updatedHtml = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/g, "")
+    const updatedHtml = html.replace(
+      /<meta http-equiv="Content-Security-Policy"[^>]*>/g,
+      "",
+    );
 
     // headタグ内の最初に新しいCSPを挿入
-    return updatedHtml.replace(/<head>/i, `<head>\n    ${csp}`)
+    return updatedHtml.replace(/<head>/i, `<head>\n    ${csp}`);
   }
 
   /**
@@ -147,35 +158,35 @@ export class WebViewResourceManager {
   private transformAssetPaths(
     html: string,
     webviewPath: vscode.Uri,
-    assetFiles: Map<string, string>
+    assetFiles: Map<string, string>,
   ): string {
     // src="/assets/xxx" または href="/assets/xxx" のパターンを変換
     let updatedHtml = html.replace(
       /(?:src|href)="\/assets\/(.*?)"/g,
       (match: string, filename: string) => {
-        const attr = match.startsWith("src") ? "src" : "href"
-        const actualFile = assetFiles.get(filename) || filename
+        const attr = match.startsWith("src") ? "src" : "href";
+        const actualFile = assetFiles.get(filename) || filename;
         const assetUri = this.webview.asWebviewUri(
-          vscode.Uri.joinPath(webviewPath, "assets", actualFile)
-        )
-        return `${attr}="${assetUri}"`
-      }
-    )
+          vscode.Uri.joinPath(webviewPath, "assets", actualFile),
+        );
+        return `${attr}="${assetUri}"`;
+      },
+    );
 
     // 相対パスのアセットも変換（./assets/xxx）
     updatedHtml = updatedHtml.replace(
       /(?:src|href)="\.\/assets\/(.*?)"/g,
       (match: string, filename: string) => {
-        const attr = match.startsWith("src") ? "src" : "href"
-        const actualFile = assetFiles.get(filename) || filename
+        const attr = match.startsWith("src") ? "src" : "href";
+        const actualFile = assetFiles.get(filename) || filename;
         const assetUri = this.webview.asWebviewUri(
-          vscode.Uri.joinPath(webviewPath, "assets", actualFile)
-        )
-        return `${attr}="${assetUri}"`
-      }
-    )
+          vscode.Uri.joinPath(webviewPath, "assets", actualFile),
+        );
+        return `${attr}="${assetUri}"`;
+      },
+    );
 
-    return updatedHtml
+    return updatedHtml;
   }
 
   /**
@@ -183,13 +194,16 @@ export class WebViewResourceManager {
    */
   private addNonceToScripts(html: string): string {
     // すべてのscriptタグにnonceを追加
-    return html.replace(/<script(\s+[^>]*)?>/g, (match: string, attributes: string) => {
-      // すでにnonceがある場合はスキップ
-      if (attributes?.includes("nonce=")) {
-        return match
-      }
-      return `<script nonce="${this.nonce}"${attributes || ""}>`
-    })
+    return html.replace(
+      /<script(\s+[^>]*)?>/g,
+      (match: string, attributes: string) => {
+        // すでにnonceがある場合はスキップ
+        if (attributes?.includes("nonce=")) {
+          return match;
+        }
+        return `<script nonce="${this.nonce}"${attributes || ""}>`;
+      },
+    );
   }
 
   /**
@@ -208,9 +222,9 @@ export class WebViewResourceManager {
             });
         }
     </script>
-</body>`
+</body>`;
 
-    return html.replace("</body>", apiScript)
+    return html.replace("</body>", apiScript);
   }
 
   /**
@@ -284,6 +298,6 @@ export class WebViewResourceManager {
         console.error('WebView initialization failed. View type:', "${viewType}");
     </script>
 </body>
-</html>`
+</html>`;
   }
 }

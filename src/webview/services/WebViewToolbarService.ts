@@ -4,27 +4,27 @@
  */
 
 export interface ToolbarItem {
-  id: string
-  label: string
-  icon: string
-  action: string
-  position: "left" | "center" | "right"
-  visible: boolean
-  disabled?: boolean
-  tooltip?: string
+  id: string;
+  label: string;
+  icon: string;
+  action: string;
+  position: "left" | "center" | "right";
+  visible: boolean;
+  disabled?: boolean;
+  tooltip?: string;
 }
 
 export interface ToolbarGroup {
-  id: string
-  label: string
-  items: ToolbarItem[]
-  position: "left" | "center" | "right"
-  visible: boolean
+  id: string;
+  label: string;
+  items: ToolbarItem[];
+  position: "left" | "center" | "right";
+  visible: boolean;
 }
 
 export class WebViewToolbarService {
-  private groups: ToolbarGroup[] = []
-  private actionCallbacks = new Map<string, () => void>()
+  private groups: ToolbarGroup[] = [];
+  private actionCallbacks = new Map<string, () => void>();
 
   private get vscodeApi() {
     // Use globally stored VSCode API if available
@@ -32,18 +32,18 @@ export class WebViewToolbarService {
       (
         window as unknown as {
           vscode?: {
-            getState: () => unknown
-            setState: (state: unknown) => void
-            postMessage: (message: unknown) => void
-          }
+            getState: () => unknown;
+            setState: (state: unknown) => void;
+            postMessage: (message: unknown) => void;
+          };
         }
       ).vscode || null
-    )
+    );
   }
 
   constructor() {
-    this.initializeDefaultToolbar()
-    this.loadCustomizations()
+    this.initializeDefaultToolbar();
+    this.loadCustomizations();
   }
 
   private initializeDefaultToolbar(): void {
@@ -162,16 +162,18 @@ export class WebViewToolbarService {
           },
         ],
       },
-    ]
+    ];
   }
 
   private loadCustomizations(): void {
-    const savedState = this.vscodeApi?.getState() as { toolbar?: ToolbarGroup[] } | undefined
+    const savedState = this.vscodeApi?.getState() as
+      | { toolbar?: ToolbarGroup[] }
+      | undefined;
     if (savedState?.toolbar) {
       try {
-        this.groups = savedState.toolbar
+        this.groups = savedState.toolbar;
       } catch (error) {
-        console.warn("Failed to load toolbar customizations:", error)
+        console.warn("Failed to load toolbar customizations:", error);
       }
     }
   }
@@ -180,148 +182,155 @@ export class WebViewToolbarService {
     return this.groups.map((group) => ({
       ...group,
       items: [...group.items],
-    }))
+    }));
   }
 
   getVisibleGroups(): ToolbarGroup[] {
-    return this.getGroups().filter((group) => group.visible)
+    return this.getGroups().filter((group) => group.visible);
   }
 
   getGroupsByPosition(position: "left" | "center" | "right"): ToolbarGroup[] {
-    return this.getVisibleGroups().filter((group) => group.position === position)
+    return this.getVisibleGroups().filter(
+      (group) => group.position === position,
+    );
   }
 
   registerAction(actionId: string, callback: () => void): void {
-    this.actionCallbacks.set(actionId, callback)
+    this.actionCallbacks.set(actionId, callback);
   }
 
   unregisterAction(actionId: string): void {
-    this.actionCallbacks.delete(actionId)
+    this.actionCallbacks.delete(actionId);
   }
 
   executeAction(actionId: string): void {
-    const callback = this.actionCallbacks.get(actionId)
+    const callback = this.actionCallbacks.get(actionId);
     if (callback) {
       try {
-        callback()
+        callback();
       } catch (error) {
-        console.error(`Failed to execute action ${actionId}:`, error)
+        console.error(`Failed to execute action ${actionId}:`, error);
       }
     } else {
-      console.warn(`No action registered for ${actionId}`)
+      console.warn(`No action registered for ${actionId}`);
     }
   }
 
   updateItemVisibility(itemId: string, visible: boolean): void {
     for (const group of this.groups) {
-      const item = group.items.find((item) => item.id === itemId)
+      const item = group.items.find((item) => item.id === itemId);
       if (item) {
-        item.visible = visible
-        this.saveCustomizations()
-        break
+        item.visible = visible;
+        this.saveCustomizations();
+        break;
       }
     }
   }
 
   updateGroupVisibility(groupId: string, visible: boolean): void {
-    const group = this.groups.find((g) => g.id === groupId)
+    const group = this.groups.find((g) => g.id === groupId);
     if (group) {
-      group.visible = visible
-      this.saveCustomizations()
+      group.visible = visible;
+      this.saveCustomizations();
     }
   }
 
-  moveItem(itemId: string, targetGroupId: string, targetPosition: number): void {
+  moveItem(
+    itemId: string,
+    targetGroupId: string,
+    targetPosition: number,
+  ): void {
     // Find and remove item from current group
-    let item: ToolbarItem | undefined
+    let item: ToolbarItem | undefined;
     for (const group of this.groups) {
-      const index = group.items.findIndex((i) => i.id === itemId)
+      const index = group.items.findIndex((i) => i.id === itemId);
       if (index >= 0) {
-        item = group.items.splice(index, 1)[0]
-        break
+        item = group.items.splice(index, 1)[0];
+        break;
       }
     }
 
-    if (!item) return
+    if (!item) return;
 
     // Add to target group
-    const targetGroup = this.groups.find((g) => g.id === targetGroupId)
+    const targetGroup = this.groups.find((g) => g.id === targetGroupId);
     if (targetGroup) {
-      targetGroup.items.splice(targetPosition, 0, item)
-      this.saveCustomizations()
+      targetGroup.items.splice(targetPosition, 0, item);
+      this.saveCustomizations();
     }
   }
 
   addCustomItem(groupId: string, item: Omit<ToolbarItem, "id">): string {
-    const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    const group = this.groups.find((g) => g.id === groupId)
+    const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const group = this.groups.find((g) => g.id === groupId);
 
     if (group) {
       group.items.push({
         ...item,
         id,
-      })
-      this.saveCustomizations()
+      });
+      this.saveCustomizations();
     }
 
-    return id
+    return id;
   }
 
   removeItem(itemId: string): void {
     for (const group of this.groups) {
-      const index = group.items.findIndex((item) => item.id === itemId)
+      const index = group.items.findIndex((item) => item.id === itemId);
       if (index >= 0) {
-        group.items.splice(index, 1)
-        this.saveCustomizations()
-        break
+        group.items.splice(index, 1);
+        this.saveCustomizations();
+        break;
       }
     }
   }
 
   resetToDefault(): void {
-    this.initializeDefaultToolbar()
-    this.saveCustomizations()
+    this.initializeDefaultToolbar();
+    this.saveCustomizations();
   }
 
   exportCustomizations(): string {
-    return JSON.stringify(this.groups, null, 2)
+    return JSON.stringify(this.groups, null, 2);
   }
 
   importCustomizations(jsonData: string): boolean {
     try {
-      const imported = JSON.parse(jsonData)
+      const imported = JSON.parse(jsonData);
 
       if (!Array.isArray(imported)) {
-        throw new Error("Invalid toolbar data format")
+        throw new Error("Invalid toolbar data format");
       }
 
       // Basic validation
       for (const group of imported) {
         if (!group.id || !group.label || !Array.isArray(group.items)) {
-          throw new Error("Invalid group format")
+          throw new Error("Invalid group format");
         }
       }
 
-      this.groups = imported
-      this.saveCustomizations()
-      return true
+      this.groups = imported;
+      this.saveCustomizations();
+      return true;
     } catch (error) {
-      console.error("Toolbar customization import failed:", error)
-      return false
+      console.error("Toolbar customization import failed:", error);
+      return false;
     }
   }
 
   private saveCustomizations(): void {
-    const currentState = (this.vscodeApi?.getState() as Record<string, unknown>) || {}
+    const currentState =
+      (this.vscodeApi?.getState() as Record<string, unknown>) || {};
     this.vscodeApi?.setState({
       ...currentState,
       toolbar: this.groups,
-    })
+    });
 
     // Extension側にも通知
     this.vscodeApi?.postMessage({
       type: "toolbarUpdated",
       data: this.groups,
-    })
+    });
   }
 }

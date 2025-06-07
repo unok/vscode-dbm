@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./src/webview/**/*.{js,ts,jsx,tsx,html}", "./src/webview/index.html"],
+  content: [
+    "./src/webview/**/*.{js,ts,jsx,tsx,html}",
+    "./src/webview/index.html",
+  ],
   theme: {
     extend: {
       colors: {
@@ -30,7 +33,10 @@ export default {
         vscode: ["var(--vscode-font-family)", "monospace"],
       },
       fontSize: {
-        vscode: ["var(--vscode-font-size)", { lineHeight: "var(--vscode-font-size)" }],
+        vscode: [
+          "var(--vscode-font-size)",
+          { lineHeight: "var(--vscode-font-size)" },
+        ],
       },
       animation: {
         "fade-in": "fadeIn 0.2s ease-in-out",
@@ -55,4 +61,4 @@ export default {
     preflight: false, // Disable Tailwind's base styles to avoid conflicts with VSCode
   },
   darkMode: "class",
-}
+};

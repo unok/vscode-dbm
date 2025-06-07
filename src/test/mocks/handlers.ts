@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw"
+import { HttpResponse, http } from "msw";
 
 // APIモックハンドラー
 export const handlers = [
@@ -8,7 +8,7 @@ export const handlers = [
       success: true,
       connectionId: "mock-connection-123",
       dbType: "mysql",
-    })
+    });
   }),
 
   // テーブル一覧取得APIのモック
@@ -20,7 +20,7 @@ export const handlers = [
         { name: "projects", type: "table" },
         { name: "user_projects", type: "table" },
       ],
-    })
+    });
   }),
 
   // テーブルデータ取得APIのモック
@@ -42,7 +42,7 @@ export const handlers = [
         },
       ],
       total: 2,
-    })
+    });
   }),
 
   // SQLクエリ実行APIのモック
@@ -57,6 +57,6 @@ export const handlers = [
         },
       ],
       executionTime: 120,
-    })
+    });
   }),
-]
+];

@@ -4,72 +4,72 @@
  */
 
 export interface GeneralSettings {
-  autoSaveQueries: boolean
-  rememberWindowSize: boolean
-  checkForUpdates: boolean
-  autoBackup: boolean
-  backupInterval: number // minutes
+  autoSaveQueries: boolean;
+  rememberWindowSize: boolean;
+  checkForUpdates: boolean;
+  autoBackup: boolean;
+  backupInterval: number; // minutes
 }
 
 export interface DatabaseSettings {
-  connectionTimeout: number // seconds
-  queryTimeout: number // seconds
-  maxConnections: number
-  autoRefreshSchema: boolean
-  defaultDatabase: string
-  encryptPasswords: boolean
+  connectionTimeout: number; // seconds
+  queryTimeout: number; // seconds
+  maxConnections: number;
+  autoRefreshSchema: boolean;
+  defaultDatabase: string;
+  encryptPasswords: boolean;
 }
 
 export interface EditorSettings {
-  tabSize: number
-  insertSpaces: boolean
-  wordWrap: boolean
-  autoComplete: boolean
-  showMinimap: boolean
-  highlightCurrentLine: boolean
-  formatOnSave: boolean
-  fontSize: number
+  tabSize: number;
+  insertSpaces: boolean;
+  wordWrap: boolean;
+  autoComplete: boolean;
+  showMinimap: boolean;
+  highlightCurrentLine: boolean;
+  formatOnSave: boolean;
+  fontSize: number;
 }
 
 export interface UISettings {
-  theme: "auto" | "light" | "dark"
-  fontSize: number
-  showLineNumbers: boolean
-  showStatusBar: boolean
-  compactMode: boolean
-  animationsEnabled: boolean
+  theme: "auto" | "light" | "dark";
+  fontSize: number;
+  showLineNumbers: boolean;
+  showStatusBar: boolean;
+  compactMode: boolean;
+  animationsEnabled: boolean;
 }
 
 export interface AdvancedSettings {
-  debugMode: boolean
-  enableTelemetry: boolean
-  logLevel: "error" | "warn" | "info" | "debug"
-  maxLogFiles: number
-  performanceMonitoring: boolean
-  experimentalFeatures: boolean
+  debugMode: boolean;
+  enableTelemetry: boolean;
+  logLevel: "error" | "warn" | "info" | "debug";
+  maxLogFiles: number;
+  performanceMonitoring: boolean;
+  experimentalFeatures: boolean;
 }
 
 export interface AppSettings {
-  general: GeneralSettings
-  database: DatabaseSettings
-  editor: EditorSettings
-  ui: UISettings
-  advanced: AdvancedSettings
+  general: GeneralSettings;
+  database: DatabaseSettings;
+  editor: EditorSettings;
+  ui: UISettings;
+  advanced: AdvancedSettings;
 }
 
 export interface SettingsValidationError {
-  field: string
-  message: string
+  field: string;
+  message: string;
 }
 
 export class SettingsService {
-  private settings: AppSettings
-  private defaultSettings: AppSettings
-  private readonly STORAGE_KEY = "db-extension-settings"
+  private settings: AppSettings;
+  private defaultSettings: AppSettings;
+  private readonly STORAGE_KEY = "db-extension-settings";
 
   constructor() {
-    this.defaultSettings = this.getDefaultSettings()
-    this.settings = this.loadSettings()
+    this.defaultSettings = this.getDefaultSettings();
+    this.settings = this.loadSettings();
   }
 
   /**
@@ -118,14 +118,14 @@ export class SettingsService {
         performanceMonitoring: false,
         experimentalFeatures: false,
       },
-    }
+    };
   }
 
   /**
    * 現在の設定を取得
    */
   getSettings(): AppSettings {
-    return JSON.parse(JSON.stringify(this.settings))
+    return JSON.parse(JSON.stringify(this.settings));
   }
 
   /**
@@ -140,52 +140,55 @@ export class SettingsService {
       editor: { ...this.settings.editor, ...newSettings.editor },
       ui: { ...this.settings.ui, ...newSettings.ui },
       advanced: { ...this.settings.advanced, ...newSettings.advanced },
-    }
-    this.saveSettings()
+    };
+    this.saveSettings();
   }
 
   /**
    * 個別設定の更新
    */
   updateGeneralSettings(settings: Partial<GeneralSettings>): void {
-    this.settings.general = { ...this.settings.general, ...settings }
-    this.saveSettings()
+    this.settings.general = { ...this.settings.general, ...settings };
+    this.saveSettings();
   }
 
   updateDatabaseSettings(settings: Partial<DatabaseSettings>): void {
-    this.settings.database = { ...this.settings.database, ...settings }
-    this.saveSettings()
+    this.settings.database = { ...this.settings.database, ...settings };
+    this.saveSettings();
   }
 
   updateEditorSettings(settings: Partial<EditorSettings>): void {
-    this.settings.editor = { ...this.settings.editor, ...settings }
-    this.saveSettings()
+    this.settings.editor = { ...this.settings.editor, ...settings };
+    this.saveSettings();
   }
 
   updateUISettings(settings: Partial<UISettings>): void {
-    this.settings.ui = { ...this.settings.ui, ...settings }
-    this.saveSettings()
+    this.settings.ui = { ...this.settings.ui, ...settings };
+    this.saveSettings();
   }
 
   updateAdvancedSettings(settings: Partial<AdvancedSettings>): void {
-    this.settings.advanced = { ...this.settings.advanced, ...settings }
-    this.saveSettings()
+    this.settings.advanced = { ...this.settings.advanced, ...settings };
+    this.saveSettings();
   }
 
   /**
    * 設定のバリデーション
    */
   validateSettings(settings: Partial<AppSettings>): SettingsValidationError[] {
-    const errors: SettingsValidationError[] = []
+    const errors: SettingsValidationError[] = [];
 
     // General settings validation
     if (settings.general) {
       if (settings.general.backupInterval !== undefined) {
-        if (settings.general.backupInterval < 1 || settings.general.backupInterval > 1440) {
+        if (
+          settings.general.backupInterval < 1 ||
+          settings.general.backupInterval > 1440
+        ) {
           errors.push({
             field: "general.backupInterval",
             message: "Backup interval must be between 1 and 1440 minutes",
-          })
+          });
         }
       }
     }
@@ -197,7 +200,7 @@ export class SettingsService {
           errors.push({
             field: "database.connectionTimeout",
             message: "Value must be positive",
-          })
+          });
         }
       }
       if (settings.database.queryTimeout !== undefined) {
@@ -205,15 +208,18 @@ export class SettingsService {
           errors.push({
             field: "database.queryTimeout",
             message: "Value must be positive",
-          })
+          });
         }
       }
       if (settings.database.maxConnections !== undefined) {
-        if (settings.database.maxConnections < 1 || settings.database.maxConnections > 50) {
+        if (
+          settings.database.maxConnections < 1 ||
+          settings.database.maxConnections > 50
+        ) {
           errors.push({
             field: "database.maxConnections",
             message: "Max connections must be between 1 and 50",
-          })
+          });
         }
       }
     }
@@ -225,7 +231,7 @@ export class SettingsService {
           errors.push({
             field: "editor.tabSize",
             message: "Tab size must be between 1 and 8",
-          })
+          });
         }
       }
       if (settings.editor.fontSize !== undefined) {
@@ -233,7 +239,7 @@ export class SettingsService {
           errors.push({
             field: "editor.fontSize",
             message: "Font size must be between 8 and 30",
-          })
+          });
         }
       }
     }
@@ -245,7 +251,7 @@ export class SettingsService {
           errors.push({
             field: "ui.fontSize",
             message: "Font size must be between 8 and 30",
-          })
+          });
         }
       }
       if (settings.ui.theme !== undefined) {
@@ -253,7 +259,7 @@ export class SettingsService {
           errors.push({
             field: "ui.theme",
             message: "Invalid theme value",
-          })
+          });
         }
       }
     }
@@ -261,39 +267,46 @@ export class SettingsService {
     // Advanced settings validation
     if (settings.advanced) {
       if (settings.advanced.logLevel !== undefined) {
-        if (!["error", "warn", "info", "debug"].includes(settings.advanced.logLevel)) {
+        if (
+          !["error", "warn", "info", "debug"].includes(
+            settings.advanced.logLevel,
+          )
+        ) {
           errors.push({
             field: "advanced.logLevel",
             message: "Invalid log level",
-          })
+          });
         }
       }
       if (settings.advanced.maxLogFiles !== undefined) {
-        if (settings.advanced.maxLogFiles < 1 || settings.advanced.maxLogFiles > 100) {
+        if (
+          settings.advanced.maxLogFiles < 1 ||
+          settings.advanced.maxLogFiles > 100
+        ) {
           errors.push({
             field: "advanced.maxLogFiles",
             message: "Max log files must be between 1 and 100",
-          })
+          });
         }
       }
     }
 
-    return errors
+    return errors;
   }
 
   /**
    * デフォルト設定にリセット
    */
   resetToDefaults(): void {
-    this.settings = JSON.parse(JSON.stringify(this.defaultSettings))
-    this.saveSettings()
+    this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
+    this.saveSettings();
   }
 
   /**
    * 設定をエクスポート
    */
   exportSettings(): string {
-    return JSON.stringify(this.settings, null, 2)
+    return JSON.stringify(this.settings, null, 2);
   }
 
   /**
@@ -301,17 +314,19 @@ export class SettingsService {
    */
   importSettings(settingsJson: string): void {
     try {
-      const imported = JSON.parse(settingsJson)
+      const imported = JSON.parse(settingsJson);
 
       // Validate structure
       if (!this.validateSettingsStructure(imported)) {
-        throw new Error("Invalid settings structure")
+        throw new Error("Invalid settings structure");
       }
 
       // Validate values
-      const errors = this.validateSettings(imported)
+      const errors = this.validateSettings(imported);
       if (errors.length > 0) {
-        throw new Error(`Validation errors: ${errors.map((e) => e.message).join(", ")}`)
+        throw new Error(
+          `Validation errors: ${errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
       this.settings = {
@@ -322,25 +337,27 @@ export class SettingsService {
         editor: { ...this.defaultSettings.editor, ...imported.editor },
         ui: { ...this.defaultSettings.ui, ...imported.ui },
         advanced: { ...this.defaultSettings.advanced, ...imported.advanced },
-      }
+      };
 
-      this.saveSettings()
+      this.saveSettings();
     } catch (error) {
       throw new Error(
-        `Failed to import settings: ${error instanceof Error ? error.message : "Unknown error"}`
-      )
+        `Failed to import settings: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   /**
    * 設定構造の検証
    */
-  private validateSettingsStructure(settings: unknown): settings is AppSettings {
+  private validateSettingsStructure(
+    settings: unknown,
+  ): settings is AppSettings {
     if (typeof settings !== "object" || settings === null) {
-      return false
+      return false;
     }
 
-    const s = settings as Record<string, unknown>
+    const s = settings as Record<string, unknown>;
 
     return (
       typeof s.general === "object" &&
@@ -348,38 +365,40 @@ export class SettingsService {
       typeof s.editor === "object" &&
       typeof s.ui === "object" &&
       typeof s.advanced === "object"
-    )
+    );
   }
 
   /**
    * 設定変更の監視
    */
   onSettingsChanged(callback: (settings: AppSettings) => void): () => void {
-    const handler = () => callback(this.getSettings())
-    window.addEventListener("storage", handler)
+    const handler = () => callback(this.getSettings());
+    window.addEventListener("storage", handler);
 
     return () => {
-      window.removeEventListener("storage", handler)
-    }
+      window.removeEventListener("storage", handler);
+    };
   }
 
   /**
    * 特定の設定値を取得
    */
   getSetting<T extends keyof AppSettings>(category: T): AppSettings[T] {
-    return JSON.parse(JSON.stringify(this.settings[category]))
+    return JSON.parse(JSON.stringify(this.settings[category]));
   }
 
   /**
    * 設定のマージ（深いマージ）
    */
   mergeSettings(newSettings: Partial<AppSettings>): void {
-    const errors = this.validateSettings(newSettings)
+    const errors = this.validateSettings(newSettings);
     if (errors.length > 0) {
-      throw new Error(`Validation errors: ${errors.map((e) => e.message).join(", ")}`)
+      throw new Error(
+        `Validation errors: ${errors.map((e) => e.message).join(", ")}`,
+      );
     }
 
-    this.updateSettings(newSettings)
+    this.updateSettings(newSettings);
   }
 
   /**
@@ -387,9 +406,9 @@ export class SettingsService {
    */
   private loadSettings(): AppSettings {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored)
+        const parsed = JSON.parse(stored);
         if (this.validateSettingsStructure(parsed)) {
           // Merge with defaults to ensure all fields exist
           return {
@@ -400,14 +419,14 @@ export class SettingsService {
             editor: { ...this.defaultSettings.editor, ...parsed.editor },
             ui: { ...this.defaultSettings.ui, ...parsed.ui },
             advanced: { ...this.defaultSettings.advanced, ...parsed.advanced },
-          }
+          };
         }
       }
     } catch (error) {
-      console.warn("Failed to load settings, using defaults:", error)
+      console.warn("Failed to load settings, using defaults:", error);
     }
 
-    return JSON.parse(JSON.stringify(this.defaultSettings))
+    return JSON.parse(JSON.stringify(this.defaultSettings));
   }
 
   /**
@@ -415,10 +434,10 @@ export class SettingsService {
    */
   private saveSettings(): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.settings))
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.settings));
     } catch (error) {
-      console.error("Failed to save settings:", error)
-      throw error
+      console.error("Failed to save settings:", error);
+      throw error;
     }
   }
 }

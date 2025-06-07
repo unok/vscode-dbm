@@ -1,30 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { IndexManagementService } from "../../shared/services/IndexManagementService"
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { IndexManagementService } from "../../shared/services/IndexManagementService";
 import type {
   DatabaseConnection,
   IndexDefinition,
   IndexPerformanceAnalysis,
   IndexValidationResult,
-} from "../../shared/types/table-management"
+} from "../../shared/types/table-management";
 
 describe("IndexManagementService", () => {
-  let indexService: IndexManagementService
-  let mockConnection: DatabaseConnection
+  let indexService: IndexManagementService;
+  let mockConnection: DatabaseConnection;
 
   beforeEach(() => {
-    indexService = new IndexManagementService()
+    indexService = new IndexManagementService();
     mockConnection = {
       query: vi.fn(),
       close: vi.fn(),
       isConnected: true,
       driver: "mysql",
     } as {
-      query: () => Promise<unknown>
-      close: () => Promise<void>
-      isConnected: boolean
-      driver: string
-    }
-  })
+      query: () => Promise<unknown>;
+      close: () => Promise<void>;
+      isConnected: boolean;
+      driver: string;
+    };
+  });
 
   describe("Index Validation", () => {
     it("should validate a simple index", () => {
@@ -34,17 +34,17 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: false,
-      }
+      };
 
       const result: IndexValidationResult = indexService.validateIndex(
         index,
         ["id", "email", "name"],
-        mockConnection
-      )
+        mockConnection,
+      );
 
-      expect(result.isValid).toBe(true)
-      expect(result.errors).toHaveLength(0)
-    })
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
 
     it("should reject index with invalid name", () => {
       const index: IndexDefinition = {
@@ -53,14 +53,18 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const result = indexService.validateIndex(index, ["email"], mockConnection)
+      const result = indexService.validateIndex(
+        index,
+        ["email"],
+        mockConnection,
+      );
 
-      expect(result.isValid).toBe(false)
-      expect(result.errors).toHaveLength(1)
-      expect(result.errors[0].type).toBe("validation")
-    })
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].type).toBe("validation");
+    });
 
     it("should reject index with non-existent columns", () => {
       const index: IndexDefinition = {
@@ -69,13 +73,17 @@ describe("IndexManagementService", () => {
         columns: ["nonexistent_column"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const result = indexService.validateIndex(index, ["id", "email"], mockConnection)
+      const result = indexService.validateIndex(
+        index,
+        ["id", "email"],
+        mockConnection,
+      );
 
-      expect(result.isValid).toBe(false)
-      expect(result.errors.some((e) => e.type === "column")).toBe(true)
-    })
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some((e) => e.type === "column")).toBe(true);
+    });
 
     it("should warn about duplicate indexes", () => {
       const existingIndex: IndexDefinition = {
@@ -84,7 +92,7 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: false,
-      }
+      };
 
       const newIndex: IndexDefinition = {
         name: "idx_duplicate",
@@ -92,14 +100,17 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const result = indexService.validateIndex(newIndex, ["email"], mockConnection, [
-        existingIndex,
-      ])
+      const result = indexService.validateIndex(
+        newIndex,
+        ["email"],
+        mockConnection,
+        [existingIndex],
+      );
 
-      expect(result.warnings.some((w) => w.type === "redundancy")).toBe(true)
-    })
+      expect(result.warnings.some((w) => w.type === "redundancy")).toBe(true);
+    });
 
     it("should warn about wide composite indexes", () => {
       const index: IndexDefinition = {
@@ -108,14 +119,26 @@ describe("IndexManagementService", () => {
         columns: ["col1", "col2", "col3", "col4", "col5", "col6", "col7"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const availableColumns = ["col1", "col2", "col3", "col4", "col5", "col6", "col7"]
-      const result = indexService.validateIndex(index, availableColumns, mockConnection)
+      const availableColumns = [
+        "col1",
+        "col2",
+        "col3",
+        "col4",
+        "col5",
+        "col6",
+        "col7",
+      ];
+      const result = indexService.validateIndex(
+        index,
+        availableColumns,
+        mockConnection,
+      );
 
-      expect(result.warnings.some((w) => w.type === "performance")).toBe(true)
-    })
-  })
+      expect(result.warnings.some((w) => w.type === "performance")).toBe(true);
+    });
+  });
 
   describe("Index Performance Analysis", () => {
     it("should analyze single column index performance", () => {
@@ -125,14 +148,15 @@ describe("IndexManagementService", () => {
         columns: ["id"],
         type: "btree",
         unique: true,
-      }
+      };
 
-      const analysis: IndexPerformanceAnalysis = indexService.analyzeIndexPerformance(index)
+      const analysis: IndexPerformanceAnalysis =
+        indexService.analyzeIndexPerformance(index);
 
-      expect(analysis).toBeDefined()
-      expect(analysis.estimatedSelectivity).toBeLessThan(0.1)
-      expect(analysis.suggestions).toBeDefined()
-    })
+      expect(analysis).toBeDefined();
+      expect(analysis.estimatedSelectivity).toBeLessThan(0.1);
+      expect(analysis.suggestions).toBeDefined();
+    });
 
     it("should analyze composite index performance", () => {
       const index: IndexDefinition = {
@@ -141,13 +165,15 @@ describe("IndexManagementService", () => {
         columns: ["status", "created_at"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const analysis = indexService.analyzeIndexPerformance(index)
+      const analysis = indexService.analyzeIndexPerformance(index);
 
-      expect(analysis.suggestions.length).toBeGreaterThan(0)
-      expect(analysis.suggestions.some((s) => s.type === "optimization")).toBe(true)
-    })
+      expect(analysis.suggestions.length).toBeGreaterThan(0);
+      expect(analysis.suggestions.some((s) => s.type === "optimization")).toBe(
+        true,
+      );
+    });
 
     it("should detect low selectivity leading columns", () => {
       const index: IndexDefinition = {
@@ -156,14 +182,16 @@ describe("IndexManagementService", () => {
         columns: ["status", "id"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const analysis = indexService.analyzeIndexPerformance(index)
+      const analysis = indexService.analyzeIndexPerformance(index);
 
-      expect(analysis.suggestions.some((s) => s.message.includes("selective columns first"))).toBe(
-        true
-      )
-    })
+      expect(
+        analysis.suggestions.some((s) =>
+          s.message.includes("selective columns first"),
+        ),
+      ).toBe(true);
+    });
 
     it("should suggest optimizations for very wide indexes", () => {
       const index: IndexDefinition = {
@@ -172,13 +200,17 @@ describe("IndexManagementService", () => {
         columns: ["a", "b", "c", "d", "e", "f", "g"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const analysis = indexService.analyzeIndexPerformance(index)
+      const analysis = indexService.analyzeIndexPerformance(index);
 
-      expect(analysis.suggestions.some((s) => s.message.includes("Consider reducing"))).toBe(true)
-    })
-  })
+      expect(
+        analysis.suggestions.some((s) =>
+          s.message.includes("Consider reducing"),
+        ),
+      ).toBe(true);
+    });
+  });
 
   describe("DDL Generation", () => {
     it("should generate CREATE INDEX statement for MySQL", () => {
@@ -188,15 +220,15 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const sql = indexService.generateCreateIndexSQL(index, "mysql")
+      const sql = indexService.generateCreateIndexSQL(index, "mysql");
 
-      expect(sql).toContain("CREATE INDEX")
-      expect(sql).toContain("idx_user_email")
-      expect(sql).toContain("users")
-      expect(sql).toContain("email")
-    })
+      expect(sql).toContain("CREATE INDEX");
+      expect(sql).toContain("idx_user_email");
+      expect(sql).toContain("users");
+      expect(sql).toContain("email");
+    });
 
     it("should generate CREATE UNIQUE INDEX statement", () => {
       const index: IndexDefinition = {
@@ -205,12 +237,12 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: true,
-      }
+      };
 
-      const sql = indexService.generateCreateIndexSQL(index, "mysql")
+      const sql = indexService.generateCreateIndexSQL(index, "mysql");
 
-      expect(sql).toContain("CREATE UNIQUE INDEX")
-    })
+      expect(sql).toContain("CREATE UNIQUE INDEX");
+    });
 
     it("should generate composite index statement", () => {
       const index: IndexDefinition = {
@@ -219,21 +251,25 @@ describe("IndexManagementService", () => {
         columns: ["first_name", "last_name"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const sql = indexService.generateCreateIndexSQL(index, "postgresql")
+      const sql = indexService.generateCreateIndexSQL(index, "postgresql");
 
-      expect(sql).toContain("first_name")
-      expect(sql).toContain("last_name")
-    })
+      expect(sql).toContain("first_name");
+      expect(sql).toContain("last_name");
+    });
 
     it("should generate DROP INDEX statement", () => {
-      const sql = indexService.generateDropIndexSQL("idx_to_drop", "users", "mysql")
+      const sql = indexService.generateDropIndexSQL(
+        "idx_to_drop",
+        "users",
+        "mysql",
+      );
 
-      expect(sql).toContain("DROP INDEX")
-      expect(sql).toContain("idx_to_drop")
-    })
-  })
+      expect(sql).toContain("DROP INDEX");
+      expect(sql).toContain("idx_to_drop");
+    });
+  });
 
   describe("Database-specific Features", () => {
     it("should handle MySQL specific syntax", () => {
@@ -243,12 +279,12 @@ describe("IndexManagementService", () => {
         columns: ["name"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const sql = indexService.generateCreateIndexSQL(index, "mysql")
+      const sql = indexService.generateCreateIndexSQL(index, "mysql");
 
-      expect(sql).toMatch(/CREATE INDEX `\w+`/)
-    })
+      expect(sql).toMatch(/CREATE INDEX `\w+`/);
+    });
 
     it("should handle PostgreSQL specific syntax", () => {
       const index: IndexDefinition = {
@@ -257,12 +293,12 @@ describe("IndexManagementService", () => {
         columns: ["name"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const sql = indexService.generateCreateIndexSQL(index, "postgresql")
+      const sql = indexService.generateCreateIndexSQL(index, "postgresql");
 
-      expect(sql).toMatch(/CREATE INDEX "\w+"/)
-    })
+      expect(sql).toMatch(/CREATE INDEX "\w+"/);
+    });
 
     it("should handle SQLite specific syntax", () => {
       const index: IndexDefinition = {
@@ -271,13 +307,13 @@ describe("IndexManagementService", () => {
         columns: ["name"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const sql = indexService.generateCreateIndexSQL(index, "sqlite")
+      const sql = indexService.generateCreateIndexSQL(index, "sqlite");
 
-      expect(sql).toContain("CREATE INDEX")
-    })
-  })
+      expect(sql).toContain("CREATE INDEX");
+    });
+  });
 
   describe("Index Optimization Suggestions", () => {
     it("should suggest covering indexes for query patterns", () => {
@@ -287,16 +323,16 @@ describe("IndexManagementService", () => {
         columns: ["customer_id"],
         type: "btree",
         unique: false,
-      }
+      };
 
       const analysis = indexService.analyzeIndexPerformance(index, [
         "customer_id",
         "order_date",
         "status",
-      ])
+      ]);
 
-      expect(analysis.suggestions.length).toBeGreaterThan(0)
-    })
+      expect(analysis.suggestions.length).toBeGreaterThan(0);
+    });
 
     it("should detect redundant indexes", () => {
       const index1: IndexDefinition = {
@@ -305,7 +341,7 @@ describe("IndexManagementService", () => {
         columns: ["email"],
         type: "btree",
         unique: false,
-      }
+      };
 
       const index2: IndexDefinition = {
         name: "idx_long",
@@ -313,11 +349,16 @@ describe("IndexManagementService", () => {
         columns: ["email", "name"],
         type: "btree",
         unique: false,
-      }
+      };
 
-      const result = indexService.validateIndex(index1, ["email", "name"], mockConnection, [index2])
+      const result = indexService.validateIndex(
+        index1,
+        ["email", "name"],
+        mockConnection,
+        [index2],
+      );
 
-      expect(result.warnings.some((w) => w.type === "redundancy")).toBe(true)
-    })
-  })
-})
+      expect(result.warnings.some((w) => w.type === "redundancy")).toBe(true);
+    });
+  });
+});

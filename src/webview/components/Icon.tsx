@@ -1,11 +1,11 @@
-import type React from "react"
+import type React from "react";
 
 export interface IconProps {
-  name: string
-  className?: string
-  size?: "sm" | "md" | "lg"
-  title?: string
-  fallback?: string
+  name: string;
+  className?: string;
+  size?: "sm" | "md" | "lg";
+  title?: string;
+  fallback?: string;
 }
 
 /**
@@ -36,7 +36,7 @@ const FALLBACK_ICONS: Record<string, string> = {
   "symbol-interface": "🔗",
   "symbol-function": "⚙️",
   "symbol-field": "🏷️",
-}
+};
 
 /**
  * VSCode Codicon アイコンコンポーネント
@@ -54,23 +54,23 @@ export const Icon: React.FC<IconProps> = ({
     sm: "text-sm", // 14px
     md: "text-base", // 16px
     lg: "text-lg", // 18px
-  }
+  };
 
   // nameがすでにcodicon-で始まっている場合はそのまま使用、そうでなければ追加
-  const iconClass = name.startsWith("codicon-") ? name : `codicon-${name}`
-  const _fallbackIcon = fallback || FALLBACK_ICONS[name] || "❓"
+  const iconClass = name.startsWith("codicon-") ? name : `codicon-${name}`;
+  const _fallbackIcon = fallback || FALLBACK_ICONS[name] || "❓";
 
   return (
     <span
       className={`codicon ${iconClass} ${sizeClasses[size]} ${className}`}
       title={title}
-      aria-hidden='true'
+      aria-hidden="true"
       style={{
         fontFamily: "codicon, 'Segoe UI Symbol', monospace",
       }}
     />
-  )
-}
+  );
+};
 
 /**
  * 一般的に使用されるアイコン名の定数
@@ -113,6 +113,6 @@ export const IconNames = {
   SYMBOL_CLASS: "symbol-class",
   SYMBOL_INTERFACE: "symbol-interface",
   SYMBOL_FUNCTION: "symbol-function",
-} as const
+} as const;
 
-export type IconName = (typeof IconNames)[keyof typeof IconNames]
+export type IconName = (typeof IconNames)[keyof typeof IconNames];

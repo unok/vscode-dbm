@@ -1,35 +1,35 @@
 interface ShortcutDefinition {
-  id: string
-  key: string
-  modifiers: string[]
-  action: () => void | Promise<void>
-  description: string
-  category: "editor" | "navigation" | "data" | "general"
-  enabled: boolean
-  scope?: "global" | "editor" | "datagrid"
+  id: string;
+  key: string;
+  modifiers: string[];
+  action: () => void | Promise<void>;
+  description: string;
+  category: "editor" | "navigation" | "data" | "general";
+  enabled: boolean;
+  scope?: "global" | "editor" | "datagrid";
 }
 
 interface ShortcutCategory {
-  name: string
-  shortcuts: ShortcutDefinition[]
+  name: string;
+  shortcuts: ShortcutDefinition[];
 }
 
 export interface KeyboardEvent {
-  key: string
-  ctrlKey: boolean
-  shiftKey: boolean
-  altKey: boolean
-  metaKey: boolean
-  preventDefault: () => void
-  stopPropagation: () => void
+  key: string;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  metaKey: boolean;
+  preventDefault: () => void;
+  stopPropagation: () => void;
 }
 
 export interface ShortcutSettings {
   [key: string]: {
-    enabled: boolean
-    customKey?: string
-    customModifiers?: string[]
-  }
+    enabled: boolean;
+    customKey?: string;
+    customModifiers?: string[];
+  };
 }
 
 /**
@@ -37,32 +37,32 @@ export interface ShortcutSettings {
  * フェーズ12: ユーザビリティ向上機能
  */
 export class KeyboardShortcutService {
-  private shortcuts: Map<string, ShortcutDefinition> = new Map()
-  private settings: ShortcutSettings = {}
-  private isListening = false
+  private shortcuts: Map<string, ShortcutDefinition> = new Map();
+  private settings: ShortcutSettings = {};
+  private isListening = false;
 
   constructor() {
-    this.loadDefaultShortcuts()
-    this.loadSettings()
+    this.loadDefaultShortcuts();
+    this.loadSettings();
   }
 
   /**
    * ショートカットを登録
    */
   registerShortcut(shortcut: ShortcutDefinition): void {
-    const key = this.generateKey(shortcut.key, shortcut.modifiers)
-    this.shortcuts.set(key, shortcut)
+    const key = this.generateKey(shortcut.key, shortcut.modifiers);
+    this.shortcuts.set(key, shortcut);
 
     // 設定から有効/無効状態を復元
     if (this.settings[shortcut.id]) {
-      shortcut.enabled = this.settings[shortcut.id].enabled
+      shortcut.enabled = this.settings[shortcut.id].enabled;
 
       // カスタムキーバインドを適用
       if (this.settings[shortcut.id].customKey) {
-        const customKey = this.settings[shortcut.id].customKey
+        const customKey = this.settings[shortcut.id].customKey;
         if (customKey) {
-          shortcut.key = customKey
-          shortcut.modifiers = this.settings[shortcut.id].customModifiers || []
+          shortcut.key = customKey;
+          shortcut.modifiers = this.settings[shortcut.id].customModifiers || [];
         }
       }
     }
@@ -74,8 +74,8 @@ export class KeyboardShortcutService {
   unregisterShortcut(id: string): void {
     for (const [key, shortcut] of this.shortcuts) {
       if (shortcut.id === id) {
-        this.shortcuts.delete(key)
-        break
+        this.shortcuts.delete(key);
+        break;
       }
     }
   }
@@ -84,196 +84,201 @@ export class KeyboardShortcutService {
    * キーイベントを処理
    */
   handleKeyEvent(event: KeyboardEvent, scope = "global"): boolean {
-    const modifiers = this.extractModifiers(event)
-    const key = this.generateKey(event.key, modifiers)
-    const shortcut = this.shortcuts.get(key)
+    const modifiers = this.extractModifiers(event);
+    const key = this.generateKey(event.key, modifiers);
+    const shortcut = this.shortcuts.get(key);
 
     if (shortcut?.enabled && this.isInScope(shortcut, scope)) {
-      event.preventDefault()
-      event.stopPropagation()
+      event.preventDefault();
+      event.stopPropagation();
 
       try {
-        const result = shortcut.action()
+        const result = shortcut.action();
         if (result instanceof Promise) {
           result.catch((error) => {
-            console.error(`Shortcut action failed for ${shortcut.id}:`, error)
-          })
+            console.error(`Shortcut action failed for ${shortcut.id}:`, error);
+          });
         }
       } catch (error) {
-        console.error(`Shortcut action failed for ${shortcut.id}:`, error)
+        console.error(`Shortcut action failed for ${shortcut.id}:`, error);
       }
 
-      return true
+      return true;
     }
 
-    return false
+    return false;
   }
 
   /**
    * カテゴリ別ショートカット一覧を取得
    */
   getShortcutsByCategory(): ShortcutCategory[] {
-    const categories: Map<string, ShortcutDefinition[]> = new Map()
+    const categories: Map<string, ShortcutDefinition[]> = new Map();
 
     for (const shortcut of this.shortcuts.values()) {
       if (!categories.has(shortcut.category)) {
-        categories.set(shortcut.category, [])
+        categories.set(shortcut.category, []);
       }
-      categories.get(shortcut.category)?.push(shortcut)
+      categories.get(shortcut.category)?.push(shortcut);
     }
 
     return Array.from(categories.entries()).map(([name, shortcuts]) => ({
       name,
-      shortcuts: shortcuts.sort((a, b) => a.description.localeCompare(b.description)),
-    }))
+      shortcuts: shortcuts.sort((a, b) =>
+        a.description.localeCompare(b.description),
+      ),
+    }));
   }
 
   /**
    * ショートカットを有効化
    */
   enableShortcut(id: string): void {
-    this.setShortcutEnabled(id, true)
+    this.setShortcutEnabled(id, true);
   }
 
   /**
    * ショートカットを無効化
    */
   disableShortcut(id: string): void {
-    this.setShortcutEnabled(id, false)
+    this.setShortcutEnabled(id, false);
   }
 
   /**
    * ショートカットキーをカスタマイズ
    */
   customizeShortcut(id: string, key: string, modifiers: string[]): boolean {
-    const shortcut = this.findShortcutById(id)
-    if (!shortcut) return false
+    const shortcut = this.findShortcutById(id);
+    if (!shortcut) return false;
 
     // 競合チェック
-    const newKey = this.generateKey(key, modifiers)
+    const newKey = this.generateKey(key, modifiers);
     if (this.shortcuts.has(newKey) && this.shortcuts.get(newKey)?.id !== id) {
-      return false // 競合あり
+      return false; // 競合あり
     }
 
     // 古いキーバインドを削除
-    const oldKey = this.generateKey(shortcut.key, shortcut.modifiers)
-    this.shortcuts.delete(oldKey)
+    const oldKey = this.generateKey(shortcut.key, shortcut.modifiers);
+    this.shortcuts.delete(oldKey);
 
     // 新しいキーバインドを設定
-    shortcut.key = key
-    shortcut.modifiers = modifiers
-    this.shortcuts.set(newKey, shortcut)
+    shortcut.key = key;
+    shortcut.modifiers = modifiers;
+    this.shortcuts.set(newKey, shortcut);
 
     // 設定を保存
     this.settings[id] = {
       ...this.settings[id],
       customKey: key,
       customModifiers: modifiers,
-    }
-    this.saveSettings()
+    };
+    this.saveSettings();
 
-    return true
+    return true;
   }
 
   /**
    * ショートカットをデフォルトに戻す
    */
   resetShortcut(id: string): void {
-    const shortcut = this.findShortcutById(id)
-    if (!shortcut) return
+    const shortcut = this.findShortcutById(id);
+    if (!shortcut) return;
 
     // カスタム設定をクリア
     if (this.settings[id]) {
-      this.settings[id].customKey = undefined
-      this.settings[id].customModifiers = undefined
+      this.settings[id].customKey = undefined;
+      this.settings[id].customModifiers = undefined;
     }
 
     // デフォルトのショートカットを再読み込み
-    this.loadDefaultShortcuts()
-    this.saveSettings()
+    this.loadDefaultShortcuts();
+    this.saveSettings();
   }
 
   /**
    * グローバルキーリスナーを開始
    */
   startListening(): void {
-    if (this.isListening) return
+    if (this.isListening) return;
 
-    document.addEventListener("keydown", this.globalKeyHandler)
-    this.isListening = true
+    document.addEventListener("keydown", this.globalKeyHandler);
+    this.isListening = true;
   }
 
   /**
    * グローバルキーリスナーを停止
    */
   stopListening(): void {
-    if (!this.isListening) return
+    if (!this.isListening) return;
 
-    document.removeEventListener("keydown", this.globalKeyHandler)
-    this.isListening = false
+    document.removeEventListener("keydown", this.globalKeyHandler);
+    this.isListening = false;
   }
 
   /**
    * ショートカット設定をエクスポート
    */
   exportSettings(): ShortcutSettings {
-    return { ...this.settings }
+    return { ...this.settings };
   }
 
   /**
    * ショートカット設定をインポート
    */
   importSettings(settings: ShortcutSettings): void {
-    this.settings = { ...settings }
-    this.saveSettings()
-    this.applySettings()
+    this.settings = { ...settings };
+    this.saveSettings();
+    this.applySettings();
   }
 
   private globalKeyHandler = (event: Event): void => {
-    const keyEvent = event as unknown as KeyboardEvent
-    this.handleKeyEvent(keyEvent, "global")
-  }
+    const keyEvent = event as unknown as KeyboardEvent;
+    this.handleKeyEvent(keyEvent, "global");
+  };
 
   private extractModifiers(event: KeyboardEvent): string[] {
-    const modifiers: string[] = []
-    if (event.ctrlKey || event.metaKey) modifiers.push("Ctrl")
-    if (event.shiftKey) modifiers.push("Shift")
-    if (event.altKey) modifiers.push("Alt")
-    return modifiers
+    const modifiers: string[] = [];
+    if (event.ctrlKey || event.metaKey) modifiers.push("Ctrl");
+    if (event.shiftKey) modifiers.push("Shift");
+    if (event.altKey) modifiers.push("Alt");
+    return modifiers;
   }
 
   private generateKey(key: string, modifiers: string[]): string {
-    const sortedModifiers = [...modifiers].sort()
-    return [...sortedModifiers, key].join("+")
+    const sortedModifiers = [...modifiers].sort();
+    return [...sortedModifiers, key].join("+");
   }
 
-  private isInScope(shortcut: ShortcutDefinition, currentScope: string): boolean {
-    if (!shortcut.scope || shortcut.scope === "global") return true
-    return shortcut.scope === currentScope
+  private isInScope(
+    shortcut: ShortcutDefinition,
+    currentScope: string,
+  ): boolean {
+    if (!shortcut.scope || shortcut.scope === "global") return true;
+    return shortcut.scope === currentScope;
   }
 
   private setShortcutEnabled(id: string, enabled: boolean): void {
-    const shortcut = this.findShortcutById(id)
+    const shortcut = this.findShortcutById(id);
     if (shortcut) {
-      shortcut.enabled = enabled
+      shortcut.enabled = enabled;
 
       if (this.settings[id]) {
-        this.settings[id].enabled = enabled
+        this.settings[id].enabled = enabled;
       } else {
-        this.settings[id] = { enabled }
+        this.settings[id] = { enabled };
       }
 
-      this.saveSettings()
+      this.saveSettings();
     }
   }
 
   private findShortcutById(id: string): ShortcutDefinition | undefined {
     for (const shortcut of this.shortcuts.values()) {
       if (shortcut.id === id) {
-        return shortcut
+        return shortcut;
       }
     }
-    return undefined
+    return undefined;
   }
 
   private loadDefaultShortcuts(): void {
@@ -417,37 +422,40 @@ export class KeyboardShortcutService {
         category: "general",
         enabled: true,
       },
-    ]
+    ];
 
     for (const shortcut of defaultShortcuts) {
-      this.registerShortcut(shortcut)
+      this.registerShortcut(shortcut);
     }
   }
 
   private loadSettings(): void {
     try {
-      const stored = localStorage.getItem("db-extension-shortcuts")
+      const stored = localStorage.getItem("db-extension-shortcuts");
       if (stored) {
-        this.settings = JSON.parse(stored)
+        this.settings = JSON.parse(stored);
       }
     } catch (error) {
-      console.warn("Failed to load shortcut settings:", error)
-      this.settings = {}
+      console.warn("Failed to load shortcut settings:", error);
+      this.settings = {};
     }
   }
 
   private saveSettings(): void {
     try {
-      localStorage.setItem("db-extension-shortcuts", JSON.stringify(this.settings))
+      localStorage.setItem(
+        "db-extension-shortcuts",
+        JSON.stringify(this.settings),
+      );
     } catch (error) {
-      console.warn("Failed to save shortcut settings:", error)
+      console.warn("Failed to save shortcut settings:", error);
     }
   }
 
   private applySettings(): void {
     for (const shortcut of this.shortcuts.values()) {
       if (this.settings[shortcut.id]) {
-        shortcut.enabled = this.settings[shortcut.id].enabled
+        shortcut.enabled = this.settings[shortcut.id].enabled;
       }
     }
   }

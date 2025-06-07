@@ -1,21 +1,24 @@
-import { DDLExecutionService } from "@/shared/services/DDLExecutionService"
-import type { DatabaseConnection } from "@/shared/types/sql"
-import type { ConstraintDefinition, TableDefinition } from "@/shared/types/table-management"
-import { afterEach, beforeEach, describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { DDLExecutionService } from "@/shared/services/DDLExecutionService";
+import type { DatabaseConnection } from "@/shared/types/sql";
+import type {
+  ConstraintDefinition,
+  TableDefinition,
+} from "@/shared/types/table-management";
 
 describe("DDL Execution Service - Constraint Management Integration", () => {
-  let ddlService: DDLExecutionService
-  let mockConnection: DatabaseConnection
+  let ddlService: DDLExecutionService;
+  let mockConnection: DatabaseConnection;
 
   beforeEach(() => {
-    ddlService = new DDLExecutionService()
+    ddlService = new DDLExecutionService();
     mockConnection = {
       id: "test-connection",
       name: "Test Database",
       type: "postgresql",
       database: "test_db",
-    }
-  })
+    };
+  });
 
   describe("Constraint Addition", () => {
     beforeEach(async () => {
@@ -46,31 +49,31 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
             nullable: true,
           },
         ],
-      }
+      };
 
-      await ddlService.createTable(tableDefinition, mockConnection)
-    })
+      await ddlService.createTable(tableDefinition, mockConnection);
+    });
 
     test("should add UNIQUE constraint successfully", async () => {
       const constraint: ConstraintDefinition = {
         name: "uk_users_email",
         type: "UNIQUE",
         columns: ["email"],
-      }
+      };
 
-      const availableColumns = ["id", "email", "age", "department_id"]
+      const availableColumns = ["id", "email", "age", "department_id"];
       const result = await ddlService.addConstraint(
         "users",
         constraint,
         mockConnection,
-        availableColumns
-      )
+        availableColumns,
+      );
 
-      expect(result.success).toBe(true)
-      expect(result.sql).toContain("ALTER TABLE")
-      expect(result.sql).toContain("ADD CONSTRAINT")
-      expect(result.sql).toContain("UNIQUE")
-    })
+      expect(result.success).toBe(true);
+      expect(result.sql).toContain("ALTER TABLE");
+      expect(result.sql).toContain("ADD CONSTRAINT");
+      expect(result.sql).toContain("UNIQUE");
+    });
 
     test("should add FOREIGN KEY constraint successfully", async () => {
       const constraint: ConstraintDefinition = {
@@ -81,118 +84,126 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
         referencedColumns: ["id"],
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
-      }
+      };
 
-      const availableColumns = ["id", "email", "age", "department_id"]
+      const availableColumns = ["id", "email", "age", "department_id"];
       const result = await ddlService.addConstraint(
         "users",
         constraint,
         mockConnection,
-        availableColumns
-      )
+        availableColumns,
+      );
 
-      expect(result.success).toBe(true)
-      expect(result.sql).toContain("FOREIGN KEY")
-      expect(result.sql).toContain("REFERENCES")
-      expect(result.sql).toContain("CASCADE")
-    })
+      expect(result.success).toBe(true);
+      expect(result.sql).toContain("FOREIGN KEY");
+      expect(result.sql).toContain("REFERENCES");
+      expect(result.sql).toContain("CASCADE");
+    });
 
     test("should add CHECK constraint successfully", async () => {
       const constraint: ConstraintDefinition = {
         name: "ck_users_age",
         type: "CHECK",
         checkExpression: "age >= 0 AND age <= 150",
-      }
+      };
 
-      const availableColumns = ["id", "email", "age", "department_id"]
+      const availableColumns = ["id", "email", "age", "department_id"];
       const result = await ddlService.addConstraint(
         "users",
         constraint,
         mockConnection,
-        availableColumns
-      )
+        availableColumns,
+      );
 
-      expect(result.success).toBe(true)
-      expect(result.sql).toContain("CHECK")
-      expect(result.sql).toContain("age >= 0 AND age <= 150")
-    })
+      expect(result.success).toBe(true);
+      expect(result.sql).toContain("CHECK");
+      expect(result.sql).toContain("age >= 0 AND age <= 150");
+    });
 
     test("should reject invalid constraint", async () => {
       const constraint: ConstraintDefinition = {
         name: "",
         type: "UNIQUE",
         columns: ["email"],
-      }
+      };
 
-      const availableColumns = ["id", "email", "age", "department_id"]
+      const availableColumns = ["id", "email", "age", "department_id"];
       const result = await ddlService.addConstraint(
         "users",
         constraint,
         mockConnection,
-        availableColumns
-      )
+        availableColumns,
+      );
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("validation failed")
-    })
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("validation failed");
+    });
 
     test("should reject constraint with non-existent columns", async () => {
       const constraint: ConstraintDefinition = {
         name: "uk_users_invalid",
         type: "UNIQUE",
         columns: ["non_existent_column"],
-      }
+      };
 
-      const availableColumns = ["id", "email", "age", "department_id"]
+      const availableColumns = ["id", "email", "age", "department_id"];
       const result = await ddlService.addConstraint(
         "users",
         constraint,
         mockConnection,
-        availableColumns
-      )
+        availableColumns,
+      );
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("does not exist")
-    })
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+    });
 
     test("should handle SQLite constraint limitations", async () => {
       const constraint: ConstraintDefinition = {
         name: "uk_users_email",
         type: "UNIQUE",
         columns: ["email"],
-      }
+      };
 
-      const sqliteConnection = { ...mockConnection, type: "sqlite" as const }
-      const availableColumns = ["id", "email", "age", "department_id"]
+      const sqliteConnection = { ...mockConnection, type: "sqlite" as const };
+      const availableColumns = ["id", "email", "age", "department_id"];
       const result = await ddlService.addConstraint(
         "users",
         constraint,
         sqliteConnection,
-        availableColumns
-      )
+        availableColumns,
+      );
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("SQLite does not support")
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("SQLite does not support");
+    });
+  });
 
   describe("Constraint Removal", () => {
     test("should drop constraint successfully", async () => {
-      const result = await ddlService.dropConstraint("users", "uk_users_email", mockConnection)
+      const result = await ddlService.dropConstraint(
+        "users",
+        "uk_users_email",
+        mockConnection,
+      );
 
-      expect(result.success).toBe(true)
-      expect(result.sql).toContain("DROP CONSTRAINT")
-      expect(result.sql).toContain("uk_users_email")
-    })
+      expect(result.success).toBe(true);
+      expect(result.sql).toContain("DROP CONSTRAINT");
+      expect(result.sql).toContain("uk_users_email");
+    });
 
     test("should handle SQLite constraint drop limitations", async () => {
-      const sqliteConnection = { ...mockConnection, type: "sqlite" as const }
-      const result = await ddlService.dropConstraint("users", "uk_users_email", sqliteConnection)
+      const sqliteConnection = { ...mockConnection, type: "sqlite" as const };
+      const result = await ddlService.dropConstraint(
+        "users",
+        "uk_users_email",
+        sqliteConnection,
+      );
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("SQLite does not support")
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("SQLite does not support");
+    });
+  });
 
   describe("Constraint Validation", () => {
     test("should validate valid constraint", () => {
@@ -200,29 +211,37 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
         name: "uk_users_email",
         type: "UNIQUE",
         columns: ["email"],
-      }
+      };
 
-      const availableColumns = ["id", "email", "age"]
-      const result = ddlService.validateConstraint(constraint, availableColumns, mockConnection)
+      const availableColumns = ["id", "email", "age"];
+      const result = ddlService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection,
+      );
 
-      expect(result.isValid).toBe(true)
-      expect(result.errors).toHaveLength(0)
-    })
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
 
     test("should validate invalid constraint", () => {
       const constraint: ConstraintDefinition = {
         name: "",
         type: "UNIQUE",
         columns: ["email"],
-      }
+      };
 
-      const availableColumns = ["id", "email", "age"]
-      const result = ddlService.validateConstraint(constraint, availableColumns, mockConnection)
+      const availableColumns = ["id", "email", "age"];
+      const result = ddlService.validateConstraint(
+        constraint,
+        availableColumns,
+        mockConnection,
+      );
 
-      expect(result.isValid).toBe(false)
-      expect(result.errors.length).toBeGreaterThan(0)
-    })
-  })
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
 
   describe("Constraint Dependencies Analysis", () => {
     test("should analyze constraint dependencies", () => {
@@ -244,14 +263,14 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           type: "UNIQUE",
           columns: ["email"],
         },
-      ]
+      ];
 
-      const result = ddlService.analyzeConstraintDependencies(constraints)
+      const result = ddlService.analyzeConstraintDependencies(constraints);
 
-      expect(result.canApply).toBe(true)
-      expect(result.circularDependencies).toHaveLength(0)
-      expect(Object.keys(result.dependencies)).toContain("fk_users_department")
-    })
+      expect(result.canApply).toBe(true);
+      expect(result.circularDependencies).toHaveLength(0);
+      expect(Object.keys(result.dependencies)).toContain("fk_users_department");
+    });
 
     test("should detect problematic constraints", () => {
       const constraints: ConstraintDefinition[] = [
@@ -265,14 +284,16 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           type: "PRIMARY_KEY",
           columns: ["uuid"],
         },
-      ]
+      ];
 
-      const result = ddlService.analyzeConstraintDependencies(constraints)
+      const result = ddlService.analyzeConstraintDependencies(constraints);
 
-      expect(result.warnings.length).toBeGreaterThan(0)
-      expect(result.warnings.some((w) => w.includes("Multiple primary key"))).toBe(true)
-    })
-  })
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(
+        result.warnings.some((w) => w.includes("Multiple primary key")),
+      ).toBe(true);
+    });
+  });
 
   describe("Constraint Creation Order", () => {
     test("should order constraints properly", () => {
@@ -294,15 +315,15 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           type: "UNIQUE",
           columns: ["email"],
         },
-      ]
+      ];
 
-      const ordered = ddlService.getConstraintCreationOrder(constraints)
+      const ordered = ddlService.getConstraintCreationOrder(constraints);
 
-      expect(ordered).toHaveLength(3)
+      expect(ordered).toHaveLength(3);
       // Foreign keys should be last
-      expect(ordered[ordered.length - 1].type).toBe("FOREIGN_KEY")
-    })
-  })
+      expect(ordered[ordered.length - 1].type).toBe("FOREIGN_KEY");
+    });
+  });
 
   describe("Batch Constraint Operations", () => {
     test("should execute batch constraint operations successfully", async () => {
@@ -327,15 +348,18 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           },
           availableColumns: ["id", "email", "age", "department_id"],
         },
-      ]
+      ];
 
-      const results = await ddlService.batchConstraintOperations(operations, mockConnection)
+      const results = await ddlService.batchConstraintOperations(
+        operations,
+        mockConnection,
+      );
 
-      expect(results).toHaveLength(2)
+      expect(results).toHaveLength(2);
       for (const result of results) {
-        expect(result.success).toBe(true)
+        expect(result.success).toBe(true);
       }
-    })
+    });
 
     test("should rollback batch operations on error", async () => {
       const operations = [
@@ -359,14 +383,17 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           },
           availableColumns: ["id", "email", "age", "department_id"],
         },
-      ]
+      ];
 
-      const results = await ddlService.batchConstraintOperations(operations, mockConnection)
+      const results = await ddlService.batchConstraintOperations(
+        operations,
+        mockConnection,
+      );
 
-      expect(results).toHaveLength(2)
-      expect(results[0].success).toBe(true)
-      expect(results[1].success).toBe(false)
-    })
+      expect(results).toHaveLength(2);
+      expect(results[0].success).toBe(true);
+      expect(results[1].success).toBe(false);
+    });
 
     test("should handle drop operations in batch", async () => {
       const operations = [
@@ -380,15 +407,18 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           tableName: "users",
           constraintName: "ck_users_age",
         },
-      ]
+      ];
 
-      const results = await ddlService.batchConstraintOperations(operations, mockConnection)
+      const results = await ddlService.batchConstraintOperations(
+        operations,
+        mockConnection,
+      );
 
-      expect(results).toHaveLength(2)
+      expect(results).toHaveLength(2);
       for (const result of results) {
-        expect(result.success).toBe(true)
+        expect(result.success).toBe(true);
       }
-    })
+    });
 
     test("should handle invalid batch operations", async () => {
       const operations = [
@@ -403,20 +433,22 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
           tableName: "users",
           // Missing constraintName
         },
-      ]
+      ];
 
       const results = await ddlService.batchConstraintOperations(
-        operations as Parameters<typeof ddlService.batchConstraintOperations>[0],
-        mockConnection
-      )
+        operations as Parameters<
+          typeof ddlService.batchConstraintOperations
+        >[0],
+        mockConnection,
+      );
 
-      expect(results).toHaveLength(2)
+      expect(results).toHaveLength(2);
       for (const result of results) {
-        expect(result.success).toBe(false)
-        expect(result.error).toContain("Invalid constraint operation")
+        expect(result.success).toBe(false);
+        expect(result.error).toContain("Invalid constraint operation");
       }
-    })
-  })
+    });
+  });
 
   describe("Integration with Table Creation", () => {
     test("should create table with constraints", async () => {
@@ -461,15 +493,18 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
             checkExpression: "total_amount >= 0",
           },
         ],
-      }
+      };
 
-      const result = await ddlService.createTable(tableDefinition, mockConnection)
+      const result = await ddlService.createTable(
+        tableDefinition,
+        mockConnection,
+      );
 
-      expect(result.success).toBe(true)
-      expect(result.sql).toContain("CREATE TABLE")
-      expect(result.sql).toContain("FOREIGN KEY")
-      expect(result.sql).toContain("CHECK")
-    })
+      expect(result.success).toBe(true);
+      expect(result.sql).toContain("CREATE TABLE");
+      expect(result.sql).toContain("FOREIGN KEY");
+      expect(result.sql).toContain("CHECK");
+    });
 
     test("should validate table constraints during creation", async () => {
       const tableDefinition: TableDefinition = {
@@ -490,17 +525,20 @@ describe("DDL Execution Service - Constraint Management Integration", () => {
             columns: ["id"],
           },
         ],
-      }
+      };
 
-      const result = await ddlService.createTable(tableDefinition, mockConnection)
+      const result = await ddlService.createTable(
+        tableDefinition,
+        mockConnection,
+      );
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("validation")
-    })
-  })
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("validation");
+    });
+  });
 
   afterEach(async () => {
     // Clean up connections
-    await ddlService.closeConnections()
-  })
-})
+    await ddlService.closeConnections();
+  });
+});

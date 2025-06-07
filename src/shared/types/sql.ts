@@ -1,127 +1,127 @@
 // SQL Editor Types
 
 export interface SQLQuery {
-  id?: string
-  content: string
-  createdAt?: Date
-  executedAt?: Date
-  executionTime?: number
-  rowsAffected?: number
+  id?: string;
+  content: string;
+  createdAt?: Date;
+  executedAt?: Date;
+  executionTime?: number;
+  rowsAffected?: number;
 }
 
 export interface QueryResult {
-  columns: string[]
-  rows: Record<string, unknown>[]
-  rowCount: number
-  executionTime: number
-  query: string
-  error?: string
-  warnings?: string[]
+  columns: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  executionTime: number;
+  query: string;
+  error?: string;
+  warnings?: string[];
 }
 
 export interface QueryExecutionOptions {
-  maxRows?: number
-  timeout?: number
-  explain?: boolean
-  dryRun?: boolean
-  format?: "table" | "json" | "csv"
+  maxRows?: number;
+  timeout?: number;
+  explain?: boolean;
+  dryRun?: boolean;
+  format?: "table" | "json" | "csv";
 }
 
 // Database Schema Types
 export interface DatabaseSchema {
-  tables: TableSchema[]
-  views?: ViewSchema[]
-  functions?: (FunctionSchema | string)[]
-  procedures?: ProcedureSchema[]
+  tables: TableSchema[];
+  views?: ViewSchema[];
+  functions?: (FunctionSchema | string)[];
+  procedures?: ProcedureSchema[];
 }
 
 export interface TableSchema {
-  name: string
-  schema: string
-  columns: ColumnSchema[]
-  indexes?: IndexSchema[]
-  constraints?: ConstraintSchema[]
-  comment?: string
+  name: string;
+  schema: string;
+  columns: ColumnSchema[];
+  indexes?: IndexSchema[];
+  constraints?: ConstraintSchema[];
+  comment?: string;
 }
 
 export interface ViewSchema {
-  name: string
-  schema: string
-  definition: string
-  columns?: ColumnSchema[]
-  comment?: string
+  name: string;
+  schema: string;
+  definition: string;
+  columns?: ColumnSchema[];
+  comment?: string;
 }
 
 export interface ColumnSchema {
-  name: string
-  type: string
-  nullable: boolean
-  isPrimaryKey: boolean
-  isForeignKey?: boolean
-  isUnique?: boolean
-  isAutoIncrement?: boolean
-  autoIncrement?: boolean
-  defaultValue?: string | number | boolean | null
-  maxLength?: number
-  precision?: number
-  scale?: number
-  comment?: string
+  name: string;
+  type: string;
+  nullable: boolean;
+  isPrimaryKey: boolean;
+  isForeignKey?: boolean;
+  isUnique?: boolean;
+  isAutoIncrement?: boolean;
+  autoIncrement?: boolean;
+  defaultValue?: string | number | boolean | null;
+  maxLength?: number;
+  precision?: number;
+  scale?: number;
+  comment?: string;
 }
 
 export interface IndexSchema {
-  name: string
-  columns: string[]
-  unique: boolean
-  isUnique?: boolean
-  isPrimary?: boolean
-  type: string
+  name: string;
+  columns: string[];
+  unique: boolean;
+  isUnique?: boolean;
+  isPrimary?: boolean;
+  type: string;
 }
 
 export interface ConstraintSchema {
-  name: string
-  type: "PRIMARY KEY" | "FOREIGN KEY" | "UNIQUE" | "CHECK"
-  columns: string[]
-  referencedTable?: string
-  referencedColumns?: string[]
-  definition?: string
+  name: string;
+  type: "PRIMARY KEY" | "FOREIGN KEY" | "UNIQUE" | "CHECK";
+  columns: string[];
+  referencedTable?: string;
+  referencedColumns?: string[];
+  definition?: string;
 }
 
 export interface FunctionSchema {
-  name: string
-  schema: string
-  parameters: ParameterSchema[]
-  returnType: string
-  language: string
-  definition: string
+  name: string;
+  schema: string;
+  parameters: ParameterSchema[];
+  returnType: string;
+  language: string;
+  definition: string;
 }
 
 export interface ProcedureSchema {
-  name: string
-  schema: string
-  parameters: ParameterSchema[]
-  language: string
-  definition: string
+  name: string;
+  schema: string;
+  parameters: ParameterSchema[];
+  language: string;
+  definition: string;
 }
 
 export interface ParameterSchema {
-  name: string
-  type: string
-  mode: "IN" | "OUT" | "INOUT"
-  defaultValue?: string | number | boolean | null
+  name: string;
+  type: string;
+  mode: "IN" | "OUT" | "INOUT";
+  defaultValue?: string | number | boolean | null;
 }
 
 // Autocompletion Types
 export interface CompletionItem {
-  label: string
-  kind: CompletionItemKind
-  detail?: string
-  documentation?: string
-  insertText?: string
-  insertTextRules?: CompletionInsertTextRule
-  range?: CompletionRange
-  sortText?: string
-  filterText?: string
-  additionalTextEdits?: TextEdit[]
+  label: string;
+  kind: CompletionItemKind;
+  detail?: string;
+  documentation?: string;
+  insertText?: string;
+  insertTextRules?: CompletionInsertTextRule;
+  range?: CompletionRange;
+  sortText?: string;
+  filterText?: string;
+  additionalTextEdits?: TextEdit[];
 }
 
 export enum CompletionItemKind {
@@ -163,383 +163,395 @@ export enum CompletionInsertTextRule {
 }
 
 export interface CompletionRange {
-  startLineNumber: number
-  startColumn: number
-  endLineNumber: number
-  endColumn: number
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
 }
 
 export interface TextEdit {
-  range: CompletionRange
-  text: string
+  range: CompletionRange;
+  text: string;
 }
 
 export interface Position {
-  line: number
-  column: number
+  line: number;
+  column: number;
 }
 
 // Validation Types
 export interface ValidationResult {
-  isValid: boolean
-  errors: string[]
-  warnings: string[]
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
 }
 
 export interface ValidationError {
-  type: "syntax" | "schema" | "security" | "performance"
-  message: string
-  line?: number
-  column?: number
-  length?: number
-  severity: "error" | "warning" | "info"
-  code?: string
-  quickFix?: QuickFix
+  type: "syntax" | "schema" | "security" | "performance";
+  message: string;
+  line?: number;
+  column?: number;
+  length?: number;
+  severity: "error" | "warning" | "info";
+  code?: string;
+  quickFix?: QuickFix;
 }
 
 export interface QuickFix {
-  title: string
-  edits: TextEdit[]
+  title: string;
+  edits: TextEdit[];
 }
 
 // Query History and Bookmarks
 export interface QueryHistoryItem {
-  id: string
-  query: string
-  executedAt: Date
-  executionTime?: number
-  rowsAffected?: number
-  success: boolean
-  error?: string
+  id: string;
+  query: string;
+  executedAt: Date;
+  executionTime?: number;
+  rowsAffected?: number;
+  success: boolean;
+  error?: string;
 }
 
 export interface QueryBookmark {
-  id: string
-  name: string
-  query: string
-  description?: string
-  tags: string[]
-  createdAt: Date
-  updatedAt?: Date
+  id: string;
+  name: string;
+  query: string;
+  description?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 // Execution Plan Types
 export interface ExecutionPlan {
-  query: string
-  plan: ExecutionPlanNode[]
-  totalCost: number
-  estimatedRows: number
-  actualRows?: number
-  executionTime?: number
+  query: string;
+  plan: ExecutionPlanNode[];
+  totalCost: number;
+  estimatedRows: number;
+  actualRows?: number;
+  executionTime?: number;
 }
 
 export interface ExecutionPlanNode {
-  nodeType: string
-  relation?: string
-  alias?: string
-  indexName?: string
-  joinType?: string
+  nodeType: string;
+  relation?: string;
+  alias?: string;
+  indexName?: string;
+  joinType?: string;
   cost: {
-    startup: number
-    total: number
-  }
-  rows: number
-  width: number
-  actualRows?: number
+    startup: number;
+    total: number;
+  };
+  rows: number;
+  width: number;
+  actualRows?: number;
   actualTime?: {
-    startup: number
-    total: number
-  }
-  children?: ExecutionPlanNode[]
-  condition?: string
-  output?: string[]
+    startup: number;
+    total: number;
+  };
+  children?: ExecutionPlanNode[];
+  condition?: string;
+  output?: string[];
 }
 
 // SQL Formatting Types
 export interface SQLFormatOptions {
-  keywordCase: "upper" | "lower" | "capitalize"
-  identifierCase: "upper" | "lower" | "preserve"
-  indentSize: number
-  indentType: "spaces" | "tabs"
-  lineLength: number
-  commaPosition: "before" | "after"
-  insertSpaces: boolean
-  preserveComments: boolean
-  alignColumnDefinitions: boolean
-  alignJoinConditions: boolean
+  keywordCase: "upper" | "lower" | "capitalize";
+  identifierCase: "upper" | "lower" | "preserve";
+  indentSize: number;
+  indentType: "spaces" | "tabs";
+  lineLength: number;
+  commaPosition: "before" | "after";
+  insertSpaces: boolean;
+  preserveComments: boolean;
+  alignColumnDefinitions: boolean;
+  alignJoinConditions: boolean;
 }
 
 // SQL Language Server Types
 export interface SQLLanguageServerCapabilities {
-  completionProvider: boolean
-  hoverProvider: boolean
-  signatureHelpProvider: boolean
-  definitionProvider: boolean
-  referencesProvider: boolean
-  documentFormattingProvider: boolean
-  documentRangeFormattingProvider: boolean
-  documentSymbolProvider: boolean
-  workspaceSymbolProvider: boolean
-  renameProvider: boolean
-  foldingRangeProvider: boolean
-  selectionRangeProvider: boolean
-  semanticTokensProvider: boolean
+  completionProvider: boolean;
+  hoverProvider: boolean;
+  signatureHelpProvider: boolean;
+  definitionProvider: boolean;
+  referencesProvider: boolean;
+  documentFormattingProvider: boolean;
+  documentRangeFormattingProvider: boolean;
+  documentSymbolProvider: boolean;
+  workspaceSymbolProvider: boolean;
+  renameProvider: boolean;
+  foldingRangeProvider: boolean;
+  selectionRangeProvider: boolean;
+  semanticTokensProvider: boolean;
 }
 
 export interface HoverInfo {
-  contents: string[]
-  range?: CompletionRange
+  contents: string[];
+  range?: CompletionRange;
 }
 
 export interface SignatureHelp {
-  signatures: SignatureInformation[]
-  activeSignature: number
-  activeParameter: number
+  signatures: SignatureInformation[];
+  activeSignature: number;
+  activeParameter: number;
 }
 
 export interface SignatureInformation {
-  label: string
-  documentation?: string
-  parameters: ParameterInformation[]
+  label: string;
+  documentation?: string;
+  parameters: ParameterInformation[];
 }
 
 export interface ParameterInformation {
-  label: string
-  documentation?: string
+  label: string;
+  documentation?: string;
 }
 
 export interface Definition {
-  uri: string
-  range: CompletionRange
+  uri: string;
+  range: CompletionRange;
 }
 
 export interface DocumentSymbol {
-  name: string
-  detail?: string
-  kind: CompletionItemKind
-  range: CompletionRange
-  selectionRange: CompletionRange
-  children?: DocumentSymbol[]
+  name: string;
+  detail?: string;
+  kind: CompletionItemKind;
+  range: CompletionRange;
+  selectionRange: CompletionRange;
+  children?: DocumentSymbol[];
 }
 
 // Export and Import Types
 export interface ExportOptions {
-  format: "csv" | "json" | "xlsx" | "sql" | "xml"
-  includeHeaders: boolean
-  delimiter?: string
-  quote?: string
-  escape?: string
-  encoding?: string
-  compression?: boolean
-  fileName?: string
+  format: "csv" | "json" | "xlsx" | "sql" | "xml";
+  includeHeaders: boolean;
+  delimiter?: string;
+  quote?: string;
+  escape?: string;
+  encoding?: string;
+  compression?: boolean;
+  fileName?: string;
 }
 
 export interface ImportOptions {
-  format: "csv" | "json" | "xlsx" | "sql"
-  hasHeaders: boolean
-  delimiter?: string
-  quote?: string
-  escape?: string
-  encoding?: string
-  tableName?: string
-  schema?: string
-  truncateFirst?: boolean
-  onConflict?: "ignore" | "replace" | "update"
+  format: "csv" | "json" | "xlsx" | "sql";
+  hasHeaders: boolean;
+  delimiter?: string;
+  quote?: string;
+  escape?: string;
+  encoding?: string;
+  tableName?: string;
+  schema?: string;
+  truncateFirst?: boolean;
+  onConflict?: "ignore" | "replace" | "update";
 }
 
 // Connection Types
 export interface DatabaseConnection {
-  id: string
-  name: string
-  type: "mysql" | "postgresql" | "sqlite" | "mssql" | "oracle"
-  host?: string
-  port?: number
-  database?: string
-  username?: string
-  password?: string
-  ssl?: boolean
-  connectionString?: string
-  options?: Record<string, unknown>
+  id: string;
+  name: string;
+  type: "mysql" | "postgresql" | "sqlite" | "mssql" | "oracle";
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  ssl?: boolean;
+  connectionString?: string;
+  options?: Record<string, unknown>;
 }
 
 // Query Execution Context
 export interface QueryExecutionContext {
-  connection: DatabaseConnection
-  database?: string
-  schema?: string
-  transaction?: boolean
-  autoCommit?: boolean
-  isolation?: "READ_UNCOMMITTED" | "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE"
-  user?: string
+  connection: DatabaseConnection;
+  database?: string;
+  schema?: string;
+  transaction?: boolean;
+  autoCommit?: boolean;
+  isolation?:
+    | "READ_UNCOMMITTED"
+    | "READ_COMMITTED"
+    | "REPEATABLE_READ"
+    | "SERIALIZABLE";
+  user?: string;
 }
 
 // SQL Dialect Types
 export interface SQLDialect {
-  name: string
-  keywords: string[]
-  functions: string[]
-  datatypes: string[]
-  operators: string[]
+  name: string;
+  keywords: string[];
+  functions: string[];
+  datatypes: string[];
+  operators: string[];
   quotingStyle: {
-    identifier: string
-    string: string
-  }
+    identifier: string;
+    string: string;
+  };
   features: {
-    cte: boolean
-    windowFunctions: boolean
-    jsonSupport: boolean
-    arraySupport: boolean
-    uuidSupport: boolean
-  }
+    cte: boolean;
+    windowFunctions: boolean;
+    jsonSupport: boolean;
+    arraySupport: boolean;
+    uuidSupport: boolean;
+  };
 }
 
 // Performance Monitoring
 export interface QueryPerformanceMetrics {
-  queryId: string
-  executionTime: number
-  planningTime?: number
-  rows: number
-  bufferHits?: number
-  bufferReads?: number
-  tempFileWrites?: number
-  memoryUsage?: number
-  cpuTime?: number
-  ioTime?: number
+  queryId: string;
+  executionTime: number;
+  planningTime?: number;
+  rows: number;
+  bufferHits?: number;
+  bufferReads?: number;
+  tempFileWrites?: number;
+  memoryUsage?: number;
+  cpuTime?: number;
+  ioTime?: number;
 }
 
 // SQL Editor State
 export interface SQLEditorState {
-  content: string
+  content: string;
   selection: {
-    startLine: number
-    startColumn: number
-    endLine: number
-    endColumn: number
-  }
+    startLine: number;
+    startColumn: number;
+    endLine: number;
+    endColumn: number;
+  };
   scrollPosition: {
-    top: number
-    left: number
-  }
-  undoStack: string[]
-  redoStack: string[]
-  isDirty: boolean
-  isExecuting: boolean
-  lastResult?: QueryResult
-  activeConnection?: DatabaseConnection
+    top: number;
+    left: number;
+  };
+  undoStack: string[];
+  redoStack: string[];
+  isDirty: boolean;
+  isExecuting: boolean;
+  lastResult?: QueryResult;
+  activeConnection?: DatabaseConnection;
 }
 
 // SQL Editor Configuration
 export interface SQLEditorConfig {
-  theme: "vs" | "vs-dark" | "hc-black"
-  fontSize: number
-  fontFamily: string
-  tabSize: number
-  insertSpaces: boolean
-  wordWrap: "on" | "off" | "wordWrapColumn" | "bounded"
-  wordWrapColumn: number
-  lineNumbers: "on" | "off" | "relative" | "interval"
-  minimap: boolean
-  folding: boolean
-  autoClosingBrackets: "always" | "languageDefined" | "beforeWhitespace" | "never"
-  autoClosingQuotes: "always" | "languageDefined" | "beforeWhitespace" | "never"
-  formatOnSave: boolean
-  formatOnType: boolean
-  autoSave: "off" | "afterDelay" | "onFocusChange" | "onWindowChange"
-  autoSaveDelay: number
-  quickSuggestions: boolean
-  quickSuggestionsDelay: number
-  parameterHints: boolean
-  wordBasedSuggestions: boolean
-  showUnused: boolean
-  showDeprecated: boolean
+  theme: "vs" | "vs-dark" | "hc-black";
+  fontSize: number;
+  fontFamily: string;
+  tabSize: number;
+  insertSpaces: boolean;
+  wordWrap: "on" | "off" | "wordWrapColumn" | "bounded";
+  wordWrapColumn: number;
+  lineNumbers: "on" | "off" | "relative" | "interval";
+  minimap: boolean;
+  folding: boolean;
+  autoClosingBrackets:
+    | "always"
+    | "languageDefined"
+    | "beforeWhitespace"
+    | "never";
+  autoClosingQuotes:
+    | "always"
+    | "languageDefined"
+    | "beforeWhitespace"
+    | "never";
+  formatOnSave: boolean;
+  formatOnType: boolean;
+  autoSave: "off" | "afterDelay" | "onFocusChange" | "onWindowChange";
+  autoSaveDelay: number;
+  quickSuggestions: boolean;
+  quickSuggestionsDelay: number;
+  parameterHints: boolean;
+  wordBasedSuggestions: boolean;
+  showUnused: boolean;
+  showDeprecated: boolean;
 }
 
 // SQL Snippets
 export interface SQLSnippet {
-  name: string
-  prefix: string
-  body: string[]
-  description: string
-  scope?: string
+  name: string;
+  prefix: string;
+  body: string[];
+  description: string;
+  scope?: string;
 }
 
 // Debugger Types
 export interface SQLDebugger {
-  isDebugging: boolean
-  breakpoints: SQLBreakpoint[]
-  currentLine?: number
-  variables: Record<string, unknown>
-  callStack: SQLStackFrame[]
+  isDebugging: boolean;
+  breakpoints: SQLBreakpoint[];
+  currentLine?: number;
+  variables: Record<string, unknown>;
+  callStack: SQLStackFrame[];
 }
 
 export interface SQLBreakpoint {
-  line: number
-  condition?: string
-  hitCondition?: string
-  logMessage?: string
-  enabled: boolean
+  line: number;
+  condition?: string;
+  hitCondition?: string;
+  logMessage?: string;
+  enabled: boolean;
 }
 
 export interface SQLStackFrame {
-  name: string
-  line: number
-  column: number
-  source: string
+  name: string;
+  line: number;
+  column: number;
+  source: string;
 }
 
 // Code Lens Types
 export interface SQLCodeLens {
-  range: CompletionRange
-  command: SQLCommand
-  isResolved: boolean
+  range: CompletionRange;
+  command: SQLCommand;
+  isResolved: boolean;
 }
 
 export interface SQLCommand {
-  title: string
-  command: string
-  arguments?: unknown[]
+  title: string;
+  command: string;
+  arguments?: unknown[];
 }
 
 // Semantic Tokens
 export interface SemanticTokensLegend {
-  tokenTypes: string[]
-  tokenModifiers: string[]
+  tokenTypes: string[];
+  tokenModifiers: string[];
 }
 
 export interface SemanticTokens {
-  resultId?: string
-  data: number[]
+  resultId?: string;
+  data: number[];
 }
 
 // Error Recovery
 export interface ErrorRecoveryState {
-  errors: ValidationError[]
-  suggestions: CompletionItem[]
-  canRecover: boolean
-  recoveryActions: QuickFix[]
+  errors: ValidationError[];
+  suggestions: CompletionItem[];
+  canRecover: boolean;
+  recoveryActions: QuickFix[];
 }
 
 // SQL Test Types
 export interface SQLTestCase {
-  name: string
-  setup?: string[]
-  query: string
+  name: string;
+  setup?: string[];
+  query: string;
   expectedResult?: {
-    columns: string[]
-    rows: Record<string, unknown>[]
-    rowCount?: number
-  }
+    columns: string[];
+    rows: Record<string, unknown>[];
+    rowCount?: number;
+  };
   expectedError?: {
-    code?: string
-    message?: string
-  }
-  cleanup?: string[]
+    code?: string;
+    message?: string;
+  };
+  cleanup?: string[];
 }
 
 export interface SQLTestSuite {
-  name: string
-  description?: string
-  setup?: string[]
-  tests: SQLTestCase[]
-  cleanup?: string[]
+  name: string;
+  description?: string;
+  setup?: string[];
+  tests: SQLTestCase[];
+  cleanup?: string[];
 }

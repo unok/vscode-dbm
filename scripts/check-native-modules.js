@@ -5,8 +5,8 @@
  * VSCode拡張機能でネイティブモジュールが誤って含まれていないかチェック
  */
 
-const fs = require("node:fs")
-const path = require("node:path")
+const fs = require("node:fs");
+const path = require("node:path");
 
 // VSCode拡張機能で問題となるネイティブモジュール一覧
 const NATIVE_MODULES = [
@@ -18,7 +18,7 @@ const NATIVE_MODULES = [
   "node-addon-api",
   "bindings",
   "prebuild-install",
-]
+];
 
 // フロントエンド（WebView）で使用禁止のバックエンド専用モジュール
 const BACKEND_ONLY_MODULES = [
@@ -37,58 +37,64 @@ const BACKEND_ONLY_MODULES = [
   "http2",
   "stream",
   "worker_threads",
-]
+];
 
 function checkDistDirectory() {
-  const distDir = path.join(__dirname, "../dist")
+  const distDir = path.join(__dirname, "../dist");
 
   if (!fs.existsSync(distDir)) {
-    return true
+    return true;
   }
 
-  const issues = []
+  const issues = [];
 
   // WebView用ディストリビューションをチェック
-  const webviewDist = path.join(distDir, "webview")
+  const webviewDist = path.join(distDir, "webview");
   if (fs.existsSync(webviewDist)) {
-    checkDirectory(webviewDist, "WebView", issues)
+    checkDirectory(webviewDist, "WebView", issues);
   }
 
   // Extension用ディストリビューションをチェック
-  const extensionDist = path.join(distDir, "extension")
+  const extensionDist = path.join(distDir, "extension");
   if (fs.existsSync(extensionDist)) {
-    checkDirectory(extensionDist, "Extension", issues, true)
+    checkDirectory(extensionDist, "Extension", issues, true);
   }
 
   if (issues.length > 0) {
-    console.error("\\n❌ ネイティブモジュール/バックエンド専用モジュールの問題が検出されました:")
+    console.error(
+      "\\n❌ ネイティブモジュール/バックエンド専用モジュールの問題が検出されました:",
+    );
     for (const issue of issues) {
-      console.error(`   ${issue}`)
+      console.error(`   ${issue}`);
     }
-    console.error("\\n🔧 修正方法:")
-    console.error("   1. WebView側でネイティブモジュールを直接使用しないでください")
-    console.error("   2. VSCode Extension API経由でバックエンド機能にアクセスしてください")
-    console.error("   3. vite.config.tsでexternal設定を確認してください")
-    return false
+    console.error("\\n🔧 修正方法:");
+    console.error(
+      "   1. WebView側でネイティブモジュールを直接使用しないでください",
+    );
+    console.error(
+      "   2. VSCode Extension API経由でバックエンド機能にアクセスしてください",
+    );
+    console.error("   3. vite.config.tsでexternal設定を確認してください");
+    return false;
   }
-  return true
+  return true;
 }
 
 function checkDirectory(dir, context, issues, allowNative = false) {
-  if (!fs.existsSync(dir)) return
+  if (!fs.existsSync(dir)) return;
 
-  const files = fs.readdirSync(dir, { recursive: true })
+  const files = fs.readdirSync(dir, { recursive: true });
 
   for (const file of files) {
-    const filePath = path.join(dir, file)
+    const filePath = path.join(dir, file);
 
-    if (typeof file !== "string") continue
+    if (typeof file !== "string") continue;
 
     try {
-      const stat = fs.lstatSync(filePath)
+      const stat = fs.lstatSync(filePath);
 
       if (stat.isFile() && (file.endsWith(".js") || file.endsWith(".mjs"))) {
-        const content = fs.readFileSync(filePath, "utf-8")
+        const content = fs.readFileSync(filePath, "utf-8");
 
         // ネイティブモジュールチェック
         if (!allowNative) {
@@ -98,14 +104,14 @@ function checkDirectory(dir, context, issues, allowNative = false) {
               `require('${module}')`,
               `import.*from.*["']${module}["']`,
               `import.*["']${module}["']`,
-            ]
+            ];
 
             for (const pattern of patterns) {
-              const regex = new RegExp(pattern, "g")
+              const regex = new RegExp(pattern, "g");
               if (regex.test(content)) {
                 issues.push(
-                  `${context}: ${file} - ネイティブモジュール '${module}' が検出されました`
-                )
+                  `${context}: ${file} - ネイティブモジュール '${module}' が検出されました`,
+                );
               }
             }
           }
@@ -118,81 +124,86 @@ function checkDirectory(dir, context, issues, allowNative = false) {
               `require\\\\(["']${module}["']\\\\)`,
               `import.*from.*["']${module}["']`,
               `import.*["']${module}["']`,
-            ]
+            ];
 
             for (const pattern of patterns) {
-              const regex = new RegExp(pattern, "g")
+              const regex = new RegExp(pattern, "g");
               if (regex.test(content)) {
                 issues.push(
-                  `${context}: ${file} - バックエンド専用モジュール '${module}' が検出されました`
-                )
+                  `${context}: ${file} - バックエンド専用モジュール '${module}' が検出されました`,
+                );
               }
             }
           }
         }
       }
     } catch (_error) {
-      console.warn(`⚠️  ファイル読み込みエラー: ${filePath}`)
+      console.warn(`⚠️  ファイル読み込みエラー: ${filePath}`);
     }
   }
 }
 
 function checkPackageJson() {
-  const packagePath = path.join(__dirname, "../package.json")
-  const pkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"))
+  const packagePath = path.join(__dirname, "../package.json");
+  const pkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
 
-  const issues = []
+  const issues = [];
 
   // dependencies の ネイティブモジュールチェック
   if (pkg.dependencies) {
     for (const module of NATIVE_MODULES) {
       if (pkg.dependencies[module]) {
-        issues.push(`dependencies に ネイティブモジュール '${module}' が含まれています`)
+        issues.push(
+          `dependencies に ネイティブモジュール '${module}' が含まれています`,
+        );
       }
     }
   }
 
   if (issues.length > 0) {
-    console.warn("\\n⚠️  package.json の問題:")
+    console.warn("\\n⚠️  package.json の問題:");
     for (const issue of issues) {
-      console.warn(`   ${issue}`)
+      console.warn(`   ${issue}`);
     }
     console.warn(
-      "   → これらのモジュールはExtension側でのみ使用し、WebView側では使用しないでください"
-    )
+      "   → これらのモジュールはExtension側でのみ使用し、WebView側では使用しないでください",
+    );
   } else {
     // Settings are valid
   }
 }
 
 function checkViteConfig() {
-  const viteConfigPath = path.join(__dirname, "../vite.config.ts")
+  const viteConfigPath = path.join(__dirname, "../vite.config.ts");
 
   if (!fs.existsSync(viteConfigPath)) {
-    console.warn("⚠️  vite.config.ts が見つかりません")
-    return
+    console.warn("⚠️  vite.config.ts が見つかりません");
+    return;
   }
 
-  const content = fs.readFileSync(viteConfigPath, "utf-8")
+  const content = fs.readFileSync(viteConfigPath, "utf-8");
 
   // external設定の確認
-  const hasExternal = content.includes("external") || content.includes("rollupOptions")
+  const hasExternal =
+    content.includes("external") || content.includes("rollupOptions");
 
   if (hasExternal) {
     // External configuration found
   } else {
-    console.warn("⚠️  vite.config.ts で external 設定が見つかりません")
-    console.warn("   → ネイティブモジュールを external 設定に追加することを推奨します")
+    console.warn("⚠️  vite.config.ts で external 設定が見つかりません");
+    console.warn(
+      "   → ネイティブモジュールを external 設定に追加することを推奨します",
+    );
   }
 }
 
-checkPackageJson()
-checkViteConfig()
-const result = checkDistDirectory()
+checkPackageJson();
+checkViteConfig();
+const result = checkDistDirectory();
 
 if (result) {
-  process.exit(0)
+  process.exit(0);
 } else {
-  console.error("❌ チェック失敗 - 修正が必要です")
-  process.exit(1)
+  console.error("❌ チェック失敗 - 修正が必要です");
+  process.exit(1);
 }

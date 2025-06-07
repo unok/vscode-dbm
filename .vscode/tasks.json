@@ -9,7 +9,7 @@
       "detail": "TypeScript拡張機能をビルド"
     },
     {
-      "type": "npm", 
+      "type": "npm",
       "script": "dev:extension",
       "group": "build",
       "label": "npm: dev:extension",

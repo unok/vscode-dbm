@@ -1,8 +1,11 @@
-import type React from "react"
-import { useEffect, useState } from "react"
-import type { ColumnDefinition, TableData } from "../../../shared/types/datagrid"
-import { AdvancedDataGrid } from "./AdvancedDataGrid"
-import "../../../webview/styles/advanced-datagrid.css"
+import type React from "react";
+import { useEffect, useState } from "react";
+import type {
+  ColumnDefinition,
+  TableData,
+} from "../../../shared/types/datagrid";
+import { AdvancedDataGrid } from "./AdvancedDataGrid";
+import "../../../webview/styles/advanced-datagrid.css";
 
 /**
  * Demo component showcasing the Advanced DataGrid with all features enabled
@@ -16,14 +19,14 @@ import "../../../webview/styles/advanced-datagrid.css"
  * - Cursor AI smart default value generation
  */
 export const AdvancedDataGridDemo: React.FC = () => {
-  const [tableData, setTableData] = useState<TableData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [tableData, setTableData] = useState<TableData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Sample data for demonstration
   useEffect(() => {
     const loadSampleData = async () => {
       // Simulate loading data
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const columns: ColumnDefinition[] = [
         {
@@ -103,10 +106,10 @@ export const AdvancedDataGridDemo: React.FC = () => {
           isPrimaryKey: false,
           isAutoIncrement: false,
         },
-      ]
+      ];
 
       // Generate sample rows
-      const rows = []
+      const rows = [];
       for (let i = 1; i <= 1000; i++) {
         rows.push({
           id: i,
@@ -121,7 +124,7 @@ export const AdvancedDataGridDemo: React.FC = () => {
             i % 5 === 0
               ? `${i}${i}${i}${i}${i}${i}${i}${i}-${i}${i}${i}${i}-4${i}${i}${i}-${i}${i}${i}${i}-${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}`
               : null,
-        })
+        });
       }
 
       const data: TableData = {
@@ -131,42 +134,44 @@ export const AdvancedDataGridDemo: React.FC = () => {
         totalRows: rows.length,
         offset: 0,
         limit: 50,
-      }
+      };
 
-      setTableData(data)
-      setIsLoading(false)
-    }
+      setTableData(data);
+      setIsLoading(false);
+    };
 
-    loadSampleData()
-  }, [])
+    loadSampleData();
+  }, []);
 
   const handleDataChange = (updatedData: TableData) => {
-    setTableData(updatedData)
-  }
+    setTableData(updatedData);
+  };
 
   if (isLoading) {
     return (
-      <div className='loading-container'>
-        <div className='loading-spinner'>🔄</div>
-        <div className='loading-text'>Loading Advanced DataGrid Demo...</div>
+      <div className="loading-container">
+        <div className="loading-spinner">🔄</div>
+        <div className="loading-text">Loading Advanced DataGrid Demo...</div>
       </div>
-    )
+    );
   }
 
   if (!tableData) {
     return (
-      <div className='error-container'>
-        <div className='error-text'>Failed to load sample data</div>
+      <div className="error-container">
+        <div className="error-text">Failed to load sample data</div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className='advanced-datagrid-demo'>
-      <div className='demo-header'>
+    <div className="advanced-datagrid-demo">
+      <div className="demo-header">
         <h1>Advanced DataGrid - Phase 7 Demo</h1>
-        <div className='demo-description'>This demo showcases all Phase 7 advanced features:</div>
-        <ul className='feature-list'>
+        <div className="demo-description">
+          This demo showcases all Phase 7 advanced features:
+        </div>
+        <ul className="feature-list">
           <li>✅ Advanced inline editing with real-time validation</li>
           <li>✅ Data change tracking with visual indicators</li>
           <li>✅ Bulk editing operations with preview</li>
@@ -175,7 +180,7 @@ export const AdvancedDataGridDemo: React.FC = () => {
           <li>✅ Performance optimization with debouncing</li>
           <li>✅ Cursor AI smart default value generation</li>
         </ul>
-        <div className='demo-instructions'>
+        <div className="demo-instructions">
           <strong>Try these features:</strong>
           <ul>
             <li>Double-click any cell to edit (except ID column)</li>
@@ -188,7 +193,7 @@ export const AdvancedDataGridDemo: React.FC = () => {
         </div>
       </div>
 
-      <div className='demo-content'>
+      <div className="demo-content">
         <AdvancedDataGrid
           data={tableData}
           onDataChange={handleDataChange}
@@ -201,25 +206,25 @@ export const AdvancedDataGridDemo: React.FC = () => {
         />
       </div>
 
-      <div className='demo-footer'>
-        <div className='performance-stats'>
-          <div className='stat'>
-            <span className='stat-label'>Total Rows:</span>
-            <span className='stat-value'>{tableData.totalRows}</span>
+      <div className="demo-footer">
+        <div className="performance-stats">
+          <div className="stat">
+            <span className="stat-label">Total Rows:</span>
+            <span className="stat-value">{tableData.totalRows}</span>
           </div>
-          <div className='stat'>
-            <span className='stat-label'>Columns:</span>
-            <span className='stat-value'>{tableData.columns.length}</span>
+          <div className="stat">
+            <span className="stat-label">Columns:</span>
+            <span className="stat-value">{tableData.columns.length}</span>
           </div>
-          <div className='stat'>
-            <span className='stat-label'>Rendered:</span>
-            <span className='stat-value'>~20 rows (virtualized)</span>
+          <div className="stat">
+            <span className="stat-label">Rendered:</span>
+            <span className="stat-value">~20 rows (virtualized)</span>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Additional CSS for demo styling
 const demoStyles = `
@@ -355,11 +360,11 @@ const demoStyles = `
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-`
+`;
 
 // Inject demo styles
 if (typeof document !== "undefined") {
-  const styleElement = document.createElement("style")
-  styleElement.textContent = demoStyles
-  document.head.appendChild(styleElement)
+  const styleElement = document.createElement("style");
+  styleElement.textContent = demoStyles;
+  document.head.appendChild(styleElement);
 }

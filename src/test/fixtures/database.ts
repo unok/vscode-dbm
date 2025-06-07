@@ -18,7 +18,7 @@ export const mockDatabaseConfig = {
   sqlite: {
     database: ":memory:",
   },
-}
+};
 
 export const mockTableSchema = {
   users: [
@@ -29,10 +29,18 @@ export const mockTableSchema = {
     { name: "hire_date", type: "DATE", nullable: true },
     { name: "salary", type: "DECIMAL(10,2)", nullable: true },
     { name: "is_active", type: "BOOLEAN", defaultValue: true },
-    { name: "created_at", type: "TIMESTAMP", defaultValue: "CURRENT_TIMESTAMP" },
-    { name: "updated_at", type: "TIMESTAMP", defaultValue: "CURRENT_TIMESTAMP" },
+    {
+      name: "created_at",
+      type: "TIMESTAMP",
+      defaultValue: "CURRENT_TIMESTAMP",
+    },
+    {
+      name: "updated_at",
+      type: "TIMESTAMP",
+      defaultValue: "CURRENT_TIMESTAMP",
+    },
   ],
-}
+};
 
 export const mockTableData = {
   users: [
@@ -59,4 +67,4 @@ export const mockTableData = {
       updated_at: "2024-01-01T00:00:00Z",
     },
   ],
-}
+};

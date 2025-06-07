@@ -4,54 +4,54 @@
  */
 
 export interface ToolbarItem {
-  id: string
-  type: "button" | "separator" | "dropdown" | "search"
-  label: string
-  icon?: string
-  action?: () => void | Promise<void>
-  visible: boolean
-  position: number
-  category: "database" | "editor" | "data" | "navigation"
-  tooltip?: string
-  shortcut?: string
-  disabled?: boolean
+  id: string;
+  type: "button" | "separator" | "dropdown" | "search";
+  label: string;
+  icon?: string;
+  action?: () => void | Promise<void>;
+  visible: boolean;
+  position: number;
+  category: "database" | "editor" | "data" | "navigation";
+  tooltip?: string;
+  shortcut?: string;
+  disabled?: boolean;
 }
 
 export interface ToolbarSection {
-  id: string
-  name: string
-  items: ToolbarItem[]
-  collapsible: boolean
-  collapsed: boolean
+  id: string;
+  name: string;
+  items: ToolbarItem[];
+  collapsible: boolean;
+  collapsed: boolean;
 }
 
 export interface ToolbarLayout {
-  sections: ToolbarSection[]
-  theme: "compact" | "standard" | "expanded"
-  showLabels: boolean
-  iconSize: "small" | "medium" | "large"
+  sections: ToolbarSection[];
+  theme: "compact" | "standard" | "expanded";
+  showLabels: boolean;
+  iconSize: "small" | "medium" | "large";
 }
 
 export interface ToolbarCustomizationSettings {
-  layout: ToolbarLayout
+  layout: ToolbarLayout;
   userCustomizations: {
-    hiddenItems: string[]
-    reorderedItems: Array<{ id: string; position: number }>
-    customItems: ToolbarItem[]
-  }
+    hiddenItems: string[];
+    reorderedItems: Array<{ id: string; position: number }>;
+    customItems: ToolbarItem[];
+  };
 }
 
 export class ToolbarCustomizationService {
-  private layout: ToolbarLayout
-  private settings: ToolbarCustomizationSettings
-  private defaultItems: ToolbarItem[] = []
-  private actionCallbacks: Map<string, () => void | Promise<void>> = new Map()
+  private layout: ToolbarLayout;
+  private settings: ToolbarCustomizationSettings;
+  private defaultItems: ToolbarItem[] = [];
+  private actionCallbacks: Map<string, () => void | Promise<void>> = new Map();
 
   constructor() {
-    this.layout = this.getDefaultLayout()
-    this.settings = this.loadSettings()
-    this.loadDefaultItems()
-    this.applyUserCustomizations()
+    this.layout = this.getDefaultLayout();
+    this.settings = this.loadSettings();
+    this.loadDefaultItems();
+    this.applyUserCustomizations();
   }
 
   /**
@@ -92,7 +92,7 @@ export class ToolbarCustomizationService {
       theme: "standard",
       showLabels: true,
       iconSize: "medium",
-    }
+    };
   }
 
   /**
@@ -246,9 +246,9 @@ export class ToolbarCustomizationService {
         tooltip: "Global search across databases",
         shortcut: "Ctrl+Shift+P",
       },
-    ]
+    ];
 
-    this.applyItemsToLayout()
+    this.applyItemsToLayout();
   }
 
   /**
@@ -257,26 +257,26 @@ export class ToolbarCustomizationService {
   applyItemsToLayout(): void {
     // Reset sections
     for (const section of this.layout.sections) {
-      section.items = []
+      section.items = [];
     }
 
     // Group visible items by category
     for (const item of this.defaultItems) {
-      if (!item.visible) continue
+      if (!item.visible) continue;
 
-      const section = this.layout.sections.find((s) => s.id === item.category)
+      const section = this.layout.sections.find((s) => s.id === item.category);
       if (section) {
         // Preserve the action function reference
         section.items.push({
           ...item,
           action: item.action, // Explicitly preserve the action function
-        })
+        });
       }
     }
 
     // Sort items by position within each section
     for (const section of this.layout.sections) {
-      section.items.sort((a, b) => a.position - b.position)
+      section.items.sort((a, b) => a.position - b.position);
     }
   }
 
@@ -284,32 +284,32 @@ export class ToolbarCustomizationService {
    * アクションコールバックを登録
    */
   registerAction(actionId: string, callback: () => void | Promise<void>): void {
-    this.actionCallbacks.set(actionId, callback)
+    this.actionCallbacks.set(actionId, callback);
   }
 
   /**
    * アクションコールバックを削除
    */
   unregisterAction(actionId: string): void {
-    this.actionCallbacks.delete(actionId)
+    this.actionCallbacks.delete(actionId);
   }
 
   /**
    * アクションを実行
    */
   private async executeAction(actionId: string): Promise<void> {
-    const callback = this.actionCallbacks.get(actionId)
+    const callback = this.actionCallbacks.get(actionId);
     if (callback) {
       try {
-        const result = callback()
+        const result = callback();
         if (result instanceof Promise) {
-          await result
+          await result;
         }
       } catch (error) {
-        console.error(`Failed to execute action ${actionId}:`, error)
+        console.error(`Failed to execute action ${actionId}:`, error);
       }
     } else {
-      console.warn(`No action registered for ${actionId}`)
+      console.warn(`No action registered for ${actionId}`);
     }
   }
 
@@ -319,27 +319,27 @@ export class ToolbarCustomizationService {
   addCustomItem(item: ToolbarItem): void {
     // Ensure unique ID
     if (this.defaultItems.some((existing) => existing.id === item.id)) {
-      throw new Error(`Item with ID ${item.id} already exists`)
+      throw new Error(`Item with ID ${item.id} already exists`);
     }
 
-    this.defaultItems.push(item)
-    this.settings.userCustomizations.customItems.push(item)
-    this.applyItemsToLayout()
-    this.saveSettings()
+    this.defaultItems.push(item);
+    this.settings.userCustomizations.customItems.push(item);
+    this.applyItemsToLayout();
+    this.saveSettings();
   }
 
   /**
    * アイテムを非表示にする
    */
   removeItem(itemId: string): void {
-    const item = this.defaultItems.find((i) => i.id === itemId)
+    const item = this.defaultItems.find((i) => i.id === itemId);
     if (item) {
-      item.visible = false
+      item.visible = false;
       if (!this.settings.userCustomizations.hiddenItems.includes(itemId)) {
-        this.settings.userCustomizations.hiddenItems.push(itemId)
+        this.settings.userCustomizations.hiddenItems.push(itemId);
       }
-      this.applyItemsToLayout()
-      this.saveSettings()
+      this.applyItemsToLayout();
+      this.saveSettings();
     }
   }
 
@@ -347,13 +347,15 @@ export class ToolbarCustomizationService {
    * 非表示アイテムを表示する
    */
   showItem(itemId: string): void {
-    const item = this.defaultItems.find((i) => i.id === itemId)
+    const item = this.defaultItems.find((i) => i.id === itemId);
     if (item) {
-      item.visible = true
+      item.visible = true;
       this.settings.userCustomizations.hiddenItems =
-        this.settings.userCustomizations.hiddenItems.filter((id) => id !== itemId)
-      this.applyItemsToLayout()
-      this.saveSettings()
+        this.settings.userCustomizations.hiddenItems.filter(
+          (id) => id !== itemId,
+        );
+      this.applyItemsToLayout();
+      this.saveSettings();
     }
   }
 
@@ -361,22 +363,26 @@ export class ToolbarCustomizationService {
    * アイテムの順序を変更
    */
   reorderItem(itemId: string, newPosition: number): void {
-    const item = this.defaultItems.find((i) => i.id === itemId)
+    const item = this.defaultItems.find((i) => i.id === itemId);
     if (item) {
-      item.position = newPosition
+      item.position = newPosition;
 
       // Update or add to reordered items
-      const existingReorder = this.settings.userCustomizations.reorderedItems.find(
-        (r) => r.id === itemId
-      )
+      const existingReorder =
+        this.settings.userCustomizations.reorderedItems.find(
+          (r) => r.id === itemId,
+        );
       if (existingReorder) {
-        existingReorder.position = newPosition
+        existingReorder.position = newPosition;
       } else {
-        this.settings.userCustomizations.reorderedItems.push({ id: itemId, position: newPosition })
+        this.settings.userCustomizations.reorderedItems.push({
+          id: itemId,
+          position: newPosition,
+        });
       }
 
-      this.applyItemsToLayout()
-      this.saveSettings()
+      this.applyItemsToLayout();
+      this.saveSettings();
     }
   }
 
@@ -384,13 +390,15 @@ export class ToolbarCustomizationService {
    * アイテムを別のセクションに移動
    */
   moveItemToSection(itemId: string, targetSectionId: string): void {
-    const item = this.defaultItems.find((i) => i.id === itemId)
-    const targetSection = this.layout.sections.find((s) => s.id === targetSectionId)
+    const item = this.defaultItems.find((i) => i.id === itemId);
+    const targetSection = this.layout.sections.find(
+      (s) => s.id === targetSectionId,
+    );
 
     if (item && targetSection) {
-      item.category = targetSectionId as ToolbarItem["category"]
-      this.applyItemsToLayout()
-      this.saveSettings()
+      item.category = targetSectionId as ToolbarItem["category"];
+      this.applyItemsToLayout();
+      this.saveSettings();
     }
   }
 
@@ -398,10 +406,10 @@ export class ToolbarCustomizationService {
    * セクションの折りたたみ状態を切り替え
    */
   toggleSection(sectionId: string): void {
-    const section = this.layout.sections.find((s) => s.id === sectionId)
+    const section = this.layout.sections.find((s) => s.id === sectionId);
     if (section?.collapsible) {
-      section.collapsed = !section.collapsed
-      this.saveSettings()
+      section.collapsed = !section.collapsed;
+      this.saveSettings();
     }
   }
 
@@ -409,24 +417,24 @@ export class ToolbarCustomizationService {
    * テーマを更新
    */
   updateTheme(theme: ToolbarLayout["theme"]): void {
-    this.layout.theme = theme
-    this.saveSettings()
+    this.layout.theme = theme;
+    this.saveSettings();
   }
 
   /**
    * アイコンサイズを更新
    */
   updateIconSize(size: ToolbarLayout["iconSize"]): void {
-    this.layout.iconSize = size
-    this.saveSettings()
+    this.layout.iconSize = size;
+    this.saveSettings();
   }
 
   /**
    * ラベル表示を切り替え
    */
   toggleLabels(): void {
-    this.layout.showLabels = !this.layout.showLabels
-    this.saveSettings()
+    this.layout.showLabels = !this.layout.showLabels;
+    this.saveSettings();
   }
 
   /**
@@ -434,77 +442,79 @@ export class ToolbarCustomizationService {
    */
   getLayout(): ToolbarLayout {
     // Deep clone but preserve functions for actions
-    const cloned = JSON.parse(JSON.stringify(this.layout))
+    const cloned = JSON.parse(JSON.stringify(this.layout));
 
     // Restore action functions from defaultItems
     for (const section of cloned.sections) {
       for (const item of section.items) {
-        const originalItem = this.defaultItems.find((orig) => orig.id === item.id)
+        const originalItem = this.defaultItems.find(
+          (orig) => orig.id === item.id,
+        );
         if (originalItem?.action) {
-          item.action = originalItem.action
+          item.action = originalItem.action;
         }
       }
     }
 
-    return cloned
+    return cloned;
   }
 
   /**
    * 利用可能なすべてのアイテムを取得
    */
   getAvailableItems(): ToolbarItem[] {
-    return [...this.defaultItems]
+    return [...this.defaultItems];
   }
 
   /**
    * 非表示のアイテムを取得
    */
   getHiddenItems(): ToolbarItem[] {
-    return this.defaultItems.filter((item) => !item.visible)
+    return this.defaultItems.filter((item) => !item.visible);
   }
 
   /**
    * セクション内のアイテム数を取得
    */
   getSectionItemCount(sectionId: string): number {
-    const section = this.layout.sections.find((s) => s.id === sectionId)
-    return section ? section.items.length : 0
+    const section = this.layout.sections.find((s) => s.id === sectionId);
+    return section ? section.items.length : 0;
   }
 
   /**
    * アイテムのバリデーション
    */
   validateItem(item: ToolbarItem): string[] {
-    const errors: string[] = []
+    const errors: string[] = [];
 
     if (!item.id || item.id.trim().length === 0) {
-      errors.push("Item ID is required")
+      errors.push("Item ID is required");
     }
 
     if (!item.label || item.label.trim().length === 0) {
-      errors.push("Item label is required")
+      errors.push("Item label is required");
     }
 
     if (!["button", "separator", "dropdown", "search"].includes(item.type)) {
-      errors.push("Invalid item type")
+      errors.push("Invalid item type");
     }
 
     if (!["database", "editor", "data", "navigation"].includes(item.category)) {
-      errors.push("Invalid item category")
+      errors.push("Invalid item category");
     }
 
     if (item.position < 0) {
-      errors.push("Position must be non-negative")
+      errors.push("Position must be non-negative");
     }
 
-    return errors
+    return errors;
   }
 
   /**
    * デフォルト設定にリセット
    */
   resetToDefault(): void {
-    this.layout = this.getDefaultLayout()
+    this.layout = this.getDefaultLayout();
     this.settings = {
       layout: this.layout,
       userCustomizations: {
@@ -512,16 +522,16 @@ export class ToolbarCustomizationService {
         reorderedItems: [],
         customItems: [],
       },
-    }
-    this.loadDefaultItems()
-    this.saveSettings()
+    };
+    this.loadDefaultItems();
+    this.saveSettings();
   }
 
   /**
    * 設定をエクスポート
    */
   exportConfiguration(): ToolbarCustomizationSettings {
-    return JSON.parse(JSON.stringify(this.settings))
+    return JSON.parse(JSON.stringify(this.settings));
   }
 
   /**
@@ -530,14 +540,14 @@ export class ToolbarCustomizationService {
   importConfiguration(config: ToolbarCustomizationSettings): void {
     // Validate configuration
     if (!config.layout || !config.userCustomizations) {
-      throw new Error("Invalid configuration format")
+      throw new Error("Invalid configuration format");
     }
 
-    this.settings = JSON.parse(JSON.stringify(config))
-    this.layout = this.settings.layout
-    this.loadDefaultItems()
-    this.applyUserCustomizations()
-    this.saveSettings()
+    this.settings = JSON.parse(JSON.stringify(config));
+    this.layout = this.settings.layout;
+    this.loadDefaultItems();
+    this.applyUserCustomizations();
+    this.saveSettings();
   }
 
   /**
@@ -546,28 +556,28 @@ export class ToolbarCustomizationService {
   private applyUserCustomizations(): void {
     // Apply hidden items
     for (const hiddenId of this.settings.userCustomizations.hiddenItems) {
-      const item = this.defaultItems.find((i) => i.id === hiddenId)
+      const item = this.defaultItems.find((i) => i.id === hiddenId);
       if (item) {
-        item.visible = false
+        item.visible = false;
       }
     }
 
     // Apply reordered items
     for (const reorder of this.settings.userCustomizations.reorderedItems) {
-      const item = this.defaultItems.find((i) => i.id === reorder.id)
+      const item = this.defaultItems.find((i) => i.id === reorder.id);
       if (item) {
-        item.position = reorder.position
+        item.position = reorder.position;
       }
     }
 
     // Add custom items
     for (const customItem of this.settings.userCustomizations.customItems) {
       if (!this.defaultItems.some((item) => item.id === customItem.id)) {
-        this.defaultItems.push({ ...customItem })
+        this.defaultItems.push({ ...customItem });
       }
     }
 
-    this.applyItemsToLayout()
+    this.applyItemsToLayout();
   }
 
   /**
@@ -575,16 +585,16 @@ export class ToolbarCustomizationService {
    */
   private loadSettings(): ToolbarCustomizationSettings {
     try {
-      const stored = localStorage.getItem("db-extension-toolbar")
+      const stored = localStorage.getItem("db-extension-toolbar");
       if (stored) {
-        const parsed = JSON.parse(stored)
+        const parsed = JSON.parse(stored);
         // Ensure structure is valid
         if (parsed.layout && parsed.userCustomizations) {
-          return parsed
+          return parsed;
         }
       }
     } catch (error) {
-      console.warn("Failed to load toolbar settings:", error)
+      console.warn("Failed to load toolbar settings:", error);
     }
 
     return {
@@ -594,7 +604,7 @@ export class ToolbarCustomizationService {
         reorderedItems: [],
         customItems: [],
       },
-    }
+    };
   }
 
   /**
@@ -602,10 +612,13 @@ export class ToolbarCustomizationService {
    */
   private saveSettings(): void {
     try {
-      this.settings.layout = this.layout
-      localStorage.setItem("db-extension-toolbar", JSON.stringify(this.settings))
+      this.settings.layout = this.layout;
+      localStorage.setItem(
+        "db-extension-toolbar",
+        JSON.stringify(this.settings),
+      );
     } catch (error) {
-      console.warn("Failed to save toolbar settings:", error)
+      console.warn("Failed to save toolbar settings:", error);
     }
   }
 }

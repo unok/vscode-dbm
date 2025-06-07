@@ -6,9 +6,11 @@
 @font-face {
   font-family: "codicon";
   font-display: block;
-  src: url("https://cdnjs.cloudflare.com/ajax/libs/vscode-codicons/0.0.32/codicon.woff2")
+  src:
+    url("https://cdnjs.cloudflare.com/ajax/libs/vscode-codicons/0.0.32/codicon.woff2")
     format("woff2"),
-    url("https://cdnjs.cloudflare.com/ajax/libs/vscode-codicons/0.0.32/codicon.woff") format("woff"),
+    url("https://cdnjs.cloudflare.com/ajax/libs/vscode-codicons/0.0.32/codicon.woff")
+    format("woff"),
     url("https://cdnjs.cloudflare.com/ajax/libs/vscode-codicons/0.0.32/codicon.ttf")
     format("truetype");
   font-weight: normal;
@@ -139,7 +141,9 @@ body.dark {
 body {
   background-color: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 /* カスタムコンポーネントスタイル */

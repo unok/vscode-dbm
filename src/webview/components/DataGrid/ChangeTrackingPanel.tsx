@@ -1,12 +1,19 @@
-import type React from "react"
-import { useEffect, useState } from "react"
-import type { ChangeRecord, ChangeStatistics } from "../../../shared/types/datagrid"
-import type { DataChangeTracker } from "../../../shared/utils/DataChangeTracker"
+import type React from "react";
+import { useEffect, useState } from "react";
+import type {
+  ChangeRecord,
+  ChangeStatistics,
+} from "../../../shared/types/datagrid";
+import type { DataChangeTracker } from "../../../shared/utils/DataChangeTracker";
 
 interface ChangeTrackingPanelProps {
-  changeTracker: DataChangeTracker
-  onClose: () => void
-  onRollback: (type: "all" | "cell" | "row", rowIndex?: number, columnId?: string) => void
+  changeTracker: DataChangeTracker;
+  onClose: () => void;
+  onRollback: (
+    type: "all" | "cell" | "row",
+    rowIndex?: number,
+    columnId?: string,
+  ) => void;
 }
 
 export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
@@ -15,94 +22,97 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
   onRollback,
 }) => {
   const [changeRecord, setChangeRecord] = useState<ChangeRecord>(() =>
-    changeTracker.getChangeRecord()
-  )
+    changeTracker.getChangeRecord(),
+  );
   const [statistics, setStatistics] = useState<ChangeStatistics>(() =>
-    changeTracker.getStatistics()
-  )
-  const [showSQL, setShowSQL] = useState(false)
-  const [sqlStatements, setSqlStatements] = useState<string[]>([])
-  const [selectedTab, setSelectedTab] = useState<"overview" | "cells" | "rows" | "sql">("overview")
+    changeTracker.getStatistics(),
+  );
+  const [showSql, setShowSql] = useState(false);
+  const [sqlStatements, setSqlStatements] = useState<string[]>([]);
+  const [selectedTab, setSelectedTab] = useState<
+    "overview" | "cells" | "rows" | "sql"
+  >("overview");
 
   // Update change data periodically
   useEffect(() => {
     const updateChanges = () => {
-      setChangeRecord(changeTracker.getChangeRecord())
-      setStatistics(changeTracker.getStatistics())
-    }
+      setChangeRecord(changeTracker.getChangeRecord());
+      setStatistics(changeTracker.getStatistics());
+    };
 
-    const interval = setInterval(updateChanges, 1000)
-    return () => clearInterval(interval)
-  }, [changeTracker])
+    const interval = setInterval(updateChanges, 1000);
+    return () => clearInterval(interval);
+  }, [changeTracker]);
 
   // Generate SQL when needed
   useEffect(() => {
-    if (showSQL) {
+    if (showSql) {
       // In a real implementation, this would get the table name from context
-      const statements = changeTracker.generateSQLStatements("your_table_name")
-      setSqlStatements(statements)
+      const statements = changeTracker.generateSQLStatements("your_table_name");
+      setSqlStatements(statements);
     }
-  }, [showSQL, changeTracker])
+  }, [showSql, changeTracker]);
 
   const formatTimestamp = (date: Date | null): string => {
-    if (!date) return "Never"
-    return date.toLocaleString()
-  }
+    if (!date) return "Never";
+    return date.toLocaleString();
+  };
 
   const formatCellValue = (value: unknown): string => {
-    if (value === null || value === undefined) return "NULL"
-    if (typeof value === "string") return `"${value}"`
-    return String(value)
-  }
+    if (value === null || value === undefined) return "NULL";
+    if (typeof value === "string") return `"${value}"`;
+    return String(value);
+  };
 
   const getChangesSummary = () => {
-    return changeTracker.getChangesSummary()
-  }
+    return changeTracker.getChangesSummary();
+  };
 
   return (
-    <div className='change-tracking-panel'>
-      <div className='panel-header'>
+    <div className="change-tracking-panel">
+      <div className="panel-header">
         <h3>Change Tracking</h3>
-        <div className='header-actions'>
+        <div className="header-actions">
           <button
-            type='button'
-            className='sql-button'
-            onClick={() => setShowSQL(!showSQL)}
-            title='View SQL Statements'
+            type="button"
+            className="sql-button"
+            onClick={() => setShowSql(!showSql)}
+            title="View SQL Statements"
           >
             📋 SQL
           </button>
-          <button type='button' className='close-button' onClick={onClose}>
+          <button type="button" className="close-button" onClick={onClose}>
             ✕
           </button>
         </div>
       </div>
 
-      <div className='panel-tabs'>
+      <div className="panel-tabs">
         <button
-          type='button'
+          type="button"
           className={`tab ${selectedTab === "overview" ? "active" : ""}`}
           onClick={() => setSelectedTab("overview")}
         >
           Overview
         </button>
         <button
-          type='button'
+          type="button"
           className={`tab ${selectedTab === "cells" ? "active" : ""}`}
           onClick={() => setSelectedTab("cells")}
         >
           Cell Changes ({changeRecord.modifiedCells.length})
         </button>
         <button
-          type='button'
+          type="button"
           className={`tab ${selectedTab === "rows" ? "active" : ""}`}
           onClick={() => setSelectedTab("rows")}
         >
-          Row Changes ({changeRecord.addedRows.length + changeRecord.deletedRows.length})
+          Row Changes (
+          {changeRecord.addedRows.length + changeRecord.deletedRows.length})
         </button>
-        {showSQL && (
+        {showSql && (
           <button
-            type='button'
+            type="button"
             className={`tab ${selectedTab === "sql" ? "active" : ""}`}
             onClick={() => setSelectedTab("sql")}
           >
@@ -111,44 +121,48 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
         )}
       </div>
 
-      <div className='panel-content'>
+      <div className="panel-content">
         {selectedTab === "overview" && (
-          <div className='overview-tab'>
-            <div className='statistics-grid'>
-              <div className='stat-item'>
-                <div className='stat-value'>{statistics.totalChanges}</div>
-                <div className='stat-label'>Total Changes</div>
+          <div className="overview-tab">
+            <div className="statistics-grid">
+              <div className="stat-item">
+                <div className="stat-value">{statistics.totalChanges}</div>
+                <div className="stat-label">Total Changes</div>
               </div>
-              <div className='stat-item'>
-                <div className='stat-value'>{statistics.modifiedCells}</div>
-                <div className='stat-label'>Modified Cells</div>
+              <div className="stat-item">
+                <div className="stat-value">{statistics.modifiedCells}</div>
+                <div className="stat-label">Modified Cells</div>
               </div>
-              <div className='stat-item'>
-                <div className='stat-value'>{statistics.addedRows}</div>
-                <div className='stat-label'>Added Rows</div>
+              <div className="stat-item">
+                <div className="stat-value">{statistics.addedRows}</div>
+                <div className="stat-label">Added Rows</div>
               </div>
-              <div className='stat-item'>
-                <div className='stat-value'>{statistics.deletedRows}</div>
-                <div className='stat-label'>Deleted Rows</div>
+              <div className="stat-item">
+                <div className="stat-value">{statistics.deletedRows}</div>
+                <div className="stat-label">Deleted Rows</div>
               </div>
-              <div className='stat-item'>
-                <div className='stat-value'>{statistics.affectedRows}</div>
-                <div className='stat-label'>Affected Rows</div>
+              <div className="stat-item">
+                <div className="stat-value">{statistics.affectedRows}</div>
+                <div className="stat-label">Affected Rows</div>
               </div>
-              <div className='stat-item'>
-                <div className='stat-value'>{formatTimestamp(changeRecord.lastModified)}</div>
-                <div className='stat-label'>Last Modified</div>
+              <div className="stat-item">
+                <div className="stat-value">
+                  {formatTimestamp(changeRecord.lastModified)}
+                </div>
+                <div className="stat-label">Last Modified</div>
               </div>
             </div>
 
-            <div className='summary-section'>
+            <div className="summary-section">
               <h4>Summary</h4>
-              <div className='summary-content'>
-                <div className='summary-description'>{getChangesSummary().description}</div>
+              <div className="summary-content">
+                <div className="summary-description">
+                  {getChangesSummary().description}
+                </div>
                 {getChangesSummary().details.map((detail) => (
                   <div
                     key={`detail-${detail.slice(0, 20)}-${Date.now()}`}
-                    className='summary-detail'
+                    className="summary-detail"
                   >
                     • {detail}
                   </div>
@@ -156,7 +170,7 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
                 {getChangesSummary().warnings.map((warning) => (
                   <div
                     key={`warning-${warning.slice(0, 20)}-${Date.now()}`}
-                    className='summary-warning'
+                    className="summary-warning"
                   >
                     ⚠️ {warning}
                   </div>
@@ -164,10 +178,10 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
               </div>
             </div>
 
-            <div className='actions-section'>
+            <div className="actions-section">
               <button
-                type='button'
-                className='rollback-all-button'
+                type="button"
+                className="rollback-all-button"
                 onClick={() => onRollback("all")}
                 disabled={statistics.totalChanges === 0}
               >
@@ -178,35 +192,43 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
         )}
 
         {selectedTab === "cells" && (
-          <div className='cells-tab'>
+          <div className="cells-tab">
             {changeRecord.modifiedCells.length === 0 ? (
-              <div className='no-changes'>No cell changes</div>
+              <div className="no-changes">No cell changes</div>
             ) : (
-              <div className='changes-list'>
+              <div className="changes-list">
                 {changeRecord.modifiedCells.map((change) => (
                   <div
                     key={`cell-${change.rowIndex}-${change.columnId}-${Date.now()}`}
-                    className='change-item cell-change'
+                    className="change-item cell-change"
                   >
-                    <div className='change-header'>
-                      <span className='change-location'>
+                    <div className="change-header">
+                      <span className="change-location">
                         Row {change.rowIndex}, Column {change.columnId}
                       </span>
-                      <span className='change-timestamp'>{formatTimestamp(change.timestamp)}</span>
+                      <span className="change-timestamp">
+                        {formatTimestamp(change.timestamp)}
+                      </span>
                     </div>
-                    <div className='change-details'>
-                      <div className='value-change'>
-                        <span className='old-value'>{formatCellValue(change.originalValue)}</span>
-                        <span className='arrow'>→</span>
-                        <span className='new-value'>{formatCellValue(change.newValue)}</span>
+                    <div className="change-details">
+                      <div className="value-change">
+                        <span className="old-value">
+                          {formatCellValue(change.originalValue)}
+                        </span>
+                        <span className="arrow">→</span>
+                        <span className="new-value">
+                          {formatCellValue(change.newValue)}
+                        </span>
                       </div>
                     </div>
-                    <div className='change-actions'>
+                    <div className="change-actions">
                       <button
-                        type='button'
-                        className='rollback-button'
-                        onClick={() => onRollback("cell", change.rowIndex, change.columnId)}
-                        title='Rollback this change'
+                        type="button"
+                        className="rollback-button"
+                        onClick={() =>
+                          onRollback("cell", change.rowIndex, change.columnId)
+                        }
+                        title="Rollback this change"
                       >
                         🔄
                       </button>
@@ -219,40 +241,45 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
         )}
 
         {selectedTab === "rows" && (
-          <div className='rows-tab'>
-            {changeRecord.addedRows.length === 0 && changeRecord.deletedRows.length === 0 ? (
-              <div className='no-changes'>No row changes</div>
+          <div className="rows-tab">
+            {changeRecord.addedRows.length === 0 &&
+            changeRecord.deletedRows.length === 0 ? (
+              <div className="no-changes">No row changes</div>
             ) : (
-              <div className='changes-list'>
+              <div className="changes-list">
                 {/* Added rows */}
                 {changeRecord.addedRows.map((addition, index) => (
                   <div
                     key={`add-${addition.tempId || index}-${Date.now()}`}
-                    className='change-item row-addition'
+                    className="change-item row-addition"
                   >
-                    <div className='change-header'>
-                      <span className='change-type'>➕ Added Row</span>
-                      <span className='change-location'>Row {addition.rowIndex}</span>
-                      <span className='change-timestamp'>
+                    <div className="change-header">
+                      <span className="change-type">➕ Added Row</span>
+                      <span className="change-location">
+                        Row {addition.rowIndex}
+                      </span>
+                      <span className="change-timestamp">
                         {formatTimestamp(addition.timestamp)}
                       </span>
                     </div>
-                    <div className='change-details'>
-                      <div className='row-data'>
+                    <div className="change-details">
+                      <div className="row-data">
                         {Object.entries(addition.data).map(([key, value]) => (
-                          <div key={key} className='data-field'>
-                            <span className='field-name'>{key}:</span>
-                            <span className='field-value'>{formatCellValue(value)}</span>
+                          <div key={key} className="data-field">
+                            <span className="field-name">{key}:</span>
+                            <span className="field-value">
+                              {formatCellValue(value)}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
-                    <div className='change-actions'>
+                    <div className="change-actions">
                       <button
-                        type='button'
-                        className='rollback-button'
+                        type="button"
+                        className="rollback-button"
                         onClick={() => onRollback("row", addition.rowIndex)}
-                        title='Remove this added row'
+                        title="Remove this added row"
                       >
                         🗑️
                       </button>
@@ -264,31 +291,37 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
                 {changeRecord.deletedRows.map((deletion, index) => (
                   <div
                     key={`del-${deletion.originalIndex || index}-${Date.now()}`}
-                    className='change-item row-deletion'
+                    className="change-item row-deletion"
                   >
-                    <div className='change-header'>
-                      <span className='change-type'>🗑️ Deleted Row</span>
-                      <span className='change-location'>Row {deletion.originalIndex}</span>
-                      <span className='change-timestamp'>
+                    <div className="change-header">
+                      <span className="change-type">🗑️ Deleted Row</span>
+                      <span className="change-location">
+                        Row {deletion.originalIndex}
+                      </span>
+                      <span className="change-timestamp">
                         {formatTimestamp(deletion.timestamp)}
                       </span>
                     </div>
-                    <div className='change-details'>
-                      <div className='row-data'>
+                    <div className="change-details">
+                      <div className="row-data">
                         {Object.entries(deletion.data).map(([key, value]) => (
-                          <div key={key} className='data-field'>
-                            <span className='field-name'>{key}:</span>
-                            <span className='field-value'>{formatCellValue(value)}</span>
+                          <div key={key} className="data-field">
+                            <span className="field-name">{key}:</span>
+                            <span className="field-value">
+                              {formatCellValue(value)}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
-                    <div className='change-actions'>
+                    <div className="change-actions">
                       <button
-                        type='button'
-                        className='rollback-button'
-                        onClick={() => onRollback("row", deletion.originalIndex)}
-                        title='Restore this deleted row'
+                        type="button"
+                        className="rollback-button"
+                        onClick={() =>
+                          onRollback("row", deletion.originalIndex)
+                        }
+                        title="Restore this deleted row"
                       >
                         🔄
                       </button>
@@ -300,44 +333,51 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
           </div>
         )}
 
-        {selectedTab === "sql" && showSQL && (
-          <div className='sql-tab'>
+        {selectedTab === "sql" && showSql && (
+          <div className="sql-tab">
             {sqlStatements.length === 0 ? (
-              <div className='no-changes'>No SQL statements to execute</div>
+              <div className="no-changes">No SQL statements to execute</div>
             ) : (
-              <div className='sql-statements'>
-                <div className='sql-header'>
+              <div className="sql-statements">
+                <div className="sql-header">
                   <h4>Generated SQL Statements</h4>
                   <button
-                    type='button'
-                    className='copy-sql-button'
+                    type="button"
+                    className="copy-sql-button"
                     onClick={() => {
-                      navigator.clipboard?.writeText(`${sqlStatements.join(";\n")};`)
+                      navigator.clipboard?.writeText(
+                        `${sqlStatements.join(";\n")};`,
+                      );
                     }}
                   >
                     📋 Copy All
                   </button>
                 </div>
-                <div className='sql-list'>
+                <div className="sql-list">
                   {sqlStatements.map((statement, index) => (
-                    <div key={`sql-${statement.slice(0, 30)}-${index}`} className='sql-statement'>
-                      <div className='sql-index'>{index + 1}.</div>
-                      <code className='sql-code'>{statement};</code>
+                    <div
+                      key={`sql-${statement.slice(0, 30)}-${index}`}
+                      className="sql-statement"
+                    >
+                      <div className="sql-index">{index + 1}.</div>
+                      <code className="sql-code">{statement};</code>
                       <button
-                        type='button'
-                        className='copy-statement-button'
-                        onClick={() => navigator.clipboard?.writeText(`${statement};`)}
-                        title='Copy this statement'
+                        type="button"
+                        className="copy-statement-button"
+                        onClick={() =>
+                          navigator.clipboard?.writeText(`${statement};`)
+                        }
+                        title="Copy this statement"
                       >
                         📋
                       </button>
                     </div>
                   ))}
                 </div>
-                <div className='sql-footer'>
-                  <div className='sql-note'>
-                    💡 These statements represent all pending changes and can be executed to apply
-                    changes to the database.
+                <div className="sql-footer">
+                  <div className="sql-note">
+                    💡 These statements represent all pending changes and can be
+                    executed to apply changes to the database.
                   </div>
                 </div>
               </div>
@@ -346,5 +386,5 @@ export const ChangeTrackingPanel: React.FC<ChangeTrackingPanelProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};

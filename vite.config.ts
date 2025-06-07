@@ -1,7 +1,7 @@
-import path from "node:path"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
-import type { Plugin } from "vite"
+import path from "node:path";
+import react from "@vitejs/plugin-react";
+import type { Plugin } from "vite";
+import { defineConfig } from "vite";
 
 // Custom plugin to remove type="module" from script tags
 const removeModuleType = (): Plugin => {
@@ -9,10 +9,10 @@ const removeModuleType = (): Plugin => {
     name: "remove-module-type",
     transformIndexHtml(html) {
       // Remove type="module" and crossorigin from script tags
-      return html.replace(/<script type="module" crossorigin/g, "<script")
+      return html.replace(/<script type="module" crossorigin/g, "<script");
     },
-  }
-}
+  };
+};
 
 export default defineConfig({
   plugins: [
@@ -91,4 +91,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ["react", "react-dom", "@tanstack/react-table", "uuid"],
   },
-})
+});

@@ -1,112 +1,116 @@
 import {
-  ColumnSchema,
   CompletionInsertTextRule,
   type CompletionItem,
   CompletionItemKind,
   type DatabaseSchema,
   type Position,
-  TableSchema,
-} from "../types/sql"
+} from "../types/sql";
 
 interface CompletionCache {
-  [key: string]: CompletionItem[]
+  [key: string]: CompletionItem[];
 }
 
 interface QueryContext {
-  inSelect: boolean
-  inFrom: boolean
-  inWhere: boolean
-  inJoin: boolean
-  inOrderBy: boolean
-  inGroupBy: boolean
-  inHaving: boolean
-  tables: string[]
-  aliases: Map<string, string>
-  currentTable?: string
+  inSelect: boolean;
+  inFrom: boolean;
+  inWhere: boolean;
+  inJoin: boolean;
+  inOrderBy: boolean;
+  inGroupBy: boolean;
+  inHaving: boolean;
+  tables: string[];
+  aliases: Map<string, string>;
+  currentTable?: string;
 }
 
 export class SQLAutoCompleter {
-  private schema: DatabaseSchema
-  private cache: CompletionCache = {}
-  private sqlKeywords: string[] = []
-  private sqlFunctions: string[] = []
-  private sqlDataTypes: string[] = []
-  private snippets: CompletionItem[] = []
+  private schema: DatabaseSchema;
+  private cache: CompletionCache = {};
+  private sqlKeywords: string[] = [];
+  private sqlFunctions: string[] = [];
+  private sqlDataTypes: string[] = [];
+  private snippets: CompletionItem[] = [];
 
   constructor(schema: DatabaseSchema) {
-    this.schema = schema
-    this.initializeKeywords()
-    this.initializeFunctions()
-    this.initializeDataTypes()
-    this.initializeSnippets()
+    this.schema = schema;
+    this.initializeKeywords();
+    this.initializeFunctions();
+    this.initializeDataTypes();
+    this.initializeSnippets();
   }
 
   /**
    * Get completions for current position
    */
   getCompletions(query: string, position: Position): CompletionItem[] {
-    const cacheKey = `${query}-${position.line}-${position.column}`
+    const cacheKey = `${query}-${position.line}-${position.column}`;
 
     if (this.cache[cacheKey]) {
-      return this.cache[cacheKey]
+      return this.cache[cacheKey];
     }
 
-    const completions = this.generateCompletions(query, position)
+    const completions = this.generateCompletions(query, position);
 
     // Cache results (limit cache size for memory management)
     if (Object.keys(this.cache).length > 100) {
-      this.cache = {}
+      this.cache = {};
     }
-    this.cache[cacheKey] = completions
+    this.cache[cacheKey] = completions;
 
-    return completions
+    return completions;
   }
 
   /**
    * Generate completions based on context
    */
   generateCompletions(query: string, position: Position): CompletionItem[] {
-    const completions: CompletionItem[] = []
-    const context = this.analyzeQueryContext(query, position)
-    const currentWord = this.getCurrentWord(query, position)
-    const precedingText = this.getPrecedingText(query, position)
+    const completions: CompletionItem[] = [];
+    const context = this.analyzeQueryContext(query, position);
+    const currentWord = this.getCurrentWord(query, position);
+    const precedingText = this.getPrecedingText(query, position);
 
     // Get context-specific completions
     if (context.inSelect) {
-      completions.push(...this.getSelectCompletions(context, currentWord))
+      completions.push(...this.getSelectCompletions(context, currentWord));
     } else if (context.inFrom) {
-      completions.push(...this.getFromCompletions(context, currentWord))
+      completions.push(...this.getFromCompletions(context, currentWord));
     } else if (context.inJoin) {
-      completions.push(...this.getJoinCompletions(context, currentWord))
+      completions.push(...this.getJoinCompletions(context, currentWord));
     } else if (context.inWhere || context.inHaving) {
-      completions.push(...this.getWhereCompletions(context, currentWord))
-    } else if (precedingText.trim() === "" || this.isStartOfStatement(precedingText)) {
-      completions.push(...this.getStatementStartCompletions())
+      completions.push(...this.getWhereCompletions(context, currentWord));
+    } else if (
+      precedingText.trim() === "" ||
+      this.isStartOfStatement(precedingText)
+    ) {
+      completions.push(...this.getStatementStartCompletions());
     } else {
-      completions.push(...this.getGeneralCompletions(context, currentWord))
+      completions.push(...this.getGeneralCompletions(context, currentWord));
     }
 
     // Add keywords, functions, and snippets based on context
-    completions.push(...this.getKeywordCompletions(currentWord, context))
-    completions.push(...this.getFunctionCompletions(currentWord, context))
+    completions.push(...this.getKeywordCompletions(currentWord, context));
+    completions.push(...this.getFunctionCompletions(currentWord, context));
 
     if (currentWord.length === 0) {
-      completions.push(...this.getSnippetCompletions(context))
+      completions.push(...this.getSnippetCompletions(context));
     }
 
     // Filter and sort completions
-    return this.filterAndSortCompletions(completions, currentWord)
+    return this.filterAndSortCompletions(completions, currentWord);
   }
 
   /**
    * Get completions for SELECT clause
    */
-  private getSelectCompletions(context: QueryContext, _currentWord: string): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getSelectCompletions(
+    context: QueryContext,
+    _currentWord: string,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     // Add columns from available tables
     for (const tableName of context.tables) {
-      const table = this.schema.tables.find((t) => t.name === tableName)
+      const table = this.schema.tables.find((t) => t.name === tableName);
       if (table) {
         for (const column of table.columns) {
           completions.push({
@@ -115,7 +119,7 @@ export class SQLAutoCompleter {
             detail: `${column.type} - ${table.name}`,
             documentation: column.comment,
             sortText: `column_${column.name}`,
-          })
+          });
         }
       }
     }
@@ -123,7 +127,7 @@ export class SQLAutoCompleter {
     // Add qualified column names if there are multiple tables
     if (context.tables.length > 1) {
       for (const tableName of context.tables) {
-        const table = this.schema.tables.find((t) => t.name === tableName)
+        const table = this.schema.tables.find((t) => t.name === tableName);
         if (table) {
           for (const column of table.columns) {
             completions.push({
@@ -132,14 +136,21 @@ export class SQLAutoCompleter {
               detail: `${column.type} - ${table.name}`,
               documentation: column.comment,
               sortText: `qualified_${tableName}_${column.name}`,
-            })
+            });
           }
         }
       }
     }
 
     // Add aggregate functions
-    const aggregateFunctions = ["COUNT", "SUM", "AVG", "MIN", "MAX", "GROUP_CONCAT"]
+    const aggregateFunctions = [
+      "COUNT",
+      "SUM",
+      "AVG",
+      "MIN",
+      "MAX",
+      "GROUP_CONCAT",
+    ];
     for (const func of aggregateFunctions) {
       completions.push({
         label: `${func}()`,
@@ -148,17 +159,20 @@ export class SQLAutoCompleter {
         insertText: `${func}($1)`,
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
         sortText: `function_${func}`,
-      })
+      });
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get completions for FROM clause
    */
-  private getFromCompletions(_context: QueryContext, _currentWord: string): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getFromCompletions(
+    _context: QueryContext,
+    _currentWord: string,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     // Add all tables
     for (const table of this.schema.tables) {
@@ -168,7 +182,7 @@ export class SQLAutoCompleter {
         detail: `Table - ${table.schema}`,
         documentation: table.comment,
         sortText: `table_${table.name}`,
-      })
+      });
     }
 
     // Add all views
@@ -179,17 +193,20 @@ export class SQLAutoCompleter {
         detail: `View - ${view.schema}`,
         documentation: view.comment,
         sortText: `view_${view.name}`,
-      })
+      });
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get completions for JOIN clause
    */
-  private getJoinCompletions(context: QueryContext, _currentWord: string): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getJoinCompletions(
+    context: QueryContext,
+    _currentWord: string,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     // Add tables that are not already in the query
     for (const table of this.schema.tables) {
@@ -200,33 +217,42 @@ export class SQLAutoCompleter {
           detail: `Table - ${table.schema}`,
           documentation: table.comment,
           sortText: `table_${table.name}`,
-        })
+        });
       }
     }
 
     // Add JOIN keywords
-    const joinTypes = ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL OUTER JOIN", "CROSS JOIN"]
+    const joinTypes = [
+      "INNER JOIN",
+      "LEFT JOIN",
+      "RIGHT JOIN",
+      "FULL OUTER JOIN",
+      "CROSS JOIN",
+    ];
     for (const joinType of joinTypes) {
       completions.push({
         label: joinType,
         kind: CompletionItemKind.Keyword,
         detail: "JOIN type",
         sortText: `join_${joinType}`,
-      })
+      });
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get completions for WHERE/HAVING clause
    */
-  private getWhereCompletions(context: QueryContext, _currentWord: string): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getWhereCompletions(
+    context: QueryContext,
+    _currentWord: string,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     // Add columns from available tables
     for (const tableName of context.tables) {
-      const table = this.schema.tables.find((t) => t.name === tableName)
+      const table = this.schema.tables.find((t) => t.name === tableName);
       if (table) {
         for (const column of table.columns) {
           completions.push({
@@ -235,7 +261,7 @@ export class SQLAutoCompleter {
             detail: `${column.type} - ${table.name}`,
             documentation: column.comment,
             sortText: `column_${column.name}`,
-          })
+          });
         }
       }
     }
@@ -256,35 +282,35 @@ export class SQLAutoCompleter {
       "BETWEEN",
       "IS NULL",
       "IS NOT NULL",
-    ]
+    ];
     for (const operator of operators) {
       completions.push({
         label: operator,
         kind: CompletionItemKind.Operator,
         detail: "Comparison operator",
         sortText: `operator_${operator}`,
-      })
+      });
     }
 
     // Add logical operators
-    const logicalOperators = ["AND", "OR", "NOT"]
+    const logicalOperators = ["AND", "OR", "NOT"];
     for (const operator of logicalOperators) {
       completions.push({
         label: operator,
         kind: CompletionItemKind.Keyword,
         detail: "Logical operator",
         sortText: `logical_${operator}`,
-      })
+      });
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get completions for statement start
    */
   private getStatementStartCompletions(): CompletionItem[] {
-    const completions: CompletionItem[] = []
+    const completions: CompletionItem[] = [];
 
     const statements = [
       { label: "SELECT", detail: "Select data from tables" },
@@ -295,7 +321,7 @@ export class SQLAutoCompleter {
       { label: "ALTER", detail: "Modify database objects" },
       { label: "DROP", detail: "Remove database objects" },
       { label: "WITH", detail: "Common Table Expression" },
-    ]
+    ];
 
     for (const statement of statements) {
       completions.push({
@@ -303,37 +329,50 @@ export class SQLAutoCompleter {
         kind: CompletionItemKind.Keyword,
         detail: statement.detail,
         sortText: `statement_${statement.label}`,
-      })
+      });
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get general completions
    */
-  private getGeneralCompletions(_context: QueryContext, _currentWord: string): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getGeneralCompletions(
+    _context: QueryContext,
+    _currentWord: string,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     // Add clause keywords based on context
-    const clauseKeywords = ["WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT", "OFFSET"]
+    const clauseKeywords = [
+      "WHERE",
+      "GROUP BY",
+      "HAVING",
+      "ORDER BY",
+      "LIMIT",
+      "OFFSET",
+    ];
     for (const keyword of clauseKeywords) {
       completions.push({
         label: keyword,
         kind: CompletionItemKind.Keyword,
         detail: "SQL clause",
         sortText: `clause_${keyword}`,
-      })
+      });
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get keyword completions
    */
-  private getKeywordCompletions(currentWord: string, _context: QueryContext): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getKeywordCompletions(
+    currentWord: string,
+    _context: QueryContext,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     for (const keyword of this.sqlKeywords) {
       if (keyword.toLowerCase().startsWith(currentWord.toLowerCase())) {
@@ -342,18 +381,21 @@ export class SQLAutoCompleter {
           kind: CompletionItemKind.Keyword,
           detail: "SQL keyword",
           sortText: `keyword_${keyword}`,
-        })
+        });
       }
     }
 
-    return completions
+    return completions;
   }
 
   /**
    * Get function completions
    */
-  private getFunctionCompletions(currentWord: string, _context: QueryContext): CompletionItem[] {
-    const completions: CompletionItem[] = []
+  private getFunctionCompletions(
+    currentWord: string,
+    _context: QueryContext,
+  ): CompletionItem[] {
+    const completions: CompletionItem[] = [];
 
     for (const func of this.sqlFunctions) {
       if (func.toLowerCase().startsWith(currentWord.toLowerCase())) {
@@ -364,11 +406,11 @@ export class SQLAutoCompleter {
           insertText: `${func}($1)`,
           insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
           sortText: `function_${func}`,
-        })
+        });
       }
     }
 
-    return completions
+    return completions;
   }
 
   /**
@@ -377,8 +419,8 @@ export class SQLAutoCompleter {
   private getSnippetCompletions(_context: QueryContext): CompletionItem[] {
     return this.snippets.filter((_snippet) => {
       // Return snippets based on context
-      return true // Simplified for now
-    })
+      return true; // Simplified for now
+    });
   }
 
   /**
@@ -395,101 +437,112 @@ export class SQLAutoCompleter {
       inHaving: false,
       tables: [],
       aliases: new Map(),
-    }
+    };
 
-    const beforeCursor = query.substring(0, this.getOffsetFromPosition(query, position))
-    const upperQuery = beforeCursor.toUpperCase()
+    const beforeCursor = query.substring(
+      0,
+      this.getOffsetFromPosition(query, position),
+    );
+    const upperQuery = beforeCursor.toUpperCase();
 
     // Find current clause
-    const clauses = ["SELECT", "FROM", "WHERE", "JOIN", "GROUP BY", "ORDER BY", "HAVING"]
-    let currentClause = ""
-    let lastClauseIndex = -1
+    const clauses = [
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "JOIN",
+      "GROUP BY",
+      "ORDER BY",
+      "HAVING",
+    ];
+    let currentClause = "";
+    let lastClauseIndex = -1;
 
     for (const clause of clauses) {
-      const index = upperQuery.lastIndexOf(clause)
+      const index = upperQuery.lastIndexOf(clause);
       if (index > lastClauseIndex) {
-        lastClauseIndex = index
-        currentClause = clause
+        lastClauseIndex = index;
+        currentClause = clause;
       }
     }
 
     // Set context flags
-    context.inSelect = currentClause === "SELECT"
-    context.inFrom = currentClause === "FROM"
-    context.inWhere = currentClause === "WHERE"
-    context.inJoin = currentClause.includes("JOIN")
-    context.inOrderBy = currentClause === "ORDER BY"
-    context.inGroupBy = currentClause === "GROUP BY"
-    context.inHaving = currentClause === "HAVING"
+    context.inSelect = currentClause === "SELECT";
+    context.inFrom = currentClause === "FROM";
+    context.inWhere = currentClause === "WHERE";
+    context.inJoin = currentClause.includes("JOIN");
+    context.inOrderBy = currentClause === "ORDER BY";
+    context.inGroupBy = currentClause === "GROUP BY";
+    context.inHaving = currentClause === "HAVING";
 
     // Extract table names
-    const fromMatches = beforeCursor.match(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)
+    const fromMatches = beforeCursor.match(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi);
     if (fromMatches) {
       for (const match of fromMatches) {
-        const tableName = match.replace(/FROM\s+/i, "").trim()
-        context.tables.push(tableName)
+        const tableName = match.replace(/FROM\s+/i, "").trim();
+        context.tables.push(tableName);
       }
     }
 
-    const joinMatches = beforeCursor.match(/JOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)
+    const joinMatches = beforeCursor.match(/JOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi);
     if (joinMatches) {
       for (const match of joinMatches) {
-        const tableName = match.replace(/.*JOIN\s+/i, "").trim()
-        context.tables.push(tableName)
+        const tableName = match.replace(/.*JOIN\s+/i, "").trim();
+        context.tables.push(tableName);
       }
     }
 
-    return context
+    return context;
   }
 
   /**
    * Get current word at position
    */
   private getCurrentWord(query: string, position: Position): string {
-    const offset = this.getOffsetFromPosition(query, position)
-    let start = offset
-    let end = offset
+    const offset = this.getOffsetFromPosition(query, position);
+    let start = offset;
+    let end = offset;
 
     // Find word boundaries
     while (start > 0 && /[a-zA-Z0-9_]/.test(query[start - 1])) {
-      start--
+      start--;
     }
     while (end < query.length && /[a-zA-Z0-9_]/.test(query[end])) {
-      end++
+      end++;
     }
 
-    return query.substring(start, end)
+    return query.substring(start, end);
   }
 
   /**
    * Get text preceding the cursor
    */
   private getPrecedingText(query: string, position: Position): string {
-    const offset = this.getOffsetFromPosition(query, position)
-    return query.substring(0, offset)
+    const offset = this.getOffsetFromPosition(query, position);
+    return query.substring(0, offset);
   }
 
   /**
    * Convert position to offset
    */
   private getOffsetFromPosition(query: string, position: Position): number {
-    const lines = query.split("\n")
-    let offset = 0
+    const lines = query.split("\n");
+    let offset = 0;
 
     for (let i = 0; i < position.line - 1; i++) {
-      offset += lines[i].length + 1 // +1 for newline
+      offset += lines[i].length + 1; // +1 for newline
     }
 
-    offset += position.column - 1
-    return Math.min(offset, query.length)
+    offset += position.column - 1;
+    return Math.min(offset, query.length);
   }
 
   /**
    * Check if position is at start of statement
    */
   private isStartOfStatement(precedingText: string): boolean {
-    const trimmed = precedingText.trim()
-    return trimmed === "" || trimmed.endsWith(";")
+    const trimmed = precedingText.trim();
+    return trimmed === "" || trimmed.endsWith(";");
   }
 
   /**
@@ -497,31 +550,35 @@ export class SQLAutoCompleter {
    */
   private filterAndSortCompletions(
     completions: CompletionItem[],
-    currentWord: string
+    currentWord: string,
   ): CompletionItem[] {
     if (!currentWord) {
-      return completions.slice(0, 50) // Limit results
+      return completions.slice(0, 50); // Limit results
     }
 
     const filtered = completions.filter((item) =>
-      item.label.toLowerCase().includes(currentWord.toLowerCase())
-    )
+      item.label.toLowerCase().includes(currentWord.toLowerCase()),
+    );
 
     // Sort by relevance
     filtered.sort((a, b) => {
-      const aStartsWith = a.label.toLowerCase().startsWith(currentWord.toLowerCase())
-      const bStartsWith = b.label.toLowerCase().startsWith(currentWord.toLowerCase())
+      const aStartsWith = a.label
+        .toLowerCase()
+        .startsWith(currentWord.toLowerCase());
+      const bStartsWith = b.label
+        .toLowerCase()
+        .startsWith(currentWord.toLowerCase());
 
-      if (aStartsWith && !bStartsWith) return -1
-      if (!aStartsWith && bStartsWith) return 1
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
 
       // Use sortText if available
-      const aSortText = a.sortText || a.label
-      const bSortText = b.sortText || b.label
-      return aSortText.localeCompare(bSortText)
-    })
+      const aSortText = a.sortText || a.label;
+      const bSortText = b.sortText || b.label;
+      return aSortText.localeCompare(bSortText);
+    });
 
-    return filtered.slice(0, 50) // Limit results
+    return filtered.slice(0, 50); // Limit results
   }
 
   /**
@@ -588,7 +645,7 @@ export class SQLAutoCompleter {
       "CONSTRAINT",
       "AUTO_INCREMENT",
       "NOT NULL",
-    ]
+    ];
   }
 
   /**
@@ -666,7 +723,7 @@ export class SQLAutoCompleter {
       "CAST",
       "CONVERT",
       "FORMAT",
-    ]
+    ];
   }
 
   /**
@@ -705,7 +762,7 @@ export class SQLAutoCompleter {
       "UUID",
       "ENUM",
       "SET",
-    ]
+    ];
   }
 
   /**
@@ -717,7 +774,8 @@ export class SQLAutoCompleter {
         label: "SELECT Statement",
         kind: CompletionItemKind.Snippet,
         detail: "Basic SELECT statement",
-        insertText: "SELECT ${1:columns}\nFROM ${2:table}\nWHERE ${3:condition}",
+        insertText:
+          "SELECT ${1:columns}\nFROM ${2:table}\nWHERE ${3:condition}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
         sortText: "snippet_select",
       },
@@ -725,7 +783,8 @@ export class SQLAutoCompleter {
         label: "INSERT Statement",
         kind: CompletionItemKind.Snippet,
         detail: "Basic INSERT statement",
-        insertText: "INSERT INTO ${1:table} (${2:columns})\nVALUES (${3:values})",
+        insertText:
+          "INSERT INTO ${1:table} (${2:columns})\nVALUES (${3:values})",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
         sortText: "snippet_insert",
       },
@@ -733,7 +792,8 @@ export class SQLAutoCompleter {
         label: "UPDATE Statement",
         kind: CompletionItemKind.Snippet,
         detail: "Basic UPDATE statement",
-        insertText: "UPDATE ${1:table}\nSET ${2:column} = ${3:value}\nWHERE ${4:condition}",
+        insertText:
+          "UPDATE ${1:table}\nSET ${2:column} = ${3:value}\nWHERE ${4:condition}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
         sortText: "snippet_update",
       },
@@ -758,25 +818,26 @@ export class SQLAutoCompleter {
         label: "CTE (Common Table Expression)",
         kind: CompletionItemKind.Snippet,
         detail: "WITH clause for CTE",
-        insertText: "WITH ${1:cte_name} AS (\n  ${2:SELECT query}\n)\nSELECT *\nFROM ${1:cte_name}",
+        insertText:
+          "WITH ${1:cte_name} AS (\n  ${2:SELECT query}\n)\nSELECT *\nFROM ${1:cte_name}",
         insertTextRules: CompletionInsertTextRule.InsertAsSnippet,
         sortText: "snippet_cte",
       },
-    ]
+    ];
   }
 
   /**
    * Update schema
    */
   updateSchema(newSchema: DatabaseSchema): void {
-    this.schema = newSchema
-    this.cache = {} // Clear cache when schema changes
+    this.schema = newSchema;
+    this.cache = {}; // Clear cache when schema changes
   }
 
   /**
    * Clear completion cache
    */
   clearCache(): void {
-    this.cache = {}
+    this.cache = {};
   }
 }

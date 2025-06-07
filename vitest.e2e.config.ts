@@ -1,6 +1,6 @@
-import path from "node:path"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vitest/config"
+import path from "node:path";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [
@@ -38,4 +38,4 @@ export default defineConfig({
   define: {
     __DEV__: JSON.stringify(true),
   },
-})
+});

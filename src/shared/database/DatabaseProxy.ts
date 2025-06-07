@@ -3,120 +3,127 @@
  * 実際のデータベースドライバーを使用して接続
  */
 
-import type { Connection as MySQLConnection } from "mysql2/promise"
-import type { Client as PostgreSQLClient } from "pg"
-import type { SQLiteWebDriver } from "./drivers/SQLiteWebDriver"
+import type { Connection as MySqlConnection } from "mysql2/promise";
+import type { Client as PostgreSqlClient } from "pg";
+import type { SQLiteWebDriver } from "./drivers/SQLiteWebDriver";
 
 export interface DatabaseProxyConfig {
-  type: "mysql" | "postgresql" | "sqlite"
-  host: string
-  port: number
-  database: string
-  username: string
-  password: string
+  type: "mysql" | "postgresql" | "sqlite";
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
 }
 
 export interface QueryResult {
-  success: boolean
-  rows?: Record<string, unknown>[]
-  rowCount?: number
-  executionTime?: number
-  error?: string
+  success: boolean;
+  rows?: Record<string, unknown>[];
+  rowCount?: number;
+  executionTime?: number;
+  error?: string;
 }
 
 export class DatabaseProxy {
-  private config: DatabaseProxyConfig
-  private connection: MySQLConnection | PostgreSQLClient | SQLiteWebDriver | null = null
-  private isConnected = false
+  private config: DatabaseProxyConfig;
+  private connection:
+    | MySqlConnection
+    | PostgreSqlClient
+    | SQLiteWebDriver
+    | null = null;
+  private isConnected = false;
 
   constructor(config: DatabaseProxyConfig) {
-    this.config = config
+    this.config = config;
   }
 
   async connect(): Promise<boolean> {
     try {
-      await this.disconnect() // 既存の接続を閉じる
+      await this.disconnect(); // 既存の接続を閉じる
 
       switch (this.config.type) {
         case "mysql":
-          this.connection = await this.connectMySQL()
-          break
+          this.connection = await this.connectMySQL();
+          break;
         case "postgresql":
-          this.connection = await this.connectPostgreSQL()
-          break
+          this.connection = await this.connectPostgreSQL();
+          break;
         case "sqlite":
-          this.connection = await this.connectSQLite()
-          break
+          this.connection = await this.connectSQLite();
+          break;
         default:
-          throw new Error(`Unsupported database type: ${this.config.type}`)
+          throw new Error(`Unsupported database type: ${this.config.type}`);
       }
 
       // 接続が作成されたので、一時的にisConnectedをtrueに設定してテストクエリを実行
-      this.isConnected = true
-      const result = await this.query("SELECT 1 as test")
+      this.isConnected = true;
+      const result = await this.query("SELECT 1 as test");
 
       if (!result.success) {
-        this.isConnected = false
-        throw new Error(`Connection test failed: ${result.error || "Unknown error"}`)
+        this.isConnected = false;
+        throw new Error(
+          `Connection test failed: ${result.error || "Unknown error"}`,
+        );
       }
 
-      return this.isConnected
+      return this.isConnected;
     } catch (error) {
-      console.error("Database connection failed:", error)
-      this.isConnected = false
+      console.error("Database connection failed:", error);
+      this.isConnected = false;
       // エラーを上位に投げて詳細な情報を保持
-      throw error
+      throw error;
     }
   }
 
   async query(sql: string, params?: unknown[]): Promise<QueryResult> {
-    const startTime = Date.now()
+    const startTime = Date.now();
 
     if (!this.isConnected || !this.connection) {
       return {
         success: false,
         error: "Database not connected",
         executionTime: Date.now() - startTime,
-      }
+      };
     }
 
     try {
       switch (this.config.type) {
         case "mysql":
-          return await this.executeMySQL(sql, params || [], startTime)
+          return await this.executeMySQL(sql, params || [], startTime);
         case "postgresql":
-          return await this.executePostgreSQL(sql, params || [], startTime)
+          return await this.executePostgreSQL(sql, params || [], startTime);
         case "sqlite":
-          return await this.executeSQLite(sql, params || [], startTime)
+          return await this.executeSQLite(sql, params || []);
         default:
-          throw new Error(`Unsupported database type: ${this.config.type}`)
+          throw new Error(`Unsupported database type: ${this.config.type}`);
       }
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
         executionTime: Date.now() - startTime,
-      }
+      };
     }
   }
 
   async getTables(): Promise<{ name: string; type: string }[]> {
     if (!this.isConnected || !this.connection) {
-      return []
+      return [];
     }
 
     try {
       if (this.config.type === "sqlite") {
         // SQLiteWebDriverの専用メソッドを使用
-        const driver = this.connection as import("./drivers/SQLiteWebDriver").SQLiteWebDriver
-        return await driver.getTables()
+        const driver = this
+          .connection as import("./drivers/SQLiteWebDriver").SQLiteWebDriver;
+        return await driver.getTables();
       }
 
-      let tablesQuery = ""
+      let tablesQuery = "";
       switch (this.config.type) {
         case "mysql":
-          tablesQuery = "SHOW TABLES"
-          break
+          tablesQuery = "SHOW TABLES";
+          break;
         case "postgresql":
           tablesQuery = `
             SELECT table_name as name, 'table' as type 
@@ -126,21 +133,21 @@ export class DatabaseProxy {
             SELECT table_name as name, 'view' as type 
             FROM information_schema.views 
             WHERE table_schema = 'public'
-          `
-          break
+          `;
+          break;
       }
 
-      const result = await this.query(tablesQuery)
+      const result = await this.query(tablesQuery);
       if (result.success && result.rows) {
         return result.rows.map((row) => ({
           name: String(row.name || row[Object.keys(row)[0]]),
           type: String(row.type || "table"),
-        }))
+        }));
       }
-      return []
+      return [];
     } catch (error) {
-      console.error("Error getting tables:", error)
-      return []
+      console.error("Error getting tables:", error);
+      return [];
     }
   }
 
@@ -149,42 +156,42 @@ export class DatabaseProxy {
       try {
         switch (this.config.type) {
           case "mysql":
-            await (this.connection as MySQLConnection).end()
-            break
+            await (this.connection as MySqlConnection).end();
+            break;
           case "postgresql":
-            await (this.connection as PostgreSQLClient).end()
-            break
+            await (this.connection as PostgreSqlClient).end();
+            break;
           case "sqlite":
-            await (this.connection as SQLiteWebDriver).disconnect()
-            break
+            await (this.connection as SQLiteWebDriver).disconnect();
+            break;
         }
       } catch (error) {
-        console.error("Error disconnecting from database:", error)
+        console.error("Error disconnecting from database:", error);
       } finally {
-        this.connection = null
-        this.isConnected = false
+        this.connection = null;
+        this.isConnected = false;
       }
     }
   }
 
   getConnectionInfo(): DatabaseProxyConfig {
-    return { ...this.config }
+    return { ...this.config };
   }
 
   // 実際のデータベース接続メソッド
-  private async connectMySQL(): Promise<MySQLConnection> {
-    const mysql = await import("mysql2/promise")
+  private async connectMySQL(): Promise<MySqlConnection> {
+    const mysql = await import("mysql2/promise");
     return await mysql.createConnection({
       host: this.config.host,
       port: this.config.port,
       user: this.config.username,
       password: this.config.password,
       database: this.config.database,
-    })
+    });
   }
 
-  private async connectPostgreSQL(): Promise<PostgreSQLClient> {
-    const { Client } = await import("pg")
+  private async connectPostgreSQL(): Promise<PostgreSqlClient> {
+    const { Client } = await import("pg");
 
     const connectionConfig = {
       host: this.config.host,
@@ -192,21 +199,23 @@ export class DatabaseProxy {
       user: this.config.username,
       password: this.config.password,
       database: this.config.database,
-    }
+    };
 
-    const client = new Client(connectionConfig)
+    const client = new Client(connectionConfig);
 
     try {
-      await client.connect()
-      return client
+      await client.connect();
+      return client;
     } catch (error) {
-      console.error("PostgreSQL client.connect() failed:", error)
-      throw error
+      console.error("PostgreSQL client.connect() failed:", error);
+      throw error;
     }
   }
 
-  private async connectSQLite(): Promise<import("./drivers/SQLiteWebDriver").SQLiteWebDriver> {
-    const { SQLiteWebDriver } = await import("./drivers/SQLiteWebDriver")
+  private async connectSQLite(): Promise<
+    import("./drivers/SQLiteWebDriver").SQLiteWebDriver
+  > {
+    const { SQLiteWebDriver } = await import("./drivers/SQLiteWebDriver");
     const driver = new SQLiteWebDriver({
       id: `sqlite_${Date.now()}`,
       name: "SQLite Memory Database",
@@ -216,52 +225,51 @@ export class DatabaseProxy {
       database: this.config.database,
       username: "",
       password: "",
-    })
-    await driver.connect()
-    await driver.initializeTestDatabase()
-    return driver
+    });
+    await driver.connect();
+    await driver.initializeTestDatabase();
+    return driver;
   }
 
   // 実際のクエリ実行メソッド
   private async executeMySQL(
     sql: string,
     params: unknown[],
-    startTime: number
+    startTime: number,
   ): Promise<QueryResult> {
-    const connection = this.connection as MySQLConnection
-    const [rows] = await connection.execute(sql, params)
+    const connection = this.connection as MySqlConnection;
+    const [rows] = await connection.execute(sql, params);
 
     return {
       success: true,
       rows: Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [],
       rowCount: Array.isArray(rows) ? rows.length : 0,
       executionTime: Date.now() - startTime,
-    }
+    };
   }
 
   private async executePostgreSQL(
     sql: string,
     params: unknown[],
-    startTime: number
+    startTime: number,
   ): Promise<QueryResult> {
-    const client = this.connection as PostgreSQLClient
-    const result = await client.query(sql, params)
+    const client = this.connection as PostgreSqlClient;
+    const result = await client.query(sql, params);
 
     return {
       success: true,
       rows: result.rows,
       rowCount: result.rowCount || 0,
       executionTime: Date.now() - startTime,
-    }
+    };
   }
 
   private async executeSQLite(
     sql: string,
     params: unknown[],
-    _startTime: number
   ): Promise<QueryResult> {
-    const driver = this.connection as SQLiteWebDriver
-    const result = await driver.query(sql, params)
+    const driver = this.connection as SQLiteWebDriver;
+    const result = await driver.query(sql, params);
 
     return {
       success: !result.error,
@@ -269,7 +277,7 @@ export class DatabaseProxy {
       rowCount: result.rowCount,
       executionTime: result.executionTime,
       error: result.error,
-    }
+    };
   }
 }
 
@@ -278,7 +286,7 @@ export class DatabaseProxy {
  */
 export const DatabaseProxyFactory = {
   create(config: DatabaseProxyConfig): DatabaseProxy {
-    return new DatabaseProxy(config)
+    return new DatabaseProxy(config);
   },
 
   createMySQL(
@@ -286,7 +294,7 @@ export const DatabaseProxyFactory = {
     port: number,
     database: string,
     username: string,
-    password: string
+    password: string,
   ): DatabaseProxy {
     return new DatabaseProxy({
       type: "mysql",
@@ -295,7 +303,7 @@ export const DatabaseProxyFactory = {
       database,
       username,
       password,
-    })
+    });
   },
 
   createPostgreSQL(
@@ -303,7 +311,7 @@ export const DatabaseProxyFactory = {
     port: number,
     database: string,
     username: string,
-    password: string
+    password: string,
   ): DatabaseProxy {
     return new DatabaseProxy({
       type: "postgresql",
@@ -312,7 +320,7 @@ export const DatabaseProxyFactory = {
       database,
       username,
       password,
-    })
+    });
   },
 
   createSQLite(database: string): DatabaseProxy {
@@ -323,6 +331,6 @@ export const DatabaseProxyFactory = {
       database,
       username: "",
       password: "",
-    })
+    });
   },
-}
+};

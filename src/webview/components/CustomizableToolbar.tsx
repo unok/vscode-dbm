@@ -1,55 +1,57 @@
-import type React from "react"
-import { useCallback, useEffect, useState } from "react"
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   ToolbarGroup,
   ToolbarItem,
   WebViewToolbarService,
-} from "../services/WebViewToolbarService"
-import { Icon } from "./Icon"
+} from "../services/WebViewToolbarService";
+import { Icon } from "./Icon";
 
 interface CustomizableToolbarProps {
-  toolbarService: WebViewToolbarService
-  className?: string
+  toolbarService: WebViewToolbarService;
+  className?: string;
 }
 
 export const CustomizableToolbar: React.FC<CustomizableToolbarProps> = ({
   toolbarService,
   className = "",
 }) => {
-  const [groups, setGroups] = useState<ToolbarGroup[]>(toolbarService.getVisibleGroups())
+  const [groups, setGroups] = useState<ToolbarGroup[]>(
+    toolbarService.getVisibleGroups(),
+  );
 
   // Refresh groups when service changes
   useEffect(() => {
     const refreshGroups = () => {
-      setGroups(toolbarService.getVisibleGroups())
-    }
+      setGroups(toolbarService.getVisibleGroups());
+    };
 
     // Listen for layout changes
-    const interval = setInterval(refreshGroups, 1000)
-    return () => clearInterval(interval)
-  }, [toolbarService])
+    const interval = setInterval(refreshGroups, 1000);
+    return () => clearInterval(interval);
+  }, [toolbarService]);
 
   const handleItemClick = useCallback(
     (item: ToolbarItem) => {
-      if (item.disabled) return
+      if (item.disabled) return;
 
       try {
-        toolbarService.executeAction(item.action)
+        toolbarService.executeAction(item.action);
       } catch (error) {
-        console.error(`Failed to execute action ${item.id}:`, error)
+        console.error(`Failed to execute action ${item.id}:`, error);
       }
     },
-    [toolbarService]
-  )
+    [toolbarService],
+  );
 
   const renderToolbarItem = useCallback(
     (item: ToolbarItem) => {
-      if (!item.visible) return null
+      if (!item.visible) return null;
 
       return (
         <button
           key={item.id}
-          type='button'
+          type="button"
           onClick={() => handleItemClick(item)}
           disabled={item.disabled}
           className={`
@@ -63,20 +65,20 @@ export const CustomizableToolbar: React.FC<CustomizableToolbarProps> = ({
           title={item.tooltip || item.label}
           aria-label={item.label}
         >
-          <Icon name={item.icon} className='mr-2' />
+          <Icon name={item.icon} className="mr-2" />
           <span>{item.label}</span>
         </button>
-      )
+      );
     },
-    [handleItemClick]
-  )
+    [handleItemClick],
+  );
 
   const renderGroup = useCallback(
     (group: ToolbarGroup) => {
-      if (!group.visible) return null
+      if (!group.visible) return null;
 
-      const visibleItems = group.items.filter((item) => item.visible)
-      if (visibleItems.length === 0) return null
+      const visibleItems = group.items.filter((item) => item.visible);
+      if (visibleItems.length === 0) return null;
 
       return (
         <div
@@ -90,14 +92,14 @@ export const CustomizableToolbar: React.FC<CustomizableToolbarProps> = ({
         >
           {visibleItems.map(renderToolbarItem)}
         </div>
-      )
+      );
     },
-    [renderToolbarItem]
-  )
+    [renderToolbarItem],
+  );
 
-  const leftGroups = groups.filter((g) => g.position === "left")
-  const centerGroups = groups.filter((g) => g.position === "center")
-  const rightGroups = groups.filter((g) => g.position === "right")
+  const leftGroups = groups.filter((g) => g.position === "left");
+  const centerGroups = groups.filter((g) => g.position === "center");
+  const rightGroups = groups.filter((g) => g.position === "right");
 
   return (
     <div
@@ -108,13 +110,19 @@ export const CustomizableToolbar: React.FC<CustomizableToolbarProps> = ({
     `}
     >
       {/* Left section */}
-      <div className='flex items-center space-x-4'>{leftGroups.map(renderGroup)}</div>
+      <div className="flex items-center space-x-4">
+        {leftGroups.map(renderGroup)}
+      </div>
 
       {/* Center section */}
-      <div className='flex items-center space-x-4'>{centerGroups.map(renderGroup)}</div>
+      <div className="flex items-center space-x-4">
+        {centerGroups.map(renderGroup)}
+      </div>
 
       {/* Right section */}
-      <div className='flex items-center space-x-4'>{rightGroups.map(renderGroup)}</div>
+      <div className="flex items-center space-x-4">
+        {rightGroups.map(renderGroup)}
+      </div>
     </div>
-  )
-}
+  );
+};

@@ -1,27 +1,28 @@
-import * as path from "node:path"
-import * as vscode from "vscode"
-import type { DatabaseConfig } from "../shared/types"
-import type { BaseMessage, WebViewMessage } from "../shared/types/messages"
-import { DatabaseService } from "./services/DatabaseService"
+import * as vscode from "vscode";
+import type { BaseMessage, WebViewMessage } from "../shared/types/messages";
+import { DatabaseService } from "./services/DatabaseService";
 
-let currentPanel: vscode.WebviewPanel | undefined
-const databaseService = DatabaseService.getInstance()
+let currentPanel: vscode.WebviewPanel | undefined;
+const databaseService = DatabaseService.getInstance();
 
-export function createOrShow(extensionUri: vscode.Uri, viewType: "datagrid" | "sql" | "dashboard") {
+export function createOrShow(
+  extensionUri: vscode.Uri,
+  viewType: "datagrid" | "sql" | "dashboard",
+) {
   const column = vscode.window.activeTextEditor
     ? vscode.window.activeTextEditor.viewColumn
-    : undefined
+    : undefined;
 
   // If we already have a panel, show it
   if (currentPanel) {
-    currentPanel.reveal(column)
+    currentPanel.reveal(column);
 
     // Update the panel for the new view type
     currentPanel.webview.postMessage({
       type: "changeView",
       data: { viewType },
-    })
-    return
+    });
+    return;
   }
 
   // Otherwise, create a new panel
@@ -33,82 +34,94 @@ export function createOrShow(extensionUri: vscode.Uri, viewType: "datagrid" | "s
       enableScripts: true,
       retainContextWhenHidden: true,
       localResourceRoots: [extensionUri],
-    }
-  )
+    },
+  );
 
-  currentPanel = panel
+  currentPanel = panel;
 
-  panel.webview.html = getHtmlForWebview(panel.webview, extensionUri, viewType)
+  panel.webview.html = getHtmlForWebview(panel.webview, extensionUri, viewType);
 
   // Register message listener for database service
-  const panelId = `panel-${Date.now()}`
+  const panelId = `panel-${Date.now()}`;
   databaseService.addMessageListener(panelId, (message) => {
-    panel.webview.postMessage(message)
-  })
+    panel.webview.postMessage(message);
+  });
 
   // Message handling
   panel.webview.onDidReceiveMessage((message) => {
-    handleMessage(message, panel)
-  })
+    handleMessage(message, panel);
+  });
 
   // Reset when the current panel is closed
   panel.onDidDispose(() => {
-    databaseService.removeMessageListener(panelId)
-    currentPanel = undefined
-  }, null)
+    databaseService.removeMessageListener(panelId);
+    currentPanel = undefined;
+  }, null);
 
   // Handle view type changes
   panel.onDidChangeViewState((e) => {
     if (e.webviewPanel.visible) {
       // Panel became visible
     }
-  })
+  });
 }
 
 function getTitleForViewType(viewType: string): string {
   switch (viewType) {
     case "datagrid":
-      return "DataGrid - DB Manager"
+      return "DataGrid - DB Manager";
     case "sql":
-      return "SQL Editor - DB Manager"
+      return "SQL Editor - DB Manager";
     case "dashboard":
-      return "Dashboard - DB Manager"
+      return "Dashboard - DB Manager";
     default:
-      return "DB Manager"
+      return "DB Manager";
   }
 }
 
-function getHtmlForWebview(webview: vscode.Webview, extensionUri: vscode.Uri, viewType: string) {
+function getHtmlForWebview(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+  viewType: string,
+) {
   // Try to use built assets first
-  return getProdHtml(webview, extensionUri, viewType)
+  return getProdHtml(webview, extensionUri, viewType);
 }
 
-function getProdHtml(webview: vscode.Webview, extensionUri: vscode.Uri, viewType: string) {
+function getProdHtml(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+  viewType: string,
+) {
   // Find the actual JS file dynamically
-  const webviewPath = vscode.Uri.joinPath(extensionUri, "dist", "webview")
-  const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
+  const webviewPath = vscode.Uri.joinPath(extensionUri, "dist", "webview");
+  const assetsPath = vscode.Uri.joinPath(webviewPath, "assets");
 
   // Read JS filename from index.html (most reliable method)
-  let jsFileName: string
+  let jsFileName: string;
   try {
-    const fs = require("node:fs")
-    const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
-    const indexContent = fs.readFileSync(indexPath.fsPath, "utf-8")
-    const scriptMatch = indexContent.match(/src="\.\/assets\/(index-[^"]+\.js)"/)
+    const fs = require("node:fs");
+    const indexPath = vscode.Uri.joinPath(webviewPath, "index.html");
+    const indexContent = fs.readFileSync(indexPath.fsPath, "utf-8");
+    const scriptMatch = indexContent.match(
+      /src="\.\/assets\/(index-[^"]+\.js)"/,
+    );
 
     if (scriptMatch) {
-      jsFileName = scriptMatch[1]
+      jsFileName = scriptMatch[1];
     } else {
-      throw new Error("No script tag found in index.html")
+      throw new Error("No script tag found in index.html");
     }
   } catch (error) {
-    console.error("[WebViewPanel] Failed to read index.html:", error)
-    throw new Error("Could not determine JavaScript bundle filename")
+    console.error("[WebViewPanel] Failed to read index.html:", error);
+    throw new Error("Could not determine JavaScript bundle filename");
   }
 
   // Generate URLs
-  const nonce = getNonce()
-  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFileName))
+  const nonce = getNonce();
+  const scriptUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(assetsPath, jsFileName),
+  );
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -164,78 +177,87 @@ function getProdHtml(webview: vscode.Webview, extensionUri: vscode.Uri, viewType
     </script>
     <script nonce="${nonce}" src="${scriptUri}" defer></script>
 </body>
-</html>`
+</html>`;
 }
 
 // Helper function to generate nonce for CSP
 function getNonce() {
-  let text = ""
-  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length))
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
-  return text
+  return text;
 }
 
-async function handleMessage(message: WebViewMessage, panel: vscode.WebviewPanel) {
+async function handleMessage(
+  message: WebViewMessage,
+  panel: vscode.WebviewPanel,
+) {
   switch (message.type) {
     case "getConnectionStatus": {
-      const status = databaseService.getConnectionStatus()
+      const status = databaseService.getConnectionStatus();
       panel.webview.postMessage({
         type: "connectionStatus",
         data: status,
-      })
-      break
+      });
+      break;
     }
 
     case "openConnection": {
-      const result = await databaseService.connect(message.data)
+      const result = await databaseService.connect(message.data);
       panel.webview.postMessage({
         type: "connectionResult",
         data: result,
-      })
-      break
+      });
+      break;
     }
 
     case "executeQuery":
-      await databaseService.executeQuery(message.data)
-      break
+      await databaseService.executeQuery(message.data);
+      break;
 
     case "showInfo":
-      vscode.window.showInformationMessage(message.data.message)
-      break
+      vscode.window.showInformationMessage(message.data.message);
+      break;
 
     case "showError":
-      vscode.window.showErrorMessage(message.data.message)
-      break
+      vscode.window.showErrorMessage(message.data.message);
+      break;
 
     case "saveConnection": {
       try {
         // Save connection using DatabaseService
-        await databaseService.saveConnection(message.data)
-        vscode.window.showInformationMessage(`Connection "${message.data.name}" saved successfully`)
+        await databaseService.saveConnection(message.data);
+        vscode.window.showInformationMessage(
+          `Connection "${message.data.name}" saved successfully`,
+        );
 
         panel.webview.postMessage({
           type: "connectionSaved",
           data: { success: true, connection: message.data },
-        })
+        });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error"
-        console.error("Save connection error:", error)
-        vscode.window.showErrorMessage(`Failed to save connection: ${errorMessage}`)
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error("Save connection error:", error);
+        vscode.window.showErrorMessage(
+          `Failed to save connection: ${errorMessage}`,
+        );
         panel.webview.postMessage({
           type: "connectionSaved",
           data: { success: false, error: errorMessage },
-        })
+        });
       }
-      break
+      break;
     }
 
     case "testConnection": {
       try {
         // Test the connection using database service
         // Convert DatabaseConfig to compatible format
-        const data = message.data
+        const data = message.data;
         const connectionData = {
           type: data.type,
           host: data.host || "",
@@ -244,35 +266,36 @@ async function handleMessage(message: WebViewMessage, panel: vscode.WebviewPanel
           username: data.username || "",
           password: data.password || "",
           ssl: typeof data.ssl === "boolean" ? data.ssl : false,
-        }
-        const result = await databaseService.connect(connectionData)
+        };
+        const result = await databaseService.connect(connectionData);
         panel.webview.postMessage({
           type: "connectionTestResult",
           data: result,
-        })
+        });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         panel.webview.postMessage({
           type: "connectionTestResult",
           data: { success: false, message: errorMessage },
-        })
+        });
       }
-      break
+      break;
     }
 
     case "getSavedConnections": {
-      const connections = databaseService.getSavedConnections()
+      const connections = databaseService.getSavedConnections();
       panel.webview.postMessage({
         type: "savedConnections",
         data: { connections },
-      })
-      break
+      });
+      break;
     }
   }
 }
 
 export function postMessage(message: BaseMessage) {
   if (currentPanel) {
-    currentPanel.webview.postMessage(message)
+    currentPanel.webview.postMessage(message);
   }
 }

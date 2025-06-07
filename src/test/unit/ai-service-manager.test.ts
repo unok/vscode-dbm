@@ -1,23 +1,23 @@
-import { beforeEach, describe, expect, test, vi } from "vitest"
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   type AIServiceConfig,
   AIServiceManager,
   CursorAIService,
   GitHubCopilotService,
-} from "../../shared/services/AIServiceManager"
-import type { CursorAIDefaultOptions } from "../../shared/types/datagrid"
-import type { DatabaseSchema } from "../../shared/types/sql"
+} from "../../shared/services/AIServiceManager";
+import type { CursorAIDefaultOptions } from "../../shared/types/datagrid";
+import type { DatabaseSchema } from "../../shared/types/sql";
 
 // Mock fetch globally
-global.fetch = vi.fn()
+global.fetch = vi.fn();
 
 describe("AIServiceManager", () => {
-  let aiManager: AIServiceManager
-  let mockConfig: AIServiceConfig
-  let mockSchema: DatabaseSchema
+  let aiManager: AIServiceManager;
+  let mockConfig: AIServiceConfig;
+  let mockSchema: DatabaseSchema;
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
 
     mockConfig = {
       cursorAI: {
@@ -37,7 +37,7 @@ describe("AIServiceManager", () => {
       fallbackStrategy: "github_copilot",
       cacheEnabled: true,
       cacheTTL: 300000,
-    }
+    };
 
     mockSchema = {
       tables: [
@@ -45,20 +45,40 @@ describe("AIServiceManager", () => {
           name: "users",
           schema: "public",
           columns: [
-            { name: "id", type: "integer", nullable: false, isPrimaryKey: true },
-            { name: "email", type: "varchar(255)", nullable: false, isPrimaryKey: false },
-            { name: "name", type: "varchar(100)", nullable: true, isPrimaryKey: false },
-            { name: "age", type: "integer", nullable: true, isPrimaryKey: false },
+            {
+              name: "id",
+              type: "integer",
+              nullable: false,
+              isPrimaryKey: true,
+            },
+            {
+              name: "email",
+              type: "varchar(255)",
+              nullable: false,
+              isPrimaryKey: false,
+            },
+            {
+              name: "name",
+              type: "varchar(100)",
+              nullable: true,
+              isPrimaryKey: false,
+            },
+            {
+              name: "age",
+              type: "integer",
+              nullable: true,
+              isPrimaryKey: false,
+            },
           ],
         },
       ],
       views: [],
       functions: [],
       procedures: [],
-    }
+    };
 
-    aiManager = new AIServiceManager(mockConfig)
-  })
+    aiManager = new AIServiceManager(mockConfig);
+  });
 
   describe("Default Value Generation", () => {
     test("should generate defaults using Cursor AI", async () => {
@@ -69,7 +89,7 @@ describe("AIServiceManager", () => {
           { email: "jane@example.com", name: "Jane Smith", age: 25 },
         ],
         context: "User registration data",
-      }
+      };
 
       // Mock successful Cursor AI response
       const mockResponse = {
@@ -78,16 +98,16 @@ describe("AIServiceManager", () => {
           name: "AI Generated User",
           age: 28,
         },
-      }
+      };
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      } as Response)
+      } as Response);
 
-      const result = await aiManager.generateDefaults(options)
+      const result = await aiManager.generateDefaults(options);
 
-      expect(result).toEqual(mockResponse.defaults)
+      expect(result).toEqual(mockResponse.defaults);
       expect(fetch).toHaveBeenCalledWith(
         mockConfig.cursorAI.endpoint,
         expect.objectContaining({
@@ -96,112 +116,114 @@ describe("AIServiceManager", () => {
             Authorization: "Bearer test-cursor-key",
             "Content-Type": "application/json",
           }),
-        })
-      )
-    })
+        }),
+      );
+    });
 
     test("should fallback to GitHub Copilot when Cursor AI fails", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email", "name"],
         existingData: [],
         context: "Test data",
-      }
+      };
 
       // Mock Cursor AI failure
-      vi.mocked(fetch).mockRejectedValueOnce(new Error("Cursor AI unavailable"))
+      vi.mocked(fetch).mockRejectedValueOnce(
+        new Error("Cursor AI unavailable"),
+      );
 
-      const result = await aiManager.generateDefaults(options)
+      const result = await aiManager.generateDefaults(options);
 
       // Should get fallback defaults (local generation since Copilot isn't fully implemented)
-      expect(result).toHaveProperty("email")
-      expect(result).toHaveProperty("name")
-      expect(result.email).toContain("@example.com")
-    })
+      expect(result).toHaveProperty("email");
+      expect(result).toHaveProperty("name");
+      expect(result.email).toContain("@example.com");
+    });
 
     test("should generate local defaults when all AI services fail", async () => {
       const localConfig: AIServiceConfig = {
         ...mockConfig,
         fallbackStrategy: "local_only",
-      }
+      };
 
-      const localManager = new AIServiceManager(localConfig)
+      const localManager = new AIServiceManager(localConfig);
       const options: CursorAIDefaultOptions = {
         columns: ["email", "name", "age", "active"],
         existingData: [],
         context: "Test",
-      }
+      };
 
       // Mock all services as unavailable
-      vi.mocked(fetch).mockRejectedValue(new Error("Service unavailable"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Service unavailable"));
 
-      const result = await localManager.generateDefaults(options)
+      const result = await localManager.generateDefaults(options);
 
-      expect(result).toHaveProperty("email")
-      expect(result).toHaveProperty("name")
-      expect(result).toHaveProperty("age")
-      expect(result).toHaveProperty("active")
-      expect(result.email).toContain("local")
-      expect(typeof result.age).toBe("number")
-      expect(typeof result.active).toBe("boolean")
-    })
-  })
+      expect(result).toHaveProperty("email");
+      expect(result).toHaveProperty("name");
+      expect(result).toHaveProperty("age");
+      expect(result).toHaveProperty("active");
+      expect(result.email).toContain("local");
+      expect(typeof result.age).toBe("number");
+      expect(typeof result.active).toBe("boolean");
+    });
+  });
 
   describe("SQL Generation", () => {
     test("should generate SQL using Cursor AI", async () => {
-      const description = "Get all users with their order count"
-      const expectedSQL = `SELECT u.name, COUNT(o.id) as order_count 
+      const description = "Get all users with their order count";
+      const expectedSql = `SELECT u.name, COUNT(o.id) as order_count 
 FROM users u 
 LEFT JOIN orders o ON u.id = o.user_id 
 GROUP BY u.id, u.name 
-ORDER BY order_count DESC`
+ORDER BY order_count DESC`;
 
       const mockResponse = {
-        sql: expectedSQL,
-      }
+        sql: expectedSql,
+      };
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      } as Response)
+      } as Response);
 
-      const result = await aiManager.generateSQL(description, mockSchema)
+      const result = await aiManager.generateSQL(description, mockSchema);
 
-      expect(result).toBe(expectedSQL)
+      expect(result).toBe(expectedSql);
       expect(fetch).toHaveBeenCalledWith(
         mockConfig.cursorAI.endpoint,
         expect.objectContaining({
           method: "POST",
           body: expect.stringContaining(description),
-        })
-      )
-    })
+        }),
+      );
+    });
 
     test("should handle SQL generation with markdown format", async () => {
-      const description = "Count active users"
+      const description = "Count active users";
       const mockResponse = {
         content: "```sql\nSELECT COUNT(*) FROM users WHERE active = true\n```",
-      }
+      };
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      } as Response)
+      } as Response);
 
-      const result = await aiManager.generateSQL(description, mockSchema)
+      const result = await aiManager.generateSQL(description, mockSchema);
 
-      expect(result).toBe("SELECT COUNT(*) FROM users WHERE active = true")
-    })
+      expect(result).toBe("SELECT COUNT(*) FROM users WHERE active = true");
+    });
 
     test("should fail when SQL generation is unavailable", async () => {
-      const description = "Test query"
+      const description = "Test query";
 
-      vi.mocked(fetch).mockRejectedValue(new Error("Service unavailable"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Service unavailable"));
 
-      await expect(aiManager.generateSQL(description, mockSchema)).rejects.toThrow(
-        "Cursor AI SQL generation failed"
-      )
-    })
-  })
+      await expect(
+        aiManager.generateSQL(description, mockSchema),
+      ).rejects.toThrow("Cursor AI SQL generation failed");
+    });
+  });
 
   describe("Data Pattern Analysis", () => {
     test("should analyze data patterns", async () => {
@@ -209,7 +231,7 @@ ORDER BY order_count DESC`
         { email: "john@example.com", name: "John Doe", age: 30 },
         { email: "jane@example.com", name: "Jane Smith", age: 25 },
         { email: "bob@example.com", name: "Bob Johnson", age: 35 },
-      ]
+      ];
 
       const mockResponse = {
         patterns: [
@@ -229,35 +251,40 @@ ORDER BY order_count DESC`
           },
         ],
         confidence: 0.87,
-        suggestions: ["Data follows consistent patterns", "Email domain is standardized"],
-      }
+        suggestions: [
+          "Data follows consistent patterns",
+          "Email domain is standardized",
+        ],
+      };
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      } as Response)
+      } as Response);
 
-      const result = await aiManager.analyzeDataPatterns(testData)
+      const result = await aiManager.analyzeDataPatterns(testData);
 
-      expect(result.patterns).toHaveLength(2)
-      expect(result.patterns[0].column).toBe("email")
-      expect(result.patterns[1].column).toBe("age")
-      expect(result.confidence).toBe(0.87)
-      expect(result.suggestions).toContain("Data follows consistent patterns")
-    })
+      expect(result.patterns).toHaveLength(2);
+      expect(result.patterns[0].column).toBe("email");
+      expect(result.patterns[1].column).toBe("age");
+      expect(result.confidence).toBe(0.87);
+      expect(result.suggestions).toContain("Data follows consistent patterns");
+    });
 
     test("should handle pattern analysis failure gracefully", async () => {
-      const testData = [{ test: "data" }]
+      const testData = [{ test: "data" }];
 
-      vi.mocked(fetch).mockRejectedValue(new Error("Analysis failed"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Analysis failed"));
 
-      const result = await aiManager.analyzeDataPatterns(testData)
+      const result = await aiManager.analyzeDataPatterns(testData);
 
-      expect(result.patterns).toHaveLength(0)
-      expect(result.confidence).toBe(0)
-      expect(result.suggestions).toContain("Pattern analysis currently unavailable")
-    })
-  })
+      expect(result.patterns).toHaveLength(0);
+      expect(result.confidence).toBe(0);
+      expect(result.suggestions).toContain(
+        "Pattern analysis currently unavailable",
+      );
+    });
+  });
 
   describe("Quality Analysis", () => {
     test("should analyze data quality", async () => {
@@ -265,7 +292,7 @@ ORDER BY order_count DESC`
         { email: "john@example.com", name: "John Doe", age: 30 },
         { email: "invalid-email", name: "Jane", age: -5 },
         { email: "john@example.com", name: "John Duplicate", age: 30 },
-      ]
+      ];
 
       const mockResponse = {
         issues: [
@@ -308,117 +335,117 @@ ORDER BY order_count DESC`
           },
         ],
         score: 65,
-      }
+      };
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      } as Response)
+      } as Response);
 
-      const result = await aiManager.suggestImprovements(testData, mockSchema)
+      const result = await aiManager.suggestImprovements(testData, mockSchema);
 
-      expect(result.issues).toHaveLength(3)
-      expect(result.improvements).toHaveLength(2)
-      expect(result.score).toBe(65)
-      expect(result.issues[0].type).toBe("invalid")
-      expect(result.improvements[0].type).toBe("validate")
-    })
+      expect(result.issues).toHaveLength(3);
+      expect(result.improvements).toHaveLength(2);
+      expect(result.score).toBe(65);
+      expect(result.issues[0].type).toBe("invalid");
+      expect(result.improvements[0].type).toBe("validate");
+    });
 
     test("should handle quality analysis failure gracefully", async () => {
-      const testData = [{ test: "data" }]
+      const testData = [{ test: "data" }];
 
-      vi.mocked(fetch).mockRejectedValue(new Error("Quality analysis failed"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Quality analysis failed"));
 
-      const result = await aiManager.suggestImprovements(testData, mockSchema)
+      const result = await aiManager.suggestImprovements(testData, mockSchema);
 
-      expect(result.issues).toHaveLength(0)
-      expect(result.improvements).toHaveLength(0)
-      expect(result.score).toBe(0)
-    })
-  })
+      expect(result.issues).toHaveLength(0);
+      expect(result.improvements).toHaveLength(0);
+      expect(result.score).toBe(0);
+    });
+  });
 
   describe("Service Status", () => {
     test("should report service availability", async () => {
       // Mock health check responses
       vi.mocked(fetch)
         .mockResolvedValueOnce({ ok: true } as Response) // Cursor AI health
-        .mockResolvedValueOnce({ ok: true } as Response) // GitHub Copilot health
+        .mockResolvedValueOnce({ ok: true } as Response); // GitHub Copilot health
 
-      const status = await aiManager.getServiceStatus()
+      const status = await aiManager.getServiceStatus();
 
-      expect(status.cursorAI).toBe(true)
-      expect(status.githubCopilot).toBe(true)
-      expect(status.activeService).toBe("cursor")
-    })
+      expect(status.cursorAI).toBe(true);
+      expect(status.githubCopilot).toBe(true);
+      expect(status.activeService).toBe("cursor");
+    });
 
     test("should report fallback service when primary fails", async () => {
       // Mock health check responses
       vi.mocked(fetch)
         .mockRejectedValueOnce(new Error("Cursor AI down")) // Cursor AI health fails
-        .mockResolvedValueOnce({ ok: true } as Response) // GitHub Copilot health succeeds
+        .mockResolvedValueOnce({ ok: true } as Response); // GitHub Copilot health succeeds
 
-      const status = await aiManager.getServiceStatus()
+      const status = await aiManager.getServiceStatus();
 
-      expect(status.cursorAI).toBe(false)
-      expect(status.githubCopilot).toBe(true)
-      expect(status.activeService).toBe("copilot")
-    })
+      expect(status.cursorAI).toBe(false);
+      expect(status.githubCopilot).toBe(true);
+      expect(status.activeService).toBe("copilot");
+    });
 
     test("should report local service when all AI services fail", async () => {
       const localConfig: AIServiceConfig = {
         ...mockConfig,
         fallbackStrategy: "local_only",
-      }
-      const localManager = new AIServiceManager(localConfig)
+      };
+      const localManager = new AIServiceManager(localConfig);
 
       // Mock all health checks as failing
-      vi.mocked(fetch).mockRejectedValue(new Error("All services down"))
+      vi.mocked(fetch).mockRejectedValue(new Error("All services down"));
 
-      const status = await localManager.getServiceStatus()
+      const status = await localManager.getServiceStatus();
 
-      expect(status.cursorAI).toBe(false)
-      expect(status.githubCopilot).toBe(false)
-      expect(status.activeService).toBe("local")
-    })
-  })
+      expect(status.cursorAI).toBe(false);
+      expect(status.githubCopilot).toBe(false);
+      expect(status.activeService).toBe("local");
+    });
+  });
 
   describe("CursorAIService", () => {
-    let cursorService: CursorAIService
+    let cursorService: CursorAIService;
 
     beforeEach(() => {
-      cursorService = new CursorAIService(mockConfig.cursorAI)
-    })
+      cursorService = new CursorAIService(mockConfig.cursorAI);
+    });
 
     test("should cache responses", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
-      const mockResponse = { defaults: { email: "cached@example.com" } }
+      const mockResponse = { defaults: { email: "cached@example.com" } };
 
       vi.mocked(fetch).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      } as Response)
+      } as Response);
 
       // First call
-      const result1 = await cursorService.generateDefaults(options)
+      const result1 = await cursorService.generateDefaults(options);
 
       // Second call (should use cache)
-      const result2 = await cursorService.generateDefaults(options)
+      const result2 = await cursorService.generateDefaults(options);
 
-      expect(result1).toEqual(result2)
-      expect(fetch).toHaveBeenCalledTimes(1) // Only called once due to caching
-    })
+      expect(result1).toEqual(result2);
+      expect(fetch).toHaveBeenCalledTimes(1); // Only called once due to caching
+    });
 
     test("should retry on failure", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
       // Mock first two calls to fail, third to succeed
       vi.mocked(fetch)
@@ -426,37 +453,38 @@ ORDER BY order_count DESC`
         .mockRejectedValueOnce(new Error("Network error"))
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({ defaults: { email: "retry@example.com" } }),
-        } as Response)
+          json: () =>
+            Promise.resolve({ defaults: { email: "retry@example.com" } }),
+        } as Response);
 
-      const result = await cursorService.generateDefaults(options)
+      const result = await cursorService.generateDefaults(options);
 
-      expect(result.email).toBe("retry@example.com")
-      expect(fetch).toHaveBeenCalledTimes(3) // Retried twice before success
-    })
+      expect(result.email).toBe("retry@example.com");
+      expect(fetch).toHaveBeenCalledTimes(3); // Retried twice before success
+    });
 
     test("should fail after max retries", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
-      vi.mocked(fetch).mockRejectedValue(new Error("Persistent network error"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Persistent network error"));
 
       await expect(cursorService.generateDefaults(options)).rejects.toThrow(
-        "Cursor AI default generation failed"
-      )
+        "Cursor AI default generation failed",
+      );
 
-      expect(fetch).toHaveBeenCalledTimes(mockConfig.cursorAI.retryAttempts)
-    })
+      expect(fetch).toHaveBeenCalledTimes(mockConfig.cursorAI.retryAttempts);
+    });
 
     test("should check service availability", async () => {
-      vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response)
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response);
 
-      const isAvailable = await cursorService.isAvailable()
+      const isAvailable = await cursorService.isAvailable();
 
-      expect(isAvailable).toBe(true)
+      expect(isAvailable).toBe(true);
       expect(fetch).toHaveBeenCalledWith(
         `${mockConfig.cursorAI.endpoint}/health`,
         expect.objectContaining({
@@ -464,70 +492,70 @@ ORDER BY order_count DESC`
           headers: expect.objectContaining({
             Authorization: "Bearer test-cursor-key",
           }),
-        })
-      )
-    })
+        }),
+      );
+    });
 
     test("should handle service unavailability", async () => {
-      vi.mocked(fetch).mockRejectedValueOnce(new Error("Service down"))
+      vi.mocked(fetch).mockRejectedValueOnce(new Error("Service down"));
 
-      const isAvailable = await cursorService.isAvailable()
+      const isAvailable = await cursorService.isAvailable();
 
-      expect(isAvailable).toBe(false)
-    })
-  })
+      expect(isAvailable).toBe(false);
+    });
+  });
 
   describe("GitHubCopilotService", () => {
-    let copilotService: GitHubCopilotService
+    let copilotService: GitHubCopilotService;
 
     beforeEach(() => {
-      copilotService = new GitHubCopilotService(mockConfig.githubCopilot)
-    })
+      copilotService = new GitHubCopilotService(mockConfig.githubCopilot);
+    });
 
     test("should generate fallback defaults", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email", "name"],
         existingData: [],
         context: "test",
-      }
+      };
 
       // Mock service as available but use fallback implementation
-      vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response)
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await copilotService.generateDefaults(options)
+      const result = await copilotService.generateDefaults(options);
 
-      expect(result).toHaveProperty("email")
-      expect(result).toHaveProperty("name")
-      expect(result.email).toContain("copilot")
-    })
+      expect(result).toHaveProperty("email");
+      expect(result).toHaveProperty("name");
+      expect(result.email).toContain("copilot");
+    });
 
     test("should fail when service is disabled", async () => {
-      const disabledConfig = { ...mockConfig.githubCopilot, enabled: false }
-      const disabledService = new GitHubCopilotService(disabledConfig)
+      const disabledConfig = { ...mockConfig.githubCopilot, enabled: false };
+      const disabledService = new GitHubCopilotService(disabledConfig);
 
       const options: CursorAIDefaultOptions = {
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
       await expect(disabledService.generateDefaults(options)).rejects.toThrow(
-        "GitHub Copilot service not available"
-      )
-    })
+        "GitHub Copilot service not available",
+      );
+    });
 
     test("should throw error for unsupported SQL generation", async () => {
-      await expect(copilotService.generateSQL("test", mockSchema)).rejects.toThrow(
-        "GitHub Copilot SQL generation not yet implemented"
-      )
-    })
+      await expect(
+        copilotService.generateSQL("test", mockSchema),
+      ).rejects.toThrow("GitHub Copilot SQL generation not yet implemented");
+    });
 
     test("should throw error for unsupported pattern analysis", async () => {
       await expect(copilotService.analyzeDataPatterns([])).rejects.toThrow(
-        "GitHub Copilot pattern analysis not supported"
-      )
-    })
-  })
+        "GitHub Copilot pattern analysis not supported",
+      );
+    });
+  });
 
   describe("Error Handling", () => {
     test("should handle API timeout", async () => {
@@ -535,49 +563,49 @@ ORDER BY order_count DESC`
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
       // Mock timeout error
-      vi.mocked(fetch).mockRejectedValue(new Error("Request timed out"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Request timed out"));
 
-      await expect(aiManager.generateDefaults(options)).resolves.toBeTruthy() // Should fallback to local generation
-    })
+      await expect(aiManager.generateDefaults(options)).resolves.toBeTruthy(); // Should fallback to local generation
+    });
 
     test("should handle malformed API responses", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
       // Mock malformed response
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ invalid: "response" }),
-      } as Response)
+      } as Response);
 
-      const result = await aiManager.generateDefaults(options)
+      const result = await aiManager.generateDefaults(options);
 
       // Should get fallback defaults
-      expect(result).toHaveProperty("email")
-    })
+      expect(result).toHaveProperty("email");
+    });
 
     test("should handle HTTP error responses", async () => {
       const options: CursorAIDefaultOptions = {
         columns: ["email"],
         existingData: [],
         context: "test",
-      }
+      };
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 429,
         statusText: "Rate Limited",
-      } as Response)
+      } as Response);
 
-      await expect(aiManager.generateDefaults(options)).resolves.toBeTruthy() // Should fallback gracefully
-    })
-  })
+      await expect(aiManager.generateDefaults(options)).resolves.toBeTruthy(); // Should fallback gracefully
+    });
+  });
 
   describe("Configuration", () => {
     test("should handle disabled services", async () => {
@@ -586,39 +614,39 @@ ORDER BY order_count DESC`
         cursorAI: { ...mockConfig.cursorAI, enabled: false },
         githubCopilot: { ...mockConfig.githubCopilot, enabled: false },
         fallbackStrategy: "local_only",
-      }
+      };
 
-      const disabledManager = new AIServiceManager(disabledConfig)
+      const disabledManager = new AIServiceManager(disabledConfig);
       const options: CursorAIDefaultOptions = {
         columns: ["email", "name"],
         existingData: [],
         context: "test",
-      }
+      };
 
-      const result = await disabledManager.generateDefaults(options)
+      const result = await disabledManager.generateDefaults(options);
 
-      expect(result).toHaveProperty("email")
-      expect(result).toHaveProperty("name")
-      expect(result.email).toContain("local")
-    })
+      expect(result).toHaveProperty("email");
+      expect(result).toHaveProperty("name");
+      expect(result.email).toContain("local");
+    });
 
     test("should respect fallback strategy", async () => {
       const noFallbackConfig: AIServiceConfig = {
         ...mockConfig,
         fallbackStrategy: "disabled",
-      }
+      };
 
-      const noFallbackManager = new AIServiceManager(noFallbackConfig)
+      const noFallbackManager = new AIServiceManager(noFallbackConfig);
 
-      vi.mocked(fetch).mockRejectedValue(new Error("Service unavailable"))
+      vi.mocked(fetch).mockRejectedValue(new Error("Service unavailable"));
 
       await expect(
         noFallbackManager.generateDefaults({
           columns: ["email"],
           existingData: [],
           context: "test",
-        })
-      ).rejects.toThrow()
-    })
-  })
-})
+        }),
+      ).rejects.toThrow();
+    });
+  });
+});

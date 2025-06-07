@@ -1,107 +1,111 @@
 import type {
-  CursorAIResponse as CursorAIAPIResponse,
-  CursorAISuggestion as CursorAIAPISuggestion,
   CursorAICompletion,
   CursorAITransformationResponse,
   CursorAIValidationResponse,
-} from "../types/cursor-ai"
+  CursorAIResponse as CursorAiapiResponse,
+  CursorAISuggestion as CursorAiapiSuggestion,
+} from "../types/cursor-ai";
 import type {
   CellValue,
   ColumnDefinition,
   CursorAIDefaultOptions,
   CursorAIPattern,
-  CursorAISuggestion,
   CursorAITransformation,
   CursorAIValidation,
-  ValidationResult,
-} from "../types/datagrid"
+} from "../types/datagrid";
 
 export interface CursorAIResponse {
   suggestions?: Array<{
-    column: string
-    value: CellValue
-    confidence: number
-    reasoning?: string
-  }>
-  patterns?: CursorAIPattern[]
+    column: string;
+    value: CellValue;
+    confidence: number;
+    reasoning?: string;
+  }>;
+  patterns?: CursorAIPattern[];
   metadata?: {
-    processingTime: number
-    model: string
-    context: string
-  }
+    processingTime: number;
+    model: string;
+    context: string;
+  };
 }
 
 interface ValidationApiResponse {
-  issues?: string[]
-  confidence?: number
-  suggestions?: string[]
+  issues?: string[];
+  confidence?: number;
+  suggestions?: string[];
 }
 
 interface TransformationApiResponse {
-  transformation?: (value: unknown) => CellValue
-  preview?: Array<{ original: CellValue; transformed: CellValue }>
+  transformation?: (value: unknown) => CellValue;
+  preview?: Array<{ original: CellValue; transformed: CellValue }>;
 }
 
 export interface CursorAIConfig {
-  apiKey?: string
-  model: string
-  endpoint: string
-  timeout: number
-  retryAttempts: number
-  cacheEnabled: boolean
-  confidenceThreshold: number
+  apiKey?: string;
+  model: string;
+  endpoint: string;
+  timeout: number;
+  retryAttempts: number;
+  cacheEnabled: boolean;
+  confidenceThreshold: number;
 }
 
 export class CursorAIIntegration {
-  private config: CursorAIConfig
-  private cache: Map<string, unknown> = new Map()
-  private rateLimiter: Map<string, number> = new Map()
+  private config: CursorAIConfig;
+  private cache: Map<string, unknown> = new Map();
+  private rateLimiter: Map<string, number> = new Map();
 
   constructor(config?: Partial<CursorAIConfig>) {
     this.config = {
       model: "cursor-composer-v2",
-      endpoint: process.env.CURSOR_AI_ENDPOINT || "https://api.cursor.so/v1/composer",
+      endpoint:
+        process.env.CURSOR_AI_ENDPOINT || "https://api.cursor.so/v1/composer",
       apiKey: process.env.CURSOR_AI_API_KEY || config?.apiKey,
       timeout: 10000,
       retryAttempts: 3,
       cacheEnabled: true,
       confidenceThreshold: 0.6,
       ...config,
-    }
+    };
   }
 
   /**
    * Generate smart default values using Cursor AI
    */
-  async generateDefaults(options: CursorAIDefaultOptions): Promise<Record<string, CellValue>> {
-    const cacheKey = this.getCacheKey("defaults", options)
+  async generateDefaults(
+    options: CursorAIDefaultOptions,
+  ): Promise<Record<string, CellValue>> {
+    const cacheKey = this.getCacheKey("defaults", options);
 
     if (this.config.cacheEnabled && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey) as Record<string, CellValue>
+      return this.cache.get(cacheKey) as Record<string, CellValue>;
     }
 
     try {
-      const prompt = this.buildDefaultGenerationPrompt(options)
-      const response = await this.callCursorAPI(prompt, "generate-defaults")
+      const prompt = this.buildDefaultGenerationPrompt(options);
+      const response = await this.callCursorAPI(prompt, "generate-defaults");
 
-      const defaults: Record<string, CellValue> = {}
+      const defaults: Record<string, CellValue> = {};
 
-      const typedResponse = response as CursorAIResponse
-      const suggestions = typedResponse.suggestions || []
+      const typedResponse = response as CursorAIResponse;
+      const suggestions = typedResponse.suggestions || [];
       for (const suggestion of suggestions) {
         if (suggestion.confidence >= this.config.confidenceThreshold) {
-          defaults[suggestion.column] = suggestion.value
+          defaults[suggestion.column] = suggestion.value;
         }
       }
 
       if (this.config.cacheEnabled) {
-        this.cache.set(cacheKey, defaults)
+        this.cache.set(cacheKey, defaults);
       }
 
-      return defaults
+      return defaults;
     } catch (error) {
-      console.warn("Cursor AI generation failed, falling back to basic defaults:", error)
-      return this.generateFallbackDefaults(options.columns || [])
+      console.warn(
+        "Cursor AI generation failed, falling back to basic defaults:",
+        error,
+      );
+      return this.generateFallbackDefaults(options.columns || []);
     }
   }
 
@@ -110,33 +114,38 @@ export class CursorAIIntegration {
    */
   async analyzeDataPatterns(
     rows: Record<string, CellValue>[],
-    columns: ColumnDefinition[]
+    columns: ColumnDefinition[],
   ): Promise<Record<string, CursorAIPattern>> {
-    const cacheKey = this.getCacheKey("patterns", { rows: rows.slice(0, 5), columns })
+    const cacheKey = this.getCacheKey("patterns", {
+      rows: rows.slice(0, 5),
+      columns,
+    });
 
     if (this.config.cacheEnabled && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey) as Record<string, CursorAIPattern>
+      return this.cache.get(cacheKey) as Record<string, CursorAIPattern>;
     }
 
     try {
-      const prompt = this.buildPatternAnalysisPrompt(rows, columns)
-      const _response = await this.callCursorAPI(prompt, "analyze-patterns")
+      const prompt = this.buildPatternAnalysisPrompt(rows, columns);
+      const _response = await this.callCursorAPI(prompt, "analyze-patterns");
 
-      const patterns: Record<string, CursorAIPattern> = {}
+      const patterns: Record<string, CursorAIPattern> = {};
 
       for (const column of columns) {
-        const columnData = rows.map((row) => row[column.id]).filter((val) => val != null)
-        patterns[column.id] = this.analyzeColumnPattern(columnData, column)
+        const columnData = rows
+          .map((row) => row[column.id])
+          .filter((val) => val != null);
+        patterns[column.id] = this.analyzeColumnPattern(columnData, column);
       }
 
       if (this.config.cacheEnabled) {
-        this.cache.set(cacheKey, patterns)
+        this.cache.set(cacheKey, patterns);
       }
 
-      return patterns
+      return patterns;
     } catch (error) {
-      console.warn("Pattern analysis failed, using basic analysis:", error)
-      return this.performBasicPatternAnalysis(rows, columns)
+      console.warn("Pattern analysis failed, using basic analysis:", error);
+      return this.performBasicPatternAnalysis(rows, columns);
     }
   }
 
@@ -146,37 +155,50 @@ export class CursorAIIntegration {
   async getContextualSuggestions(
     partialValue: string,
     columnId: string,
-    existingData: Record<string, CellValue>[]
+    existingData: Record<string, CellValue>[],
   ): Promise<string[]> {
     if (partialValue.length < 2) {
-      return []
+      return [];
     }
 
-    const cacheKey = this.getCacheKey("suggestions", { partialValue, columnId })
+    const cacheKey = this.getCacheKey("suggestions", {
+      partialValue,
+      columnId,
+    });
 
     if (this.config.cacheEnabled && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey) as string[]
+      return this.cache.get(cacheKey) as string[];
     }
 
     try {
-      const prompt = this.buildSuggestionPrompt(partialValue, columnId, existingData)
-      const response = await this.callCursorAPI(prompt, "get-suggestions")
+      const prompt = this.buildSuggestionPrompt(
+        partialValue,
+        columnId,
+        existingData,
+      );
+      const response = await this.callCursorAPI(prompt, "get-suggestions");
 
-      const typedResponse = response as CursorAIResponse
-      const responseSuggestions = typedResponse.suggestions || []
+      const typedResponse = response as CursorAIResponse;
+      const responseSuggestions = typedResponse.suggestions || [];
       const suggestions = responseSuggestions
-        .filter((s: { confidence: number }) => s.confidence >= this.config.confidenceThreshold)
+        .filter(
+          (s: { confidence: number }) =>
+            s.confidence >= this.config.confidenceThreshold,
+        )
         .map((s) => String(s.value))
-        .slice(0, 10) // Limit to top 10 suggestions
+        .slice(0, 10); // Limit to top 10 suggestions
 
       if (this.config.cacheEnabled) {
-        this.cache.set(cacheKey, suggestions)
+        this.cache.set(cacheKey, suggestions);
       }
 
-      return suggestions
+      return suggestions;
     } catch (error) {
-      console.warn("Contextual suggestions failed, using basic completion:", error)
-      return this.getBasicSuggestions(partialValue, columnId, existingData)
+      console.warn(
+        "Contextual suggestions failed, using basic completion:",
+        error,
+      );
+      return this.getBasicSuggestions(partialValue, columnId, existingData);
     }
   }
 
@@ -184,26 +206,26 @@ export class CursorAIIntegration {
    * AI-powered data quality validation
    */
   async validateDataQuality(data: {
-    rowIndex: number
-    data: Record<string, CellValue>
+    rowIndex: number;
+    data: Record<string, CellValue>;
   }): Promise<CursorAIValidation> {
     try {
-      const prompt = this.buildValidationPrompt(data)
-      const response = await this.callCursorAPI(prompt, "validate-quality")
+      const prompt = this.buildValidationPrompt(data);
+      const response = await this.callCursorAPI(prompt, "validate-quality");
 
-      const typedResponse = response as ValidationApiResponse
+      const typedResponse = response as ValidationApiResponse;
       return {
         issues: typedResponse.issues || [],
         confidence: typedResponse.confidence || 0.5,
         suggestions: typedResponse.suggestions || [],
-      }
+      };
     } catch (error) {
-      console.warn("AI validation failed:", error)
+      console.warn("AI validation failed:", error);
       return {
         issues: [],
         confidence: 0,
         suggestions: [],
-      }
+      };
     }
   }
 
@@ -213,10 +235,10 @@ export class CursorAIIntegration {
   async getAutoCompletions(
     input: string,
     columnId: string,
-    existingData: Record<string, CellValue>[]
+    existingData: Record<string, CellValue>[],
   ): Promise<string[]> {
     if (input.length < 1) {
-      return []
+      return [];
     }
 
     try {
@@ -226,25 +248,31 @@ export class CursorAIIntegration {
           existingData
             .map((row) => row[columnId])
             .filter((val) => val != null && typeof val === "string")
-            .map((val) => val as string)
+            .map((val) => val as string),
         ),
-      ]
+      ];
 
       // Filter values that start with the input
       const matchingValues = existingValues
         .filter((value) => value.toLowerCase().startsWith(input.toLowerCase()))
-        .slice(0, 5)
+        .slice(0, 5);
 
       // Get AI suggestions for additional completions
-      const aiSuggestions = await this.getContextualSuggestions(input, columnId, existingData)
+      const aiSuggestions = await this.getContextualSuggestions(
+        input,
+        columnId,
+        existingData,
+      );
 
       // Combine and deduplicate
-      const allSuggestions = [...new Set([...matchingValues, ...aiSuggestions])]
+      const allSuggestions = [
+        ...new Set([...matchingValues, ...aiSuggestions]),
+      ];
 
-      return allSuggestions.slice(0, 8)
+      return allSuggestions.slice(0, 8);
     } catch (error) {
-      console.warn("Auto-completion failed:", error)
-      return []
+      console.warn("Auto-completion failed:", error);
+      return [];
     }
   }
 
@@ -252,13 +280,16 @@ export class CursorAIIntegration {
    * Suggest data transformations
    */
   async suggestTransformation(options: {
-    sourceColumn: string
-    targetColumn: string
-    sampleData: CellValue[]
+    sourceColumn: string;
+    targetColumn: string;
+    sampleData: CellValue[];
   }): Promise<CursorAITransformation> {
     try {
-      const prompt = this.buildTransformationPrompt(options)
-      const response = await this.callCursorAPI(prompt, "suggest-transformation")
+      const prompt = this.buildTransformationPrompt(options);
+      const response = await this.callCursorAPI(
+        prompt,
+        "suggest-transformation",
+      );
 
       return {
         sourceColumn: options.sourceColumn,
@@ -266,43 +297,51 @@ export class CursorAIIntegration {
         function:
           (response as TransformationApiResponse).transformation ||
           ((x: unknown) => x as CellValue),
-        preview: ((response as TransformationApiResponse).preview || []).map((p) => p.transformed),
-      }
+        preview: ((response as TransformationApiResponse).preview || []).map(
+          (p) => p.transformed,
+        ),
+      };
     } catch (error) {
-      console.warn("Transformation suggestion failed:", error)
+      console.warn("Transformation suggestion failed:", error);
       return {
         sourceColumn: options.sourceColumn,
         targetColumn: options.targetColumn,
         function: (x: unknown) => x as CellValue,
         preview: [],
-      }
+      };
     }
   }
 
   /**
    * Private methods for API interaction
    */
-  private async callCursorAPI(prompt: string, operation: string): Promise<Record<string, unknown>> {
+  private async callCursorAPI(
+    prompt: string,
+    operation: string,
+  ): Promise<Record<string, unknown>> {
     // Check rate limiting
-    const now = Date.now()
-    const lastCall = this.rateLimiter.get(operation) || 0
-    const minInterval = 1000 // 1 second between calls
+    const now = Date.now();
+    const lastCall = this.rateLimiter.get(operation) || 0;
+    const minInterval = 1000; // 1 second between calls
 
     if (now - lastCall < minInterval) {
-      throw new Error("Rate limit exceeded")
+      throw new Error("Rate limit exceeded");
     }
 
-    this.rateLimiter.set(operation, now)
+    this.rateLimiter.set(operation, now);
 
     // If API key is not configured, fall back to mock responses
     if (!this.config.apiKey) {
-      console.info("Cursor AI API key not configured, using mock responses")
-      return this.getMockAIResponse(prompt, operation)
+      console.info("Cursor AI API key not configured, using mock responses");
+      return this.getMockAIResponse(prompt, operation);
     }
 
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.config.timeout,
+      );
 
       const response = await fetch(this.config.endpoint, {
         method: "POST",
@@ -319,94 +358,114 @@ export class CursorAIIntegration {
           max_tokens: 1000,
         }),
         signal: controller.signal,
-      })
+      });
 
-      clearTimeout(timeoutId)
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const data = await response.json()
-      return this.parseAPIResponse(data, operation)
+      const data = await response.json();
+      return this.parseAPIResponse(data, operation);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new Error("API request timeout")
+        throw new Error("API request timeout");
       }
-      console.warn(`Cursor AI API call failed for ${operation}:`, error)
+      console.warn(`Cursor AI API call failed for ${operation}:`, error);
       // Fall back to mock response on error
-      return this.getMockAIResponse(prompt, operation)
+      return this.getMockAIResponse(prompt, operation);
     }
   }
 
-  private parseAPIResponse(data: CursorAIAPIResponse, operation: string): Record<string, unknown> {
+  private parseAPIResponse(
+    data: CursorAiapiResponse,
+    operation: string,
+  ): Record<string, unknown> {
     // Parse actual API response based on operation type
     switch (operation) {
       case "generate-defaults":
-        if ("suggestions" in data && data.suggestions && Array.isArray(data.suggestions)) {
+        if (
+          "suggestions" in data &&
+          data.suggestions &&
+          Array.isArray(data.suggestions)
+        ) {
           return {
-            suggestions: data.suggestions.map((s: CursorAIAPISuggestion) => ({
+            suggestions: data.suggestions.map((s: CursorAiapiSuggestion) => ({
               column: s.column || s.field,
               value: s.value || s.default,
               confidence: s.confidence || s.score || 0.7,
               reasoning: s.reasoning || s.explanation,
             })),
             metadata: data.metadata,
-          }
+          };
         }
-        break
+        break;
 
       case "analyze-patterns":
         if ("patterns" in data && data.patterns) {
           return {
             patterns: data.patterns,
             metadata: data.metadata,
-          }
+          };
         }
-        break
+        break;
 
       case "get-suggestions":
-        if ("completions" in data && data.completions && Array.isArray(data.completions)) {
+        if (
+          "completions" in data &&
+          data.completions &&
+          Array.isArray(data.completions)
+        ) {
           return {
             suggestions: data.completions.map((c: CursorAICompletion) => ({
               value: c.text || c.value,
               confidence: c.confidence || c.score || 0.7,
             })),
-          }
+          };
         }
-        break
+        break;
 
       case "validate-quality":
         if ("validation" in data && data.validation) {
-          const validation = data.validation as CursorAIValidationResponse["validation"]
+          const validation =
+            data.validation as CursorAIValidationResponse["validation"];
           return {
             issues: validation?.issues || [],
             confidence: validation?.confidence || 0.7,
             suggestions: validation?.suggestions || [],
             severity: validation?.severity || "info",
-          }
+          };
         }
-        break
+        break;
 
       case "suggest-transformation":
         if ("transformation" in data && data.transformation) {
           const transformation =
-            data.transformation as CursorAITransformationResponse["transformation"]
+            data.transformation as CursorAITransformationResponse["transformation"];
           return {
-            transformation: new Function("value", transformation?.code || "return value"),
+            transformation: new Function(
+              "value",
+              transformation?.code || "return value",
+            ),
             preview: transformation?.preview || [],
             confidence: transformation?.confidence || 0.7,
             description: transformation?.description || "",
-          }
+          };
         }
-        break
+        break;
     }
 
     // If response format is not recognized, return raw data
-    return data as Record<string, unknown>
+    return data as Record<string, unknown>;
   }
 
-  private getMockAIResponse(prompt: string, operation: string): Record<string, unknown> {
+  private getMockAIResponse(
+    prompt: string,
+    operation: string,
+  ): Record<string, unknown> {
     // Mock implementation - in real scenario, this would call the actual Cursor AI API
     switch (operation) {
       case "generate-defaults":
@@ -416,7 +475,7 @@ export class CursorAIIntegration {
             { column: "name", value: "John Smith", confidence: 0.7 },
             { column: "age", value: 30, confidence: 0.6 },
           ],
-        }
+        };
 
       case "analyze-patterns":
         return {
@@ -425,7 +484,7 @@ export class CursorAIIntegration {
             namePattern: /^[A-Z][a-z]+ [A-Z][a-z]+$/,
             ageRange: { min: 18, max: 65 },
           },
-        }
+        };
 
       case "get-suggestions":
         if (prompt.includes("email")) {
@@ -434,9 +493,9 @@ export class CursorAIIntegration {
               { value: "john.doe@company.com", confidence: 0.9 },
               { value: "jane.smith@company.com", confidence: 0.8 },
             ],
-          }
+          };
         }
-        return { suggestions: [] }
+        return { suggestions: [] };
 
       case "validate-quality":
         return {
@@ -444,7 +503,7 @@ export class CursorAIIntegration {
           confidence: 0.8,
           suggestions: ["Consider values between 18-100"],
           severity: "warning",
-        }
+        };
 
       case "suggest-transformation":
         return {
@@ -456,17 +515,21 @@ export class CursorAIIntegration {
           preview: ["J.D.", "J.S.", "B.J."],
           confidence: 0.9,
           description: "Convert full names to initials",
-        }
+        };
 
       default:
-        return { suggestions: [] }
+        return { suggestions: [] };
     }
   }
 
-  private buildDefaultGenerationPrompt(options: CursorAIDefaultOptions): string {
-    const contextInfo = options.context || "Adding new record"
-    const existingDataSample = (options.existingData || []).slice(0, 3)
-    const columnInfo = (options.columns || []).map((col) => `${col.name} (${col.type})`).join(", ")
+  private buildDefaultGenerationPrompt(
+    options: CursorAIDefaultOptions,
+  ): string {
+    const contextInfo = options.context || "Adding new record";
+    const existingDataSample = (options.existingData || []).slice(0, 3);
+    const columnInfo = (options.columns || [])
+      .map((col) => `${col.name} (${col.type})`)
+      .join(", ");
 
     return `
 Generate smart default values for new database record.
@@ -482,14 +545,14 @@ Please suggest appropriate default values that:
 4. Maintain data consistency
 
 Return suggestions with confidence scores.
-    `.trim()
+    `.trim();
   }
 
   private buildPatternAnalysisPrompt(
     rows: Record<string, CellValue>[],
-    columns: ColumnDefinition[]
+    columns: ColumnDefinition[],
   ): string {
-    const sampleData = rows.slice(0, 10)
+    const sampleData = rows.slice(0, 10);
 
     return `
 Analyze data patterns in this dataset:
@@ -505,18 +568,18 @@ Identify:
 5. Data quality issues
 
 Return patterns with confidence scores.
-    `.trim()
+    `.trim();
   }
 
   private buildSuggestionPrompt(
     partialValue: string,
     columnId: string,
-    existingData: Record<string, CellValue>[]
+    existingData: Record<string, CellValue>[],
   ): string {
     const columnData = existingData
       .map((row) => row[columnId])
       .filter((val) => val != null)
-      .slice(0, 10)
+      .slice(0, 10);
 
     return `
 Complete this partial value: "${partialValue}"
@@ -530,12 +593,12 @@ Suggest completions that:
 4. Maintain consistency
 
 Return top suggestions with confidence scores.
-    `.trim()
+    `.trim();
   }
 
   private buildValidationPrompt(data: {
-    rowIndex: number
-    data: Record<string, CellValue>
+    rowIndex: number;
+    data: Record<string, CellValue>;
   }): string {
     return `
 Validate data quality for this record:
@@ -549,13 +612,13 @@ Check for:
 5. Outliers
 
 Return issues with severity levels and suggestions.
-    `.trim()
+    `.trim();
   }
 
   private buildTransformationPrompt(options: {
-    sourceColumn: string
-    targetColumn: string
-    sampleData: CellValue[]
+    sourceColumn: string;
+    targetColumn: string;
+    sampleData: CellValue[];
   }): string {
     return `
 Suggest transformation from ${options.sourceColumn} to ${options.targetColumn}:
@@ -568,74 +631,87 @@ Analyze the pattern and suggest:
 4. Description of transformation
 
 Common transformations: extract initials, format phone numbers, standardize dates, etc.
-    `.trim()
+    `.trim();
   }
 
   /**
    * Fallback methods when AI is unavailable
    */
-  private generateFallbackDefaults(columns: ColumnDefinition[]): Record<string, CellValue> {
-    const defaults: Record<string, CellValue> = {}
+  private generateFallbackDefaults(
+    columns: ColumnDefinition[],
+  ): Record<string, CellValue> {
+    const defaults: Record<string, CellValue> = {};
 
     for (const column of columns) {
       if (column.isAutoIncrement || column.isPrimaryKey) {
-        continue
+        continue;
       }
 
-      const columnName = column.name.toLowerCase()
-      const columnType = column.type.toLowerCase()
+      const columnName = column.name.toLowerCase();
+      const columnType = column.type.toLowerCase();
 
       // Generate contextual defaults based on column name
       if (columnName.includes("email")) {
-        defaults[column.id] = "user@example.com"
+        defaults[column.id] = "user@example.com";
       } else if (columnName.includes("name")) {
-        defaults[column.id] = "John Doe"
+        defaults[column.id] = "John Doe";
       } else if (columnName.includes("phone")) {
-        defaults[column.id] = "555-0123"
+        defaults[column.id] = "555-0123";
       } else if (columnName.includes("age")) {
-        defaults[column.id] = 25
+        defaults[column.id] = 25;
       } else if (columnName.includes("date")) {
-        defaults[column.id] = new Date().toISOString().split("T")[0]
+        defaults[column.id] = new Date().toISOString().split("T")[0];
       } else if (columnType.includes("int")) {
-        defaults[column.id] = 0
+        defaults[column.id] = 0;
       } else if (columnType.includes("bool")) {
-        defaults[column.id] = false
+        defaults[column.id] = false;
       } else if (!column.nullable) {
-        defaults[column.id] = ""
+        defaults[column.id] = "";
       }
     }
 
-    return defaults
+    return defaults;
   }
 
   private performBasicPatternAnalysis(
     rows: Record<string, CellValue>[],
-    columns: ColumnDefinition[]
+    columns: ColumnDefinition[],
   ): Record<string, CursorAIPattern> {
-    const patterns: Record<string, CursorAIPattern> = {}
+    const patterns: Record<string, CursorAIPattern> = {};
 
     for (const column of columns) {
-      const values = rows.map((row) => row[column.id]).filter((val) => val != null)
+      const values = rows
+        .map((row) => row[column.id])
+        .filter((val) => val != null);
 
       patterns[column.id] = {
         pattern: this.detectBasicPattern(values) as string,
         confidence: 0.5,
         examples: values.slice(0, 3) as string[],
-      }
+      };
     }
 
-    return patterns
+    return patterns;
   }
 
-  private analyzeColumnPattern(data: CellValue[], _column: ColumnDefinition): CursorAIPattern {
+  private analyzeColumnPattern(
+    data: CellValue[],
+    _column: ColumnDefinition,
+  ): CursorAIPattern {
     if (data.length === 0) {
-      return { pattern: "", confidence: 0, examples: [] }
+      return { pattern: "", confidence: 0, examples: [] };
     }
 
-    const stringData = data.filter((val) => typeof val === "string") as string[]
+    const stringData = data.filter(
+      (val) => typeof val === "string",
+    ) as string[];
 
     if (stringData.length === 0) {
-      return { pattern: "", confidence: 0.5, examples: data.slice(0, 3) as string[] }
+      return {
+        pattern: "",
+        confidence: 0.5,
+        examples: data.slice(0, 3) as string[],
+      };
     }
 
     // Detect email pattern
@@ -644,7 +720,7 @@ Common transformations: extract initials, format phone numbers, standardize date
         pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
         confidence: 0.9,
         examples: stringData.slice(0, 3),
-      }
+      };
     }
 
     // Detect name pattern
@@ -653,83 +729,85 @@ Common transformations: extract initials, format phone numbers, standardize date
         pattern: "^[A-Z][a-z]+ [A-Z][a-z]+$",
         confidence: 0.8,
         examples: stringData.slice(0, 3),
-      }
+      };
     }
 
     return {
       pattern: "",
       confidence: 0.3,
       examples: stringData.slice(0, 3),
-    }
+    };
   }
 
   private detectBasicPattern(values: CellValue[]): string {
-    if (values.length === 0) return ""
+    if (values.length === 0) return "";
 
-    const stringValues = values.filter((val) => typeof val === "string") as string[]
+    const stringValues = values.filter(
+      (val) => typeof val === "string",
+    ) as string[];
 
-    if (stringValues.length === 0) return ""
+    if (stringValues.length === 0) return "";
 
     // Simple pattern detection
     if (stringValues.every((val) => val.includes("@"))) {
-      return ".*@.*\\..*"
+      return ".*@.*\\..*";
     }
 
-    return ""
+    return "";
   }
 
   private getBasicSuggestions(
     partialValue: string,
     columnId: string,
-    existingData: Record<string, CellValue>[]
+    existingData: Record<string, CellValue>[],
   ): string[] {
     const columnValues = existingData
       .map((row) => row[columnId])
-      .filter((val) => typeof val === "string") as string[]
+      .filter((val) => typeof val === "string") as string[];
 
     return columnValues
       .filter((val) => val.toLowerCase().startsWith(partialValue.toLowerCase()))
-      .slice(0, 5)
+      .slice(0, 5);
   }
 
   private getCacheKey(operation: string, data: unknown): string {
-    return `${operation}:${JSON.stringify(data)}`
+    return `${operation}:${JSON.stringify(data)}`;
   }
 
   /**
    * Cache and performance management
    */
   clearCache(): void {
-    this.cache.clear()
+    this.cache.clear();
   }
 
   getCacheStats(): { size: number; operations: string[] } {
     return {
       size: this.cache.size,
       operations: Array.from(this.cache.keys()).map((key) => key.split(":")[0]),
-    }
+    };
   }
 
   updateConfig(newConfig: Partial<CursorAIConfig>): void {
-    this.config = { ...this.config, ...newConfig }
+    this.config = { ...this.config, ...newConfig };
   }
 
   /**
    * Check if API is configured and available
    */
   isAPIConfigured(): boolean {
-    return Boolean(this.config.apiKey)
+    return Boolean(this.config.apiKey);
   }
 
   /**
    * Get API configuration status
    */
   getAPIStatus(): {
-    configured: boolean
-    endpoint: string
-    model: string
-    cacheEnabled: boolean
-    fallbackEnabled: boolean
+    configured: boolean;
+    endpoint: string;
+    model: string;
+    cacheEnabled: boolean;
+    fallbackEnabled: boolean;
   } {
     return {
       configured: this.isAPIConfigured(),
@@ -737,6 +815,6 @@ Common transformations: extract initials, format phone numbers, standardize date
       model: this.config.model,
       cacheEnabled: this.config.cacheEnabled,
       fallbackEnabled: true, // Always have fallback to mock responses
-    }
+    };
   }
 }

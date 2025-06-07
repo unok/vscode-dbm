@@ -6,9 +6,23 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Database", "Data Science", "Visualization"],
-  "keywords": ["database", "sql", "mysql", "postgresql", "sqlite", "cursor-ai", "dbm"],
-  "activationEvents": ["*"],
+  "categories": [
+    "Database",
+    "Data Science",
+    "Visualization"
+  ],
+  "keywords": [
+    "database",
+    "sql",
+    "mysql",
+    "postgresql",
+    "sqlite",
+    "cursor-ai",
+    "dbm"
+  ],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
@@ -252,7 +266,11 @@
             },
             "type": {
               "type": "string",
-              "enum": ["mysql", "postgresql", "sqlite"],
+              "enum": [
+                "mysql",
+                "postgresql",
+                "sqlite"
+              ],
               "description": "Database type"
             },
             "host": {
@@ -319,7 +337,7 @@
     "check:deps": "npm run check:native"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.0.0-beta.6",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",

@@ -1,140 +1,140 @@
 // Table Management Types
 
 export interface TableDefinition {
-  name: string
-  schema: string
-  comment?: string
-  columns: ColumnDefinition[]
-  constraints?: ConstraintDefinition[]
-  indexes?: IndexDefinition[]
+  name: string;
+  schema: string;
+  comment?: string;
+  columns: ColumnDefinition[];
+  constraints?: ConstraintDefinition[];
+  indexes?: IndexDefinition[];
 }
 
 export interface ColumnDefinition {
-  name: string
-  dataType: string
-  nullable: boolean
-  defaultValue?: string | number | boolean | null
-  comment?: string
-  isPrimaryKey?: boolean
-  isForeignKey?: boolean
-  autoIncrement?: boolean
-  maxLength?: number
-  precision?: number
-  scale?: number
+  name: string;
+  dataType: string;
+  nullable: boolean;
+  defaultValue?: string | number | boolean | null;
+  comment?: string;
+  isPrimaryKey?: boolean;
+  isForeignKey?: boolean;
+  autoIncrement?: boolean;
+  maxLength?: number;
+  precision?: number;
+  scale?: number;
 }
 
 export interface ConstraintDefinition {
-  name: string
-  type: "PRIMARY_KEY" | "FOREIGN_KEY" | "UNIQUE" | "CHECK" | "NOT_NULL"
-  columns?: string[]
-  referencedTable?: string
-  referencedColumns?: string[]
-  onDelete?: "CASCADE" | "SET_NULL" | "RESTRICT" | "NO_ACTION" | "SET_DEFAULT"
-  onUpdate?: "CASCADE" | "SET_NULL" | "RESTRICT" | "NO_ACTION" | "SET_DEFAULT"
-  checkExpression?: string
-  deferrable?: boolean
-  initiallyDeferred?: boolean
+  name: string;
+  type: "PRIMARY_KEY" | "FOREIGN_KEY" | "UNIQUE" | "CHECK" | "NOT_NULL";
+  columns?: string[];
+  referencedTable?: string;
+  referencedColumns?: string[];
+  onDelete?: "CASCADE" | "SET_NULL" | "RESTRICT" | "NO_ACTION" | "SET_DEFAULT";
+  onUpdate?: "CASCADE" | "SET_NULL" | "RESTRICT" | "NO_ACTION" | "SET_DEFAULT";
+  checkExpression?: string;
+  deferrable?: boolean;
+  initiallyDeferred?: boolean;
 }
 
 export interface IndexDefinition {
-  name: string
-  tableName: string
-  columns: string[]
-  unique: boolean
-  type?: "BTREE" | "HASH" | "GIN" | "GIST" | "SPGIST" | "BRIN"
-  where?: string // Partial index condition
-  include?: string[] // Covering index columns (PostgreSQL)
-  comment?: string
+  name: string;
+  tableName: string;
+  columns: string[];
+  unique: boolean;
+  type?: "BTREE" | "HASH" | "GIN" | "GIST" | "SPGIST" | "BRIN";
+  where?: string; // Partial index condition
+  include?: string[]; // Covering index columns (PostgreSQL)
+  comment?: string;
 }
 
 export interface DDLResult {
-  success: boolean
-  sql?: string
-  error?: string
-  executionTime?: number
-  affectedRows?: number
+  success: boolean;
+  sql?: string;
+  error?: string;
+  executionTime?: number;
+  affectedRows?: number;
 }
 
 export interface TableValidationError {
-  field: string
-  message: string
-  severity: "error" | "warning"
+  field: string;
+  message: string;
+  severity: "error" | "warning";
 }
 
 export interface TableValidationResult {
-  valid: boolean
-  errors: TableValidationError[]
-  warnings: TableValidationError[]
+  valid: boolean;
+  errors: TableValidationError[];
+  warnings: TableValidationError[];
 }
 
 // Constraint Management Types
 export interface ConstraintValidationError {
-  type: "validation" | "database" | "security"
-  field: string
-  message: string
-  severity: "error" | "warning" | "info"
+  type: "validation" | "database" | "security";
+  field: string;
+  message: string;
+  severity: "error" | "warning" | "info";
 }
 
 export interface ConstraintValidationResult {
-  isValid: boolean
-  errors: ConstraintValidationError[]
-  warnings: ConstraintValidationError[]
+  isValid: boolean;
+  errors: ConstraintValidationError[];
+  warnings: ConstraintValidationError[];
 }
 
 export interface ConstraintManagementResult {
-  dependencies: Record<string, string[]>
-  circularDependencies: string[]
-  warnings: string[]
-  canApply: boolean
+  dependencies: Record<string, string[]>;
+  circularDependencies: string[];
+  warnings: string[];
+  canApply: boolean;
 }
 
 // Index Management Types
 export interface IndexValidationError {
-  type: "validation" | "database" | "security" | "performance" | "optimization"
-  field: string
-  message: string
-  severity: "error" | "warning" | "info"
+  type: "validation" | "database" | "security" | "performance" | "optimization";
+  field: string;
+  message: string;
+  severity: "error" | "warning" | "info";
 }
 
 export interface IndexValidationResult {
-  isValid: boolean
-  errors: IndexValidationError[]
-  warnings: IndexValidationError[]
+  isValid: boolean;
+  errors: IndexValidationError[];
+  warnings: IndexValidationError[];
 }
 
 export interface IndexOptimizationSuggestion {
-  type: "optimization" | "warning" | "performance"
-  priority: "high" | "medium" | "low"
-  message: string
+  type: "optimization" | "warning" | "performance";
+  priority: "high" | "medium" | "low";
+  message: string;
 }
 
 export interface IndexPerformanceAnalysis {
-  estimatedSelectivity: number // 0.0 to 1.0
-  estimatedSize: number // in MB
-  maintenanceCost: "low" | "medium" | "high"
-  suggestions: IndexOptimizationSuggestion[]
+  estimatedSelectivity: number; // 0.0 to 1.0
+  estimatedSize: number; // in MB
+  maintenanceCost: "low" | "medium" | "high";
+  suggestions: IndexOptimizationSuggestion[];
 }
 
 export interface IndexManagementResult {
   analysis: {
-    totalIndexes: number
-    uniqueIndexes: number
-    partialIndexes: number
-    coveringIndexes: number
-    estimatedTotalSize: number
-    maintenanceComplexity: "low" | "medium" | "high"
-  }
-  recommendations: IndexOptimizationSuggestion[]
-  canOptimize: boolean
+    totalIndexes: number;
+    uniqueIndexes: number;
+    partialIndexes: number;
+    coveringIndexes: number;
+    estimatedTotalSize: number;
+    maintenanceComplexity: "low" | "medium" | "high";
+  };
+  recommendations: IndexOptimizationSuggestion[];
+  canOptimize: boolean;
 }
 
 // Data type mappings for different databases
 export interface DataTypeMapping {
-  mysql: Record<string, string>
-  postgresql: Record<string, string>
-  sqlite: Record<string, string>
-  mssql: Record<string, string>
-  oracle: Record<string, string>
+  mysql: Record<string, string>;
+  postgresql: Record<string, string>;
+  sqlite: Record<string, string>;
+  mssql: Record<string, string>;
+  oracle: Record<string, string>;
 }
 
 export const DATA_TYPE_MAPPINGS: DataTypeMapping = {
@@ -226,7 +226,7 @@ export const DATA_TYPE_MAPPINGS: DataTypeMapping = {
     BINARY: "RAW",
     BLOB: "BLOB",
   },
-}
+};
 
 // SQL keywords that should be avoided as table/column names
 export const SQL_RESERVED_KEYWORDS = [
@@ -302,84 +302,84 @@ export const SQL_RESERVED_KEYWORDS = [
   "TIME",
   "TIMESTAMP",
   "BLOB",
-]
+];
 
 // Table creation options
 export interface TableCreationOptions {
-  ifNotExists?: boolean
-  temporary?: boolean
-  engine?: string // MySQL
-  charset?: string // MySQL
-  collation?: string // MySQL
-  tablespace?: string // PostgreSQL/Oracle
-  unlogged?: boolean // PostgreSQL
-  withOids?: boolean // PostgreSQL (deprecated)
+  ifNotExists?: boolean;
+  temporary?: boolean;
+  engine?: string; // MySQL
+  charset?: string; // MySQL
+  collation?: string; // MySQL
+  tablespace?: string; // PostgreSQL/Oracle
+  unlogged?: boolean; // PostgreSQL
+  withOids?: boolean; // PostgreSQL (deprecated)
 }
 
 // Column modification operations
-export type ColumnOperation = "ADD" | "MODIFY" | "CHANGE" | "DROP" | "RENAME"
+export type ColumnOperation = "ADD" | "MODIFY" | "CHANGE" | "DROP" | "RENAME";
 
 export interface ColumnModification {
-  operation: ColumnOperation
-  column: ColumnDefinition
-  newName?: string // For RENAME operation
-  position?: "FIRST" | { after: string } // MySQL specific
+  operation: ColumnOperation;
+  column: ColumnDefinition;
+  newName?: string; // For RENAME operation
+  position?: "FIRST" | { after: string }; // MySQL specific
 }
 
 // Table comparison and diff
 export interface TableDiff {
-  tableName: string
-  columnChanges: ColumnModification[]
+  tableName: string;
+  columnChanges: ColumnModification[];
   constraintChanges: {
-    added: ConstraintDefinition[]
-    removed: string[]
-    modified: ConstraintDefinition[]
-  }
+    added: ConstraintDefinition[];
+    removed: string[];
+    modified: ConstraintDefinition[];
+  };
   indexChanges: {
-    added: IndexDefinition[]
-    removed: string[]
-    modified: IndexDefinition[]
-  }
+    added: IndexDefinition[];
+    removed: string[];
+    modified: IndexDefinition[];
+  };
 }
 
 // Export/Import formats
-export type DDLFormat = "sql" | "json" | "yaml" | "xml"
+export type DDLFormat = "sql" | "json" | "yaml" | "xml";
 
 export interface DDLExportOptions {
-  format: DDLFormat
-  includeData?: boolean
-  includeDropStatements?: boolean
-  includeCreateStatements?: boolean
-  includeIndexes?: boolean
-  includeConstraints?: boolean
-  pretty?: boolean
+  format: DDLFormat;
+  includeData?: boolean;
+  includeDropStatements?: boolean;
+  includeCreateStatements?: boolean;
+  includeIndexes?: boolean;
+  includeConstraints?: boolean;
+  pretty?: boolean;
 }
 
 // Table statistics
 export interface TableStatistics {
-  rowCount: number
-  dataSize: number // in bytes
-  indexSize: number // in bytes
-  lastModified?: Date
-  lastAnalyzed?: Date
-  autoIncrementValue?: number
+  rowCount: number;
+  dataSize: number; // in bytes
+  indexSize: number; // in bytes
+  lastModified?: Date;
+  lastAnalyzed?: Date;
+  autoIncrementValue?: number;
 }
 
 // Database-specific features
 export interface DatabaseFeatures {
-  supportsPartialIndexes: boolean
-  supportsExpressionIndexes: boolean
-  supportsCoveringIndexes: boolean
-  supportsCheckConstraints: boolean
-  supportsDeferrableConstraints: boolean
-  supportsTableComments: boolean
-  supportsColumnComments: boolean
-  supportsAutoIncrement: boolean
-  supportsSequences: boolean
-  maxTableNameLength: number
-  maxColumnNameLength: number
-  maxIndexNameLength: number
-  maxConstraintNameLength: number
+  supportsPartialIndexes: boolean;
+  supportsExpressionIndexes: boolean;
+  supportsCoveringIndexes: boolean;
+  supportsCheckConstraints: boolean;
+  supportsDeferrableConstraints: boolean;
+  supportsTableComments: boolean;
+  supportsColumnComments: boolean;
+  supportsAutoIncrement: boolean;
+  supportsSequences: boolean;
+  maxTableNameLength: number;
+  maxColumnNameLength: number;
+  maxIndexNameLength: number;
+  maxConstraintNameLength: number;
 }
 
 export const DATABASE_FEATURES: Record<string, DatabaseFeatures> = {
@@ -458,4 +458,4 @@ export const DATABASE_FEATURES: Record<string, DatabaseFeatures> = {
     maxIndexNameLength: 30,
     maxConstraintNameLength: 30,
   },
-}
+};

@@ -1,113 +1,110 @@
-import * as path from "node:path"
-import * as vscode from "vscode"
-import type { DatabaseConfig } from "../shared/types"
+import * as vscode from "vscode";
+import type { DatabaseConfig } from "../shared/types";
 import type {
   BaseMessage,
-  ConnectionInfo,
-  DatabaseInfo,
-  ExecuteQueryMessage,
   OpenConnectionMessage,
-} from "../shared/types/messages"
-import { DatabaseService } from "./services/DatabaseService"
-import { WebViewResourceManager } from "./webviewHelper"
+} from "../shared/types/messages";
+import { DatabaseService } from "./services/DatabaseService";
 
 // Helper function to generate nonce for CSP
 function getNonce() {
-  let text = ""
-  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length))
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
-  return text
+  return text;
 }
 
 export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = "dbManager.webview"
+  public static readonly viewType = "dbManager.webview";
 
-  private _view?: vscode.WebviewView
-  private databaseService: DatabaseService
+  private _view?: vscode.WebviewView;
+  private databaseService: DatabaseService;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
-    this.databaseService = DatabaseService.getInstance()
+    this.databaseService = DatabaseService.getInstance();
   }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ) {
-    this._view = webviewView
+    this._view = webviewView;
 
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
-    }
+    };
 
-    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview)
+    webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
     // Register message listener for database service
     this.databaseService.addMessageListener("sidebar", (message) => {
       if (this._view) {
-        this._view.webview.postMessage(message)
+        this._view.webview.postMessage(message);
       }
-    })
+    });
 
     // Message handling between extension and webview
     webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case "getConnectionStatus":
-          this._sendConnectionStatus()
-          break
+          this.sendConnectionStatus();
+          break;
         case "openConnection":
-          await this._handleOpenConnection(message.data)
-          break
+          await this.handleOpenConnection(message.data);
+          break;
         case "executeQuery":
-          await this.databaseService.executeQuery(message.data)
-          break
+          await this.databaseService.executeQuery(message.data);
+          break;
         case "showInfo":
-          vscode.window.showInformationMessage(message.data.message)
-          break
+          vscode.window.showInformationMessage(message.data.message);
+          break;
         case "showError":
-          vscode.window.showErrorMessage(message.data.message)
-          break
+          vscode.window.showErrorMessage(message.data.message);
+          break;
         case "getTheme":
-          this._sendTheme()
-          break
+          this.sendTheme();
+          break;
         case "saveConnection":
-          await this._handleSaveConnection(message.data)
-          break
+          await this.handleSaveConnection(message.data);
+          break;
         case "testConnection":
-          await this._handleTestConnection(message.data)
-          break
+          await this.handleTestConnection(message.data);
+          break;
         case "getSavedConnections":
-          this._sendSavedConnections()
-          break
+          this.sendSavedConnections();
+          break;
         case "getActiveConnections":
-          this._sendActiveConnections()
-          break
+          this.sendActiveConnections();
+          break;
         case "disconnectConnection":
-          await this._handleDisconnectConnection(message.data)
-          break
+          await this.handleDisconnectConnection(message.data);
+          break;
       }
-    })
+    });
 
     // Listen for theme changes
     vscode.window.onDidChangeActiveColorTheme(() => {
-      this._sendTheme()
-    })
+      this.sendTheme();
+    });
   }
 
-  private _getHtmlForWebview(webview: vscode.Webview) {
+  private getHtmlForWebview(webview: vscode.Webview) {
     // 開発環境かどうかを判定
     const isDevelopment =
-      process.env.NODE_ENV === "development" || process.env.VSCODE_DEBUG === "true"
+      process.env.NODE_ENV === "development" ||
+      process.env.VSCODE_DEBUG === "true";
 
     if (isDevelopment) {
-      return this._getDevHtml()
+      return this.getDevHtml();
     }
 
     // プロダクション環境用の簡単なHTML
-    const nonce = this.getNonce()
+    const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -294,21 +291,22 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         });
     </script>
 </body>
-</html>`
+</html>`;
   }
 
   private getNonce() {
-    let text = ""
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length))
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
-    return text
+    return text;
   }
 
-  private _getDevHtml() {
+  private getDevHtml() {
     // Simple development HTML with fallback UI
-    const nonce = this.getNonce()
+    const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -854,35 +852,43 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         console.log('Development WebView loaded successfully');
     </script>
 </body>
-</html>`
+</html>`;
   }
 
-  private _getProdHtml(webview: vscode.Webview) {
+  private getProdHtml(webview: vscode.Webview) {
     // Find the actual JS file dynamically
-    const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
-    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
+    const webviewPath = vscode.Uri.joinPath(
+      this._extensionUri,
+      "dist",
+      "webview",
+    );
+    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets");
 
     // Read JS filename from index.html (most reliable method)
-    let jsFileName: string
+    let jsFileName: string;
     try {
-      const fs = require("node:fs")
-      const indexPath = vscode.Uri.joinPath(webviewPath, "index.html")
-      const indexContent = fs.readFileSync(indexPath.fsPath, "utf-8")
-      const scriptMatch = indexContent.match(/src="\.\/assets\/(index-[^"]+\.js)"/)
+      const fs = require("node:fs");
+      const indexPath = vscode.Uri.joinPath(webviewPath, "index.html");
+      const indexContent = fs.readFileSync(indexPath.fsPath, "utf-8");
+      const scriptMatch = indexContent.match(
+        /src="\.\/assets\/(index-[^"]+\.js)"/,
+      );
 
       if (scriptMatch) {
-        jsFileName = scriptMatch[1]
+        jsFileName = scriptMatch[1];
       } else {
-        throw new Error("No script tag found in index.html")
+        throw new Error("No script tag found in index.html");
       }
     } catch (error) {
-      console.error("[WebViewProvider] Failed to read index.html:", error)
-      return this._getDevHtml() // Fallback to development HTML
+      console.error("[WebViewProvider] Failed to read index.html:", error);
+      return this.getDevHtml(); // Fallback to development HTML
     }
 
     // Generate URLs
-    const nonce = getNonce()
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFileName))
+    const nonce = getNonce();
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(assetsPath, jsFileName),
+    );
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -939,32 +945,44 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     </script>
     <script nonce="${nonce}" src="${scriptUri}" defer></script>
 </body>
-</html>`
+</html>`;
   }
 
-  private _getFallbackHtml(webview: vscode.Webview) {
-    const webviewPath = vscode.Uri.joinPath(this._extensionUri, "dist", "webview")
-    const nonce = getNonce()
+  private getFallbackHtml(webview: vscode.Webview) {
+    const webviewPath = vscode.Uri.joinPath(
+      this._extensionUri,
+      "dist",
+      "webview",
+    );
+    const nonce = getNonce();
 
     // Try to find the actual built files
-    const fs = require("node:fs")
-    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets")
-    let scriptSrc = ""
-    let styleSrc = ""
+    const fs = require("node:fs");
+    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets");
+    let scriptSrc = "";
+    let styleSrc = "";
 
     try {
-      const files = fs.readdirSync(assetsPath.fsPath)
-      const jsFile = files.find((f: string) => f.startsWith("index-") && f.endsWith(".js"))
-      const cssFile = files.find((f: string) => f.startsWith("index-") && f.endsWith(".css"))
+      const files = fs.readdirSync(assetsPath.fsPath);
+      const jsFile = files.find(
+        (f: string) => f.startsWith("index-") && f.endsWith(".js"),
+      );
+      const cssFile = files.find(
+        (f: string) => f.startsWith("index-") && f.endsWith(".css"),
+      );
 
       if (jsFile) {
-        scriptSrc = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFile)).toString()
+        scriptSrc = webview
+          .asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFile))
+          .toString();
       }
       if (cssFile) {
-        styleSrc = webview.asWebviewUri(vscode.Uri.joinPath(assetsPath, cssFile)).toString()
+        styleSrc = webview
+          .asWebviewUri(vscode.Uri.joinPath(assetsPath, cssFile))
+          .toString();
       }
     } catch (error) {
-      console.error("Failed to find assets:", error)
+      console.error("Failed to find assets:", error);
     }
 
     return `<!DOCTYPE html>
@@ -1045,68 +1063,73 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     ${styleSrc ? `<link rel="stylesheet" href="${styleSrc}">` : ""}
     </script>
 </body>
-</html>`
+</html>`;
   }
 
-  private async _sendConnectionStatus() {
-    if (!this._view) return
+  private async sendConnectionStatus() {
+    if (!this._view) return;
 
-    const status = this.databaseService.getConnectionStatus()
+    const status = this.databaseService.getConnectionStatus();
     this._view.webview.postMessage({
       type: "connectionStatus",
       data: status,
-    })
+    });
   }
 
-  private _sendTheme() {
-    if (!this._view) return
+  private sendTheme() {
+    if (!this._view) return;
 
-    const theme = vscode.window.activeColorTheme
+    const theme = vscode.window.activeColorTheme;
     this._view.webview.postMessage({
       type: "themeChanged",
       data: {
         kind: theme.kind === vscode.ColorThemeKind.Light ? "light" : "dark",
       },
-    })
+    });
   }
 
-  private async _handleOpenConnection(data: OpenConnectionMessage["data"]) {
-    const result = await this.databaseService.connect(data)
+  private async handleOpenConnection(data: OpenConnectionMessage["data"]) {
+    const result = await this.databaseService.connect(data);
 
     if (this._view) {
       this._view.webview.postMessage({
         type: "connectionResult",
         data: result,
-      })
+      });
     }
   }
 
-  private async _handleSaveConnection(data: DatabaseConfig) {
+  private async handleSaveConnection(data: DatabaseConfig) {
     try {
       // Save connection using DatabaseService
-      await this.databaseService.saveConnection(data)
-      vscode.window.showInformationMessage(`Connection "${data.name}" saved successfully`)
+      await this.databaseService.saveConnection(data);
+      vscode.window.showInformationMessage(
+        `Connection "${data.name}" saved successfully`,
+      );
 
       if (this._view) {
         this._view.webview.postMessage({
           type: "connectionSaved",
           data: { success: true, connection: data },
-        })
+        });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.error("Save connection error:", error)
-      vscode.window.showErrorMessage(`Failed to save connection: ${errorMessage}`)
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Save connection error:", error);
+      vscode.window.showErrorMessage(
+        `Failed to save connection: ${errorMessage}`,
+      );
       if (this._view) {
         this._view.webview.postMessage({
           type: "connectionSaved",
           data: { success: false, error: errorMessage },
-        })
+        });
       }
     }
   }
 
-  private async _handleTestConnection(data: DatabaseConfig) {
+  private async handleTestConnection(data: DatabaseConfig) {
     try {
       // Convert DatabaseConfig to compatible format for database service
       const connectionData = {
@@ -1117,72 +1140,74 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         username: data.username || "",
         password: data.password || "",
         ssl: typeof data.ssl === "boolean" ? data.ssl : false,
-      }
-      const result = await this.databaseService.connect(connectionData)
+      };
+      const result = await this.databaseService.connect(connectionData);
       if (this._view) {
         this._view.webview.postMessage({
           type: "connectionTestResult",
           data: result,
-        })
+        });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       if (this._view) {
         this._view.webview.postMessage({
           type: "connectionTestResult",
           data: { success: false, message: errorMessage },
-        })
+        });
       }
     }
   }
 
-  private _sendSavedConnections() {
-    if (!this._view) return
+  private sendSavedConnections() {
+    if (!this._view) return;
 
-    const connections = this.databaseService.getSavedConnections()
+    const connections = this.databaseService.getSavedConnections();
     this._view.webview.postMessage({
       type: "savedConnections",
       data: { connections },
-    })
+    });
   }
 
-  private _sendActiveConnections() {
-    if (!this._view) return
+  private sendActiveConnections() {
+    if (!this._view) return;
 
-    const connections = this.databaseService.getActiveConnections()
+    const connections = this.databaseService.getActiveConnections();
     this._view.webview.postMessage({
       type: "activeConnections",
       data: { connections },
-    })
+    });
   }
 
-  private async _handleDisconnectConnection(data: { connectionId: string }) {
+  private async handleDisconnectConnection(data: { connectionId: string }) {
     try {
-      await this.databaseService.disconnect(data.connectionId)
+      await this.databaseService.disconnect(data.connectionId);
       // 切断後、更新された接続一覧を送信
-      this._sendActiveConnections()
-      this._sendConnectionStatus()
+      this.sendActiveConnections();
+      this.sendConnectionStatus();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.error("Disconnect connection error:", error)
-      vscode.window.showErrorMessage(`Failed to disconnect: ${errorMessage}`)
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Disconnect connection error:", error);
+      vscode.window.showErrorMessage(`Failed to disconnect: ${errorMessage}`);
     }
   }
 
   // Public methods for external communication
   public postMessage(message: BaseMessage) {
     if (this._view) {
-      this._view.webview.postMessage(message)
+      this._view.webview.postMessage(message);
     }
   }
 
   public reveal() {
     if (this._view) {
-      this._view.show?.(true)
+      this._view.show?.(true);
     }
   }
 
   public async cleanup() {
-    this.databaseService.removeMessageListener("sidebar")
+    this.databaseService.removeMessageListener("sidebar");
   }
 }
