@@ -54,7 +54,9 @@ export class DatabaseService {
    * 全てのリスナーにメッセージを送信
    */
   private broadcastMessage(message: BaseMessage) {
-    this.listeners.forEach((callback) => callback(message))
+    for (const callback of this.listeners.values()) {
+      callback(message)
+    }
   }
 
   /**

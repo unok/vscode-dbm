@@ -1,4 +1,11 @@
 import type {
+  CursorAIResponse as CursorAIAPIResponse,
+  CursorAISuggestion as CursorAIAPISuggestion,
+  CursorAICompletion,
+  CursorAITransformationResponse,
+  CursorAIValidationResponse,
+} from "../types/cursor-ai"
+import type {
   CellValue,
   ColumnDefinition,
   CursorAIDefaultOptions,
@@ -332,13 +339,13 @@ export class CursorAIIntegration {
     }
   }
 
-  private parseAPIResponse(data: any, operation: string): Record<string, unknown> {
+  private parseAPIResponse(data: CursorAIAPIResponse, operation: string): Record<string, unknown> {
     // Parse actual API response based on operation type
     switch (operation) {
       case "generate-defaults":
-        if (data.suggestions && Array.isArray(data.suggestions)) {
+        if ("suggestions" in data && data.suggestions && Array.isArray(data.suggestions)) {
           return {
-            suggestions: data.suggestions.map((s: any) => ({
+            suggestions: data.suggestions.map((s: CursorAIAPISuggestion) => ({
               column: s.column || s.field,
               value: s.value || s.default,
               confidence: s.confidence || s.score || 0.7,
@@ -350,7 +357,7 @@ export class CursorAIIntegration {
         break
 
       case "analyze-patterns":
-        if (data.patterns) {
+        if ("patterns" in data && data.patterns) {
           return {
             patterns: data.patterns,
             metadata: data.metadata,
@@ -359,9 +366,9 @@ export class CursorAIIntegration {
         break
 
       case "get-suggestions":
-        if (data.completions && Array.isArray(data.completions)) {
+        if ("completions" in data && data.completions && Array.isArray(data.completions)) {
           return {
-            suggestions: data.completions.map((c: any) => ({
+            suggestions: data.completions.map((c: CursorAICompletion) => ({
               value: c.text || c.value,
               confidence: c.confidence || c.score || 0.7,
             })),
@@ -370,30 +377,33 @@ export class CursorAIIntegration {
         break
 
       case "validate-quality":
-        if (data.validation) {
+        if ("validation" in data && data.validation) {
+          const validation = data.validation as CursorAIValidationResponse["validation"]
           return {
-            issues: data.validation.issues || [],
-            confidence: data.validation.confidence || 0.7,
-            suggestions: data.validation.suggestions || [],
-            severity: data.validation.severity || "info",
+            issues: validation?.issues || [],
+            confidence: validation?.confidence || 0.7,
+            suggestions: validation?.suggestions || [],
+            severity: validation?.severity || "info",
           }
         }
         break
 
       case "suggest-transformation":
-        if (data.transformation) {
+        if ("transformation" in data && data.transformation) {
+          const transformation =
+            data.transformation as CursorAITransformationResponse["transformation"]
           return {
-            transformation: new Function("value", data.transformation.code || "return value"),
-            preview: data.transformation.preview || [],
-            confidence: data.transformation.confidence || 0.7,
-            description: data.transformation.description || "",
+            transformation: new Function("value", transformation?.code || "return value"),
+            preview: transformation?.preview || [],
+            confidence: transformation?.confidence || 0.7,
+            description: transformation?.description || "",
           }
         }
         break
     }
 
     // If response format is not recognized, return raw data
-    return data
+    return data as Record<string, unknown>
   }
 
   private getMockAIResponse(prompt: string, operation: string): Record<string, unknown> {

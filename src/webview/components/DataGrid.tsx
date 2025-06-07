@@ -109,8 +109,11 @@ const DataGrid: React.FC = () => {
 
         {/* Table Input */}
         <div className='flex items-center space-x-2'>
-          <label className='text-sm text-vscode-editor-foreground'>テーブル名:</label>
+          <label htmlFor='table-name-input' className='text-sm text-vscode-editor-foreground'>
+            テーブル名:
+          </label>
           <input
+            id='table-name-input'
             type='text'
             value={selectedTable}
             onChange={(e) => setSelectedTable(e.target.value)}
