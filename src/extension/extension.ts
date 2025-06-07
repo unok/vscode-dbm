@@ -1,19 +1,20 @@
 import * as vscode from "vscode"
-import { createOrShow, setSidebarWebViewProvider } from "./WebViewPanelProvider"
+import { createOrShow } from "./WebViewPanelProvider"
 import { DatabaseWebViewProvider } from "./WebViewProvider"
+import { DatabaseService } from "./services/DatabaseService"
 
 let webViewProvider: DatabaseWebViewProvider | undefined
 
 export function activate(context: vscode.ExtensionContext) {
   try {
+    // Initialize database service
+    const _databaseService = DatabaseService.getInstance()
+
     // WebView provider for sidebar
     webViewProvider = new DatabaseWebViewProvider(context.extensionUri)
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(DatabaseWebViewProvider.viewType, webViewProvider)
     )
-
-    // Register the sidebar provider for panel queries
-    setSidebarWebViewProvider(webViewProvider)
 
     // Commands
     const openConnectionCommand = vscode.commands.registerCommand(
@@ -61,6 +62,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate() {
   // Cleanup database connections
+  const databaseService = DatabaseService.getInstance()
+  await databaseService.cleanup()
+
   if (webViewProvider) {
     await webViewProvider.cleanup()
   }

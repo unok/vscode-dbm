@@ -1,10 +1,5 @@
 import * as path from "node:path"
 import * as vscode from "vscode"
-import {
-  type DatabaseProxy,
-  type DatabaseProxyConfig,
-  DatabaseProxyFactory,
-} from "../shared/database/DatabaseProxy"
 import type {
   BaseMessage,
   ConnectionInfo,
@@ -12,6 +7,7 @@ import type {
   ExecuteQueryMessage,
   OpenConnectionMessage,
 } from "../shared/types/messages"
+import { DatabaseService } from "./services/DatabaseService"
 import { WebViewResourceManager } from "./webviewHelper"
 
 // Helper function to generate nonce for CSP
@@ -28,161 +24,10 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dbManager.webview"
 
   private _view?: vscode.WebviewView
-  private _databaseProxy?: DatabaseProxy
-  private _isConnected = false
-  private _connectionType?: string
+  private databaseService: DatabaseService
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
-
-  private async _connectDatabase(
-    type: "mysql" | "postgresql" | "sqlite",
-    config?: Partial<DatabaseProxyConfig>
-  ): Promise<boolean> {
-    try {
-      // 接続中の場合は切断
-      if (this._databaseProxy) {
-        await this._databaseProxy.disconnect()
-      }
-
-      // 設定を環境変数、VSCode設定、ユーザー入力の順で取得
-      const vscodeConfig = vscode.workspace.getConfiguration("vscode-dbm")
-
-      const defaultConfigs = {
-        mysql: {
-          host:
-            config?.host || process.env.MYSQL_HOST || vscodeConfig.get("mysql.host") || "localhost",
-          port:
-            config?.port ||
-            (process.env.MYSQL_PORT ? Number.parseInt(process.env.MYSQL_PORT, 10) : null) ||
-            vscodeConfig.get("mysql.port") ||
-            3307, // Changed to 3307 for Docker test environment
-          database:
-            config?.database ||
-            process.env.MYSQL_DATABASE ||
-            vscodeConfig.get("mysql.database") ||
-            "test_db",
-          username:
-            config?.username ||
-            process.env.MYSQL_USER ||
-            vscodeConfig.get("mysql.username") ||
-            "test_user", // Changed to test_user for Docker environment
-          password:
-            config?.password ||
-            process.env.MYSQL_PASSWORD ||
-            vscodeConfig.get("mysql.password") ||
-            "test_password", // Changed to test_password for Docker environment
-        },
-        postgresql: {
-          host:
-            config?.host ||
-            process.env.POSTGRES_HOST ||
-            vscodeConfig.get("postgresql.host") ||
-            "localhost",
-          port:
-            config?.port ||
-            (process.env.POSTGRES_PORT ? Number.parseInt(process.env.POSTGRES_PORT, 10) : null) ||
-            vscodeConfig.get("postgresql.port") ||
-            5433, // Changed to 5433 for Docker test environment
-          database:
-            config?.database ||
-            process.env.POSTGRES_DB ||
-            vscodeConfig.get("postgresql.database") ||
-            "test_db",
-          username:
-            config?.username ||
-            process.env.POSTGRES_USER ||
-            vscodeConfig.get("postgresql.username") ||
-            "test_user", // Changed to test_user for Docker environment
-          password:
-            config?.password ||
-            process.env.POSTGRES_PASSWORD ||
-            vscodeConfig.get("postgresql.password") ||
-            "test_password", // Changed to test_password for Docker environment
-        },
-        sqlite: {
-          database:
-            config?.database ||
-            process.env.SQLITE_DATABASE ||
-            vscodeConfig.get("sqlite.database") ||
-            ":memory:",
-        },
-      }
-
-      // データベースタイプに応じて接続
-      switch (type) {
-        case "mysql": {
-          const mysqlConfig = defaultConfigs.mysql
-          this._databaseProxy = DatabaseProxyFactory.createMySQL(
-            mysqlConfig.host,
-            mysqlConfig.port,
-            mysqlConfig.database,
-            mysqlConfig.username,
-            mysqlConfig.password
-          )
-          this._connectionType = `MySQL (${mysqlConfig.host}:${mysqlConfig.port})`
-          break
-        }
-        case "postgresql": {
-          const pgConfig = defaultConfigs.postgresql
-          this._databaseProxy = DatabaseProxyFactory.createPostgreSQL(
-            pgConfig.host,
-            pgConfig.port,
-            pgConfig.database,
-            pgConfig.username,
-            pgConfig.password
-          )
-          this._connectionType = `PostgreSQL (${pgConfig.host}:${pgConfig.port})`
-          break
-        }
-        case "sqlite": {
-          const sqliteConfig = defaultConfigs.sqlite
-          this._databaseProxy = DatabaseProxyFactory.createSQLite(sqliteConfig.database)
-          this._connectionType = `SQLite (${sqliteConfig.database})`
-          break
-        }
-        default:
-          throw new Error(`Unsupported database type: ${type}`)
-      }
-
-      const connected = await this._databaseProxy.connect()
-      this._isConnected = connected
-
-      if (connected) {
-        return true
-      }
-
-      // フォールバック: SQLiteに自動切り替え
-      if (type !== "sqlite") {
-        console.warn(`${type} connection failed, falling back to SQLite`)
-        return await this._connectDatabase("sqlite", { database: ":memory:" })
-      }
-
-      return false
-    } catch (error) {
-      console.error("Database connection failed:", error)
-
-      // フォールバック: SQLiteに自動切り替え
-      if (type !== "sqlite") {
-        console.warn(`${type} connection failed with error: ${error}, falling back to SQLite`)
-        try {
-          return await this._connectDatabase("sqlite", { database: ":memory:" })
-        } catch (fallbackError) {
-          console.error("SQLite fallback also failed:", fallbackError)
-        }
-      }
-
-      this._isConnected = false
-      return false
-    }
-  }
-
-  private async _disconnectDatabase(): Promise<void> {
-    if (this._databaseProxy) {
-      await this._databaseProxy.disconnect()
-      this._databaseProxy = undefined
-    }
-    this._isConnected = false
-    this._connectionType = undefined
+  constructor(private readonly _extensionUri: vscode.Uri) {
+    this.databaseService = DatabaseService.getInstance()
   }
 
   public resolveWebviewView(
@@ -199,17 +44,24 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview)
 
+    // Register message listener for database service
+    this.databaseService.addMessageListener("sidebar", (message) => {
+      if (this._view) {
+        this._view.webview.postMessage(message)
+      }
+    })
+
     // Message handling between extension and webview
-    webviewView.webview.onDidReceiveMessage((message) => {
+    webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case "getConnectionStatus":
           this._sendConnectionStatus()
           break
         case "openConnection":
-          this._handleOpenConnection(message.data)
+          await this._handleOpenConnection(message.data)
           break
         case "executeQuery":
-          this._handleExecuteQuery(message.data)
+          await this.databaseService.executeQuery(message.data)
           break
         case "showInfo":
           vscode.window.showInformationMessage(message.data.message)
@@ -878,13 +730,10 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private async _sendConnectionStatus() {
     if (!this._view) return
 
+    const status = this.databaseService.getConnectionStatus()
     this._view.webview.postMessage({
       type: "connectionStatus",
-      data: {
-        connected: this._isConnected,
-        databases: this._isConnected ? [this._connectionType || "Database"] : [],
-        activeConnection: this._isConnected ? this._connectionType : undefined,
-      },
+      data: status,
     })
   }
 
@@ -901,113 +750,13 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async _handleOpenConnection(data: OpenConnectionMessage["data"]) {
-    try {
-      // データベースタイプを決定（デフォルトはMySQL）
-      const dbType =
-        data.type === "postgresql" ? "postgresql" : data.type === "sqlite" ? "sqlite" : "mysql"
+    const result = await this.databaseService.connect(data)
 
-      // 接続設定を渡す
-      const config: Partial<DatabaseProxyConfig> = {
-        host: data.host,
-        port: data.port,
-        database: data.database,
-        username: data.username,
-        password: data.password,
-      }
-
-      const success = await this._connectDatabase(dbType, config)
-
-      if (success) {
-        vscode.window.showInformationMessage(`${this._connectionType} 接続成功`)
-
-        // 接続状況を更新
-        this._sendConnectionStatus()
-
-        if (this._view) {
-          this._view.webview.postMessage({
-            type: "connectionResult",
-            data: {
-              success: true,
-              message: `${this._connectionType} に接続しました`,
-            },
-          })
-        }
-      } else {
-        throw new Error("データベース接続に失敗しました")
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
-      vscode.window.showErrorMessage(`接続エラー: ${errorMessage}`)
-
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "connectionResult",
-          data: {
-            success: false,
-            message: errorMessage,
-          },
-        })
-      }
-    }
-  }
-
-  private async _handleExecuteQuery(data: { query?: string }) {
-    if (!this._databaseProxy || !this._isConnected) {
-      vscode.window.showWarningMessage("データベースに接続されていません")
-
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "queryResult",
-          data: {
-            success: false,
-            results: [],
-            message: "データベースに接続されていません",
-          },
-        })
-      }
-      return
-    }
-
-    try {
-      const query = data.query || "SELECT * FROM users LIMIT 10"
-
-      // DatabaseProxyを使用してクエリ実行
-      const result = await this._databaseProxy.query(query)
-
-      if (result.success) {
-        vscode.window.showInformationMessage(
-          `クエリ実行成功: ${result.rowCount}行取得 (${result.executionTime}ms) - ${this._connectionType}`
-        )
-
-        if (this._view) {
-          this._view.webview.postMessage({
-            type: "queryResult",
-            data: {
-              success: true,
-              results: result.rows || [],
-              rowCount: result.rowCount || 0,
-              executionTime: result.executionTime || 0,
-              message: `${result.rowCount}行を取得しました (${this._connectionType})`,
-            },
-          })
-        }
-      } else {
-        throw new Error(result.error || "クエリ実行に失敗しました")
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "不明なエラー"
-      vscode.window.showErrorMessage(`クエリエラー: ${errorMessage}`)
-
-      if (this._view) {
-        this._view.webview.postMessage({
-          type: "queryResult",
-          data: {
-            success: false,
-            results: [],
-            message: errorMessage,
-          },
-        })
-      }
+    if (this._view) {
+      this._view.webview.postMessage({
+        type: "connectionResult",
+        data: result,
+      })
     }
   }
 
@@ -1025,6 +774,6 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   public async cleanup() {
-    await this._disconnectDatabase()
+    this.databaseService.removeMessageListener("sidebar")
   }
 }
