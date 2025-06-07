@@ -215,9 +215,7 @@ export class DataImportService {
   /**
    * Parse JSON data
    */
-  private parseJSON(
-    text: string,
-  ): Record<string, CellValue>[] {
+  private parseJSON(text: string): Record<string, CellValue>[] {
     try {
       const data = JSON.parse(text);
 
@@ -246,9 +244,7 @@ export class DataImportService {
   /**
    * Parse SQL INSERT statements
    */
-  private parseSQL(
-    text: string,
-  ): Record<string, CellValue>[] {
+  private parseSQL(text: string): Record<string, CellValue>[] {
     const insertRegex =
       /INSERT\s+INTO\s+(?:`?)(\w+)(?:`?)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/gi;
     const rows: Record<string, CellValue>[] = [];

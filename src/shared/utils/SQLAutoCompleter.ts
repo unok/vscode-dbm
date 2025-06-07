@@ -353,9 +353,7 @@ export class SQLAutoCompleter {
   /**
    * Get keyword completions
    */
-  private getKeywordCompletions(
-    currentWord: string,
-  ): CompletionItem[] {
+  private getKeywordCompletions(currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     for (const keyword of this.sqlKeywords) {
@@ -375,9 +373,7 @@ export class SQLAutoCompleter {
   /**
    * Get function completions
    */
-  private getFunctionCompletions(
-    currentWord: string,
-  ): CompletionItem[] {
+  private getFunctionCompletions(currentWord: string): CompletionItem[] {
     const completions: CompletionItem[] = [];
 
     for (const func of this.sqlFunctions) {

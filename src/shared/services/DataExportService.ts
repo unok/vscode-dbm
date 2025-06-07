@@ -39,10 +39,7 @@ export class DataExportService {
           fileName += ".csv";
           break;
         case "json":
-          exportedData = await this.exportToJSON(
-            tableData,
-            onProgress,
-          );
+          exportedData = await this.exportToJSON(tableData, onProgress);
           fileName += ".json";
           break;
         case "sql":
