@@ -244,6 +244,7 @@ function forwardQueryToSidebar(
   try {
     if ("_handleExecuteQuery" in webViewProvider) {
       // Create a temporary override to capture the result
+      // biome-ignore lint/suspicious/noExplicitAny: Accessing private property
       const originalView = (webViewProvider as any)._view
 
       const mockView = {
@@ -256,12 +257,15 @@ function forwardQueryToSidebar(
       }
 
       // Temporarily override the view
+      // biome-ignore lint/suspicious/noExplicitAny: Accessing private property
       ;(webViewProvider as any)._view = mockView
-      
+
       // Execute the query
+      // biome-ignore lint/suspicious/noExplicitAny: Accessing private method
       ;(webViewProvider as any)._handleExecuteQuery(message.data)
 
       // Restore original view
+      // biome-ignore lint/suspicious/noExplicitAny: Accessing private property
       ;(webViewProvider as any)._view = originalView
     } else {
       // Fallback: send error message

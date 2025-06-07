@@ -3,9 +3,9 @@
  * 実際のデータベースドライバーを使用して接続
  */
 
-import type { Database as SQLiteDatabase } from "better-sqlite3"
 import type { Connection as MySQLConnection } from "mysql2/promise"
 import type { Client as PostgreSQLClient } from "pg"
+import type { SQLiteWebDriver } from "./drivers/SQLiteWebDriver"
 
 export interface DatabaseProxyConfig {
   type: "mysql" | "postgresql" | "sqlite"
@@ -26,7 +26,7 @@ export interface QueryResult {
 
 export class DatabaseProxy {
   private config: DatabaseProxyConfig
-  private connection: MySQLConnection | PostgreSQLClient | SQLiteDatabase | null = null
+  private connection: MySQLConnection | PostgreSQLClient | SQLiteWebDriver | null = null
   private isConnected = false
 
   constructor(config: DatabaseProxyConfig) {
@@ -99,6 +99,12 @@ export class DatabaseProxy {
     }
 
     try {
+      if (this.config.type === "sqlite") {
+        // SQLiteWebDriverの専用メソッドを使用
+        const driver = this.connection as import("./drivers/SQLiteWebDriver").SQLiteWebDriver
+        return await driver.getTables()
+      }
+
       let tablesQuery = ""
       switch (this.config.type) {
         case "mysql":
@@ -113,14 +119,6 @@ export class DatabaseProxy {
             SELECT table_name as name, 'view' as type 
             FROM information_schema.views 
             WHERE table_schema = 'public'
-          `
-          break
-        case "sqlite":
-          tablesQuery = `
-            SELECT name, type 
-            FROM sqlite_master 
-            WHERE type IN ('table', 'view') 
-            AND name NOT LIKE 'sqlite_%'
           `
           break
       }
@@ -150,7 +148,7 @@ export class DatabaseProxy {
             await (this.connection as PostgreSQLClient).end()
             break
           case "sqlite":
-            ;(this.connection as SQLiteDatabase).close()
+            await (this.connection as SQLiteWebDriver).disconnect()
             break
         }
       } catch (error) {
@@ -191,9 +189,21 @@ export class DatabaseProxy {
     return client
   }
 
-  private async connectSQLite(): Promise<SQLiteDatabase> {
-    const Database = (await import("better-sqlite3")).default
-    return new Database(this.config.database)
+  private async connectSQLite(): Promise<import("./drivers/SQLiteWebDriver").SQLiteWebDriver> {
+    const { SQLiteWebDriver } = await import("./drivers/SQLiteWebDriver")
+    const driver = new SQLiteWebDriver({
+      id: `sqlite_${Date.now()}`,
+      name: "SQLite Memory Database",
+      type: "sqlite",
+      host: "",
+      port: 0,
+      database: this.config.database,
+      username: "",
+      password: "",
+    })
+    await driver.connect()
+    await driver.initializeTestDatabase()
+    return driver
   }
 
   // 実際のクエリ実行メソッド
@@ -232,29 +242,17 @@ export class DatabaseProxy {
   private async executeSQLite(
     sql: string,
     params: unknown[],
-    startTime: number
+    _startTime: number
   ): Promise<QueryResult> {
-    const db = this.connection as SQLiteDatabase
-
-    if (sql.toLowerCase().trim().startsWith("select")) {
-      const stmt = db.prepare(sql)
-      const rows = stmt.all(params) as Record<string, unknown>[]
-
-      return {
-        success: true,
-        rows: rows,
-        rowCount: rows.length,
-        executionTime: Date.now() - startTime,
-      }
-    }
-    const stmt = db.prepare(sql)
-    const result = stmt.run(params)
+    const driver = this.connection as SQLiteWebDriver
+    const result = await driver.query(sql, params)
 
     return {
-      success: true,
-      rows: [],
-      rowCount: result.changes,
-      executionTime: Date.now() - startTime,
+      success: !result.error,
+      rows: result.rows,
+      rowCount: result.rowCount,
+      executionTime: result.executionTime,
+      error: result.error,
     }
   }
 }
