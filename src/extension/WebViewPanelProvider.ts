@@ -7,7 +7,8 @@ const databaseService = DatabaseService.getInstance();
 
 export function createOrShow(
   extensionUri: vscode.Uri,
-  viewType: "datagrid" | "sql" | "dashboard",
+  viewType: "datagrid" | "sql" | "dashboard" | "tableDetails",
+  options?: { tableName?: string },
 ) {
   const column = vscode.window.activeTextEditor
     ? vscode.window.activeTextEditor.viewColumn
@@ -20,7 +21,7 @@ export function createOrShow(
     // Update the panel for the new view type
     currentPanel.webview.postMessage({
       type: "changeView",
-      data: { viewType },
+      data: { viewType, options },
     });
     return;
   }
@@ -40,6 +41,29 @@ export function createOrShow(
   currentPanel = panel;
 
   panel.webview.html = getHtmlForWebview(panel.webview, extensionUri, viewType);
+
+  // 初期データを送信（テーブル詳細の場合）
+  if (viewType === "tableDetails" && options?.tableName) {
+    // パネルが読み込まれた後にテーブル詳細を送信
+    setTimeout(async () => {
+      try {
+        const tableMetadata =
+          await databaseService.getTableMetadataWithConstraints(
+            options.tableName!,
+            undefined,
+          );
+        panel.webview.postMessage({
+          type: "showTableDetails",
+          data: tableMetadata,
+        });
+      } catch (error) {
+        console.error("Failed to get table metadata:", error);
+        vscode.window.showErrorMessage(
+          `テーブル詳細の取得に失敗しました: ${error instanceof Error ? error.message : "不明なエラー"}`,
+        );
+      }
+    }, 500);
+  }
 
   // Register message listener for database service
   const panelId = `panel-${Date.now()}`;
@@ -74,6 +98,8 @@ function getTitleForViewType(viewType: string): string {
       return "SQL Editor - DB Manager";
     case "dashboard":
       return "Dashboard - DB Manager";
+    case "tableDetails":
+      return "Table Details - DB Manager";
     default:
       return "DB Manager";
   }

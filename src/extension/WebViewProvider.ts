@@ -681,18 +681,21 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
    * 指定されたテーブルの詳細情報を表示
    */
   async showTableDetails(tableName: string): Promise<void> {
-    console.log("WebViewProvider.showTableDetails called with tableName:", tableName);
+    console.log(
+      "WebViewProvider.showTableDetails called with tableName:",
+      tableName,
+    );
     console.log("tableName type:", typeof tableName);
     console.log("tableName string representation:", String(tableName));
-    
+
     // tableNameが文字列でない場合はエラーを出す
-    if (typeof tableName !== 'string') {
+    if (typeof tableName !== "string") {
       const errorMessage = `無効なテーブル名: 文字列が期待されますが、${typeof tableName}型が渡されました。値: ${String(tableName)}`;
       console.error(errorMessage);
       vscode.window.showErrorMessage(errorMessage);
       return;
     }
-    
+
     // 空文字列チェック
     if (!tableName.trim()) {
       const errorMessage = "テーブル名が空です";
@@ -700,7 +703,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
       vscode.window.showErrorMessage(errorMessage);
       return;
     }
-    
+
     if (!this.view) {
       console.log("No view available");
       return;
@@ -710,7 +713,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
       // アクティブな接続を取得
       const activeConnections = this.databaseService.getActiveConnections();
       console.log("Active connections:", activeConnections.length);
-      
+
       if (activeConnections.length === 0) {
         vscode.window.showWarningMessage(
           "アクティブなデータベース接続がありません",

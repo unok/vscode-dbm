@@ -24,7 +24,10 @@ const DatabaseExplorer = React.lazy(
 const DataGrid = React.lazy(() => import("./components/DataGrid"));
 const SqlEditor = React.lazy(() => import("./components/SQLEditor"));
 
-type View = "dashboard" | "explorer" | "datagrid" | "sql";
+// TableDetailsPanelはlazyで読み込まずに直接import（軽量なため）
+import { TableDetailsPanel } from "./components/TableDetailsPanel";
+
+type View = "dashboard" | "explorer" | "datagrid" | "sql" | "tableDetails";
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>("dashboard");
@@ -36,6 +39,7 @@ export const App: React.FC = () => {
   const [savedConnections, setSavedConnections] = useState<DatabaseConfig[]>(
     [],
   );
+  const [selectedTable, setSelectedTable] = useState<any>(null);
 
   // Debug logging for state changes (removed for production)
   const theme = useVSCodeTheme();
@@ -143,7 +147,7 @@ export const App: React.FC = () => {
 
     // Listen for view change messages from extension
     vscodeApi.onMessage("changeView", (data) => {
-      const messageData = data as { viewType?: string };
+      const messageData = data as { viewType?: string; options?: any };
       if (messageData.viewType) {
         startTransition(() => {
           // Map message view types to internal view types
@@ -151,13 +155,27 @@ export const App: React.FC = () => {
             explorer: "explorer",
             grid: "datagrid",
             editor: "sql",
+            dashboard: "dashboard",
+            tableDetails: "tableDetails",
           };
           const mappedView = messageData.viewType
             ? viewMap[messageData.viewType] || "dashboard"
             : "dashboard";
           setCurrentView(mappedView);
+
+          // テーブル詳細ビューの場合、オプションを処理
+          if (mappedView === "tableDetails" && messageData.options?.tableName) {
+            // テーブル名が渡された場合は、後でshowTableDetailsメッセージが来るのを待つ
+            setSelectedTable(null);
+          }
         });
       }
+    });
+
+    // Listen for table details messages
+    vscodeApi.onMessage("showTableDetails", (data) => {
+      setSelectedTable(data);
+      setCurrentView("tableDetails");
     });
 
     // Listen for saved connections response
@@ -172,6 +190,7 @@ export const App: React.FC = () => {
 
     return () => {
       vscodeApi.removeMessageHandler("changeView");
+      vscodeApi.removeMessageHandler("showTableDetails");
       vscodeApi.removeMessageHandler("savedConnections");
     };
   }, [vscodeApi]);
@@ -190,6 +209,16 @@ export const App: React.FC = () => {
         return <DataGrid />;
       case "sql":
         return <SqlEditor />;
+      case "tableDetails":
+        return (
+          <div className="h-full bg-vscode-editor-background">
+            <TableDetailsPanel
+              table={selectedTable}
+              onClose={() => setCurrentView("dashboard")}
+              className="h-full"
+            />
+          </div>
+        );
       default:
         return (
           <DashboardView
