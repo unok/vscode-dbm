@@ -39,6 +39,7 @@ export interface TableMetadata {
 export interface ColumnMetadata {
   name: string;
   type: string;
+  fullType?: string; // Complete type definition (e.g., "VARCHAR(255) NOT NULL DEFAULT ''")
   nullable: boolean;
   defaultValue?: string | null;
   isPrimaryKey: boolean;
@@ -46,9 +47,13 @@ export interface ColumnMetadata {
   isUnique: boolean;
   isAutoIncrement: boolean;
   maxLength?: number;
+  characterMaximumLength?: number | null; // SQL standard field name
   precision?: number;
+  numericPrecision?: number | null; // SQL standard field name
   scale?: number;
+  numericScale?: number | null; // SQL standard field name
   comment?: string;
+  constraintName?: string; // Name of the constraint (for PK, FK, UNIQUE)
   foreignKeyTarget?: {
     table: string;
     column: string;

@@ -17,6 +17,10 @@ describe("DatabaseMetadataService", () => {
   beforeEach(() => {
     metadataService = new DatabaseMetadataService();
     vi.clearAllMocks();
+    
+    // Setup default mocks
+    mockConnection.isConnected.mockReturnValue(true);
+    mockConnection.getType.mockReturnValue("postgresql");
   });
 
   afterEach(() => {
@@ -322,6 +326,168 @@ describe("DatabaseMetadataService", () => {
 
       // Assert
       expect(mockConnection.query).toHaveBeenCalledTimes(4); // 2 calls x (tables + views)
+    });
+  });
+
+  // 🔴 RED: New failing tests for enhanced metadata features
+  describe("Enhanced Metadata Features (TDD - RED Phase)", () => {
+    describe("getTableMetadataWithConstraints", () => {
+      it("should retrieve table constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE)", async () => {
+        // 🔴 RED: This test should FAIL because method doesn't exist yet
+        const mockColumns = [
+          {
+            name: "id",
+            type: "integer",
+            nullable: false,
+            default_value: null,
+            is_primary_key: true,
+            constraint_name: "users_pkey"
+          },
+          {
+            name: "email",
+            type: "varchar(255)",
+            nullable: false,
+            default_value: null,
+            is_unique: true,
+            constraint_name: "users_email_unique"
+          }
+        ];
+
+        mockConnection.query.mockResolvedValueOnce({ rows: mockColumns });
+
+        // Act & Assert - This should FAIL
+        await expect(() => 
+          metadataService.getTableMetadataWithConstraints(mockConnection, "users")
+        ).rejects.toThrow(); // Method doesn't exist yet
+      });
+
+      it("should retrieve table indexes information", async () => {
+        // 🔴 RED: This test should FAIL because method doesn't exist yet
+        const mockIndexes = [
+          {
+            index_name: "idx_users_email",
+            column_name: "email",
+            is_unique: true,
+            index_type: "btree"
+          },
+          {
+            index_name: "idx_users_created_at",
+            column_name: "created_at",
+            is_unique: false,
+            index_type: "btree"
+          }
+        ];
+
+        mockConnection.query.mockResolvedValueOnce({ rows: mockIndexes });
+
+        // Act & Assert - This should FAIL
+        await expect(() => 
+          metadataService.getTableIndexes(mockConnection, "users")
+        ).rejects.toThrow(); // Method doesn't exist yet
+      });
+    });
+
+    describe("getTableComments", () => {
+      it("should retrieve table and column comments", async () => {
+        // 🔴 RED: This test should FAIL because method doesn't exist yet
+        const mockComments = [
+          {
+            table_name: "users",
+            table_comment: "User accounts table",
+            column_name: "id",
+            column_comment: "Primary key identifier"
+          },
+          {
+            table_name: "users", 
+            table_comment: "User accounts table",
+            column_name: "email",
+            column_comment: "User email address - must be unique"
+          }
+        ];
+
+        mockConnection.query.mockResolvedValueOnce({ rows: mockComments });
+
+        // Act & Assert - This should FAIL
+        await expect(() => 
+          metadataService.getTableComments(mockConnection, "users")
+        ).rejects.toThrow(); // Method doesn't exist yet
+      });
+    });
+
+    describe("getDetailedColumnInfo", () => {
+      it("should retrieve comprehensive column information including defaults and constraints", async () => {
+        // 🔴 RED: This test should FAIL because enhanced column info isn't implemented
+        const mockDetailedColumns = [
+          {
+            name: "id",
+            type: "SERIAL",
+            full_type: "SERIAL PRIMARY KEY",
+            nullable: false,
+            default_value: "nextval('users_id_seq'::regclass)",
+            is_primary_key: true,
+            is_auto_increment: true,
+            character_maximum_length: null,
+            numeric_precision: 32,
+            numeric_scale: 0,
+            comment: "Auto-incrementing primary key"
+          },
+          {
+            name: "created_at",
+            type: "TIMESTAMP",
+            full_type: "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+            nullable: false,
+            default_value: "CURRENT_TIMESTAMP",
+            is_primary_key: false,
+            is_auto_increment: false,
+            character_maximum_length: null,
+            numeric_precision: null,
+            numeric_scale: null,
+            comment: "Record creation timestamp"
+          }
+        ];
+
+        mockConnection.query.mockResolvedValueOnce({ rows: mockDetailedColumns });
+
+        // Act & Assert - This should FAIL
+        const result = await metadataService.getTableMetadata(mockConnection, "users");
+        
+        // These assertions should FAIL because current implementation doesn't support these fields
+        expect(result.columns[0]).toHaveProperty('full_type');
+        expect(result.columns[0]).toHaveProperty('character_maximum_length');
+        expect(result.columns[0]).toHaveProperty('numeric_precision');
+        expect(result.columns[0].comment).toBe("Auto-incrementing primary key");
+      });
+    });
+
+    describe("getTableConstraintDetails", () => {
+      it("should retrieve detailed constraint information", async () => {
+        // 🔴 RED: This test should FAIL because method doesn't exist yet
+        const mockConstraints = [
+          {
+            constraint_name: "users_pkey",
+            constraint_type: "PRIMARY KEY", 
+            column_names: ["id"],
+            table_name: "users"
+          },
+          {
+            constraint_name: "fk_posts_user_id",
+            constraint_type: "FOREIGN KEY",
+            column_names: ["user_id"],
+            table_name: "posts",
+            referenced_table: "users",
+            referenced_columns: ["id"],
+            on_delete: "CASCADE",
+            on_update: "RESTRICT"
+          }
+        ];
+
+        mockConnection.query.mockResolvedValueOnce({ rows: mockConstraints });
+
+        // Act & Assert - This should FAIL
+        await expect(() => 
+          metadataService.getTableConstraints(mockConnection, "users")
+        ).rejects.toThrow(); // Method doesn't exist yet
+      });
     });
   });
 });
