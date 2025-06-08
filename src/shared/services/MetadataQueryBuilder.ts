@@ -205,22 +205,36 @@ class PostgreSqlQueries implements PostgreSQLMetadataQuery {
       SELECT 
         c.column_name as name,
         c.data_type as type,
+        CASE 
+          WHEN c.data_type = 'character varying' THEN c.data_type || '(' || c.character_maximum_length || ')'
+          WHEN c.data_type = 'numeric' AND c.numeric_precision IS NOT NULL THEN 
+            c.data_type || '(' || c.numeric_precision || 
+            CASE WHEN c.numeric_scale IS NOT NULL AND c.numeric_scale > 0 
+                 THEN ',' || c.numeric_scale 
+                 ELSE '' END || ')'
+          ELSE c.data_type
+        END as full_type,
         c.is_nullable = 'YES' as nullable,
         c.column_default as default_value,
         CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END as is_primary_key,
         CASE WHEN u.column_name IS NOT NULL THEN true ELSE false END as is_unique,
         c.column_default LIKE 'nextval%' as is_auto_increment,
         c.character_maximum_length as max_length,
+        c.character_maximum_length,
         c.numeric_precision as precision,
+        c.numeric_precision,
         c.numeric_scale as scale,
+        c.numeric_scale,
         col_description(pgc.oid, c.ordinal_position) as comment,
+        pk.constraint_name,
         fk.foreign_table_name as foreign_key_table,
         fk.foreign_column_name as foreign_key_column,
         fk.foreign_table_schema as foreign_key_schema
       FROM information_schema.columns c
       LEFT JOIN pg_class pgc ON pgc.relname = c.table_name
+      LEFT JOIN pg_namespace pgn ON pgn.oid = pgc.relnamespace AND pgn.nspname = c.table_schema
       LEFT JOIN (
-        SELECT ku.column_name
+        SELECT ku.column_name, tc.constraint_name
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage ku 
           ON tc.constraint_name = ku.constraint_name
@@ -229,7 +243,7 @@ class PostgreSqlQueries implements PostgreSQLMetadataQuery {
           AND tc.table_schema = '${schema}'
       ) pk ON pk.column_name = c.column_name
       LEFT JOIN (
-        SELECT ku.column_name
+        SELECT ku.column_name, tc.constraint_name
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage ku 
           ON tc.constraint_name = ku.constraint_name

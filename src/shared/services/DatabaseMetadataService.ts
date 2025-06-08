@@ -2,7 +2,9 @@ import type { DatabaseConnection } from "../database/DatabaseConnection";
 import type {
   ColumnMetadata,
   ConnectionSchema,
+  ConstraintMetadata,
   DatabaseSchema,
+  IndexMetadata,
   SchemaSearchOptions,
   SchemaSearchResult,
   SchemaTreeNode,
@@ -355,7 +357,7 @@ export class DatabaseMetadataService {
     };
   }
 
-  // 🟢 GREEN: Minimal implementation of new methods to make tests pass
+  // 🔵 REFACTOR: Full implementation of enhanced metadata features
 
   /**
    * Get table metadata with detailed constraint information
@@ -365,8 +367,63 @@ export class DatabaseMetadataService {
     tableName: string,
     schema?: string,
   ): Promise<TableMetadata> {
-    // Minimal implementation - just throw for now to make test pass
-    throw new Error("getTableMetadataWithConstraints not implemented yet");
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite";
+    const queries = this.queryBuilder.getQueries(dbType);
+
+    // Get enhanced column information with constraints
+    const columnsResult = await connection.query(
+      queries.getColumns(tableName, schema),
+    );
+
+    if (columnsResult.rows.length === 0) {
+      throw new Error(`Table "${tableName}" not found`);
+    }
+
+    const columns: ColumnMetadata[] = columnsResult.rows.map((row) => ({
+      name: String(row.name),
+      type: String(row.type),
+      fullType: String(row.full_type || row.type),
+      nullable: row.nullable !== false,
+      defaultValue: row.default_value as string | null,
+      isPrimaryKey: row.is_primary_key === true,
+      isForeignKey: Boolean(row.foreign_key_table),
+      isUnique: row.is_unique === true,
+      isAutoIncrement: row.is_auto_increment === true,
+      maxLength: row.max_length as number | undefined,
+      characterMaximumLength: row.character_maximum_length as number | null,
+      precision: row.precision as number | undefined,
+      numericPrecision: row.numeric_precision as number | null,
+      scale: row.scale as number | undefined,
+      numericScale: row.numeric_scale as number | null,
+      comment: String(row.comment || ""),
+      constraintName: String(row.constraint_name || ""),
+      foreignKeyTarget: row.foreign_key_table
+        ? {
+            table: String(row.foreign_key_table),
+            column: String(row.foreign_key_column),
+            schema: String(row.foreign_key_schema || ""),
+          }
+        : undefined,
+    }));
+
+    // Get additional metadata
+    const rowCount = await this.getTableRowCount(connection, tableName, schema);
+    const indexes = await this.getTableIndexes(connection, tableName, schema);
+    const constraints = await this.getTableConstraints(
+      connection,
+      tableName,
+      schema,
+    );
+
+    return {
+      name: tableName,
+      schema,
+      type: "table",
+      columns,
+      rowCount,
+      indexes,
+      constraints,
+    };
   }
 
   /**
@@ -376,9 +433,30 @@ export class DatabaseMetadataService {
     connection: DatabaseConnection,
     tableName: string,
     schema?: string,
-  ): Promise<any[]> {
-    // Minimal implementation - just throw for now to make test pass
-    throw new Error("getTableIndexes not implemented yet");
+  ): Promise<IndexMetadata[]> {
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite";
+    const queries = this.queryBuilder.getQueries(dbType);
+
+    try {
+      const result = await connection.query(
+        queries.getIndexes(tableName, schema),
+      );
+
+      return result.rows.map((row) => ({
+        name: String(row.index_name || row.name),
+        table: tableName,
+        columns: Array.isArray(row.column_names)
+          ? row.column_names.map(String)
+          : [String(row.column_name || row.column)],
+        isUnique: row.is_unique === true,
+        isPrimary: row.is_primary === true,
+        type: String(row.index_type || "btree") as IndexMetadata["type"],
+        size: row.size as number | undefined,
+      }));
+    } catch (error) {
+      console.warn(`Failed to get indexes for table ${tableName}:`, error);
+      return [];
+    }
   }
 
   /**
@@ -388,9 +466,62 @@ export class DatabaseMetadataService {
     connection: DatabaseConnection,
     tableName: string,
     schema?: string,
-  ): Promise<any[]> {
-    // Minimal implementation - just throw for now to make test pass
-    throw new Error("getTableComments not implemented yet");
+  ): Promise<{
+    tableComment?: string;
+    columnComments: Record<string, string>;
+  }> {
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite";
+
+    try {
+      let tableComment = "";
+      const columnComments: Record<string, string> = {};
+
+      if (dbType === "postgresql") {
+        // Get table comment
+        const tableCommentQuery = `
+          SELECT obj_description(c.oid) as comment
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE c.relname = $1
+          ${schema ? "AND n.nspname = $2" : ""}
+        `;
+        const tableResult = await connection.query(
+          tableCommentQuery,
+          schema ? [tableName, schema] : [tableName],
+        );
+        tableComment = String(tableResult.rows[0]?.comment || "");
+
+        // Get column comments
+        const columnCommentQuery = `
+          SELECT col_description(c.oid, a.attnum) as comment, a.attname as column_name
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          JOIN pg_attribute a ON a.attrelid = c.oid
+          WHERE c.relname = $1
+          AND a.attnum > 0
+          AND NOT a.attisdropped
+          ${schema ? "AND n.nspname = $2" : ""}
+        `;
+        const columnResult = await connection.query(
+          columnCommentQuery,
+          schema ? [tableName, schema] : [tableName],
+        );
+
+        for (const row of columnResult.rows) {
+          if (row.comment) {
+            columnComments[String(row.column_name)] = String(row.comment);
+          }
+        }
+      } else if (dbType === "mysql") {
+        // MySQL implementation would go here
+        // For now, return empty comments
+      }
+
+      return { tableComment, columnComments };
+    } catch (error) {
+      console.warn(`Failed to get comments for table ${tableName}:`, error);
+      return { columnComments: {} };
+    }
   }
 
   /**
@@ -400,8 +531,69 @@ export class DatabaseMetadataService {
     connection: DatabaseConnection,
     tableName: string,
     schema?: string,
-  ): Promise<any[]> {
-    // Minimal implementation - just throw for now to make test pass
-    throw new Error("getTableConstraints not implemented yet");
+  ): Promise<ConstraintMetadata[]> {
+    const dbType = connection.getType() as "mysql" | "postgresql" | "sqlite";
+
+    try {
+      let constraintQuery = "";
+
+      if (dbType === "postgresql") {
+        constraintQuery = `
+          SELECT 
+            tc.constraint_name,
+            tc.constraint_type,
+            array_agg(kcu.column_name ORDER BY kcu.ordinal_position) as column_names,
+            tc.table_name,
+            ccu.table_name AS referenced_table,
+            array_agg(ccu.column_name ORDER BY ccu.ordinal_position) as referenced_columns,
+            rc.delete_rule as on_delete,
+            rc.update_rule as on_update,
+            pg_get_constraintdef(pgc.oid) as definition
+          FROM information_schema.table_constraints tc
+          LEFT JOIN information_schema.key_column_usage kcu 
+            ON tc.constraint_name = kcu.constraint_name 
+            AND tc.table_schema = kcu.table_schema
+          LEFT JOIN information_schema.constraint_column_usage ccu 
+            ON tc.constraint_name = ccu.constraint_name 
+            AND tc.table_schema = ccu.table_schema
+          LEFT JOIN information_schema.referential_constraints rc 
+            ON tc.constraint_name = rc.constraint_name 
+            AND tc.table_schema = rc.constraint_schema
+          LEFT JOIN pg_constraint pgc ON pgc.conname = tc.constraint_name
+          WHERE tc.table_name = $1
+          ${schema ? "AND tc.table_schema = $2" : ""}
+          GROUP BY tc.constraint_name, tc.constraint_type, tc.table_name, 
+                   ccu.table_name, rc.delete_rule, rc.update_rule, pgc.oid
+        `;
+      } else {
+        // Fallback for other databases
+        return [];
+      }
+
+      const result = await connection.query(
+        constraintQuery,
+        schema ? [tableName, schema] : [tableName],
+      );
+
+      return result.rows.map((row) => ({
+        name: String(row.constraint_name),
+        type: String(row.constraint_type)
+          .toLowerCase()
+          .replace(" ", "_") as ConstraintMetadata["type"],
+        columns: Array.isArray(row.column_names)
+          ? row.column_names.map(String)
+          : [],
+        referencedTable: row.referenced_table
+          ? String(row.referenced_table)
+          : undefined,
+        referencedColumns: Array.isArray(row.referenced_columns)
+          ? row.referenced_columns.map(String)
+          : undefined,
+        definition: String(row.definition || ""),
+      }));
+    } catch (error) {
+      console.warn(`Failed to get constraints for table ${tableName}:`, error);
+      return [];
+    }
   }
 }
