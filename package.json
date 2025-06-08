@@ -51,12 +51,6 @@
         "icon": "$(dashboard)"
       },
       {
-        "command": "vscode-dbm.runQuery",
-        "title": "Run SQL Query",
-        "category": "DB Manager",
-        "icon": "$(play)"
-      },
-      {
         "command": "vscode-dbm.selectFromTable",
         "title": "SELECT FROM Table",
         "category": "DB Manager",
@@ -120,9 +114,6 @@
           "command": "vscode-dbm.newQuery"
         },
         {
-          "command": "vscode-dbm.runQuery"
-        },
-        {
           "command": "vscode-dbm.newSQLFile"
         },
         {
@@ -160,24 +151,13 @@
       ],
       "editor/context": [
         {
-          "command": "vscode-dbm.runQuery",
-          "when": "editorTextFocus && (resourceExtname == .sql || editorLangId == sql)",
-          "group": "dbmanager@1"
-        },
-        {
           "command": "vscode-dbm.runQueryInPanel",
           "when": "editorTextFocus && (resourceExtname == .sql || editorLangId == sql)",
-          "group": "dbmanager@2"
+          "group": "dbmanager@1"
         }
       ]
     },
     "keybindings": [
-      {
-        "command": "vscode-dbm.runQuery",
-        "key": "ctrl+shift+e",
-        "mac": "cmd+shift+e",
-        "when": "editorTextFocus && (resourceExtname == .sql || editorLangId == sql)"
-      },
       {
         "command": "vscode-dbm.newQuery",
         "key": "ctrl+shift+q",
@@ -185,8 +165,8 @@
       },
       {
         "command": "vscode-dbm.runQueryInPanel",
-        "key": "ctrl+shift+r",
-        "mac": "cmd+shift+r",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
         "when": "editorTextFocus && (resourceExtname == .sql || editorLangId == sql)"
       }
     ]
