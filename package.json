@@ -52,7 +52,7 @@
       },
       {
         "command": "vscode-dbm.selectFromTable",
-        "title": "SELECT FROM Table",
+        "title": "SQLエディタでSELECT文を生成",
         "category": "DB Manager",
         "icon": "$(table)"
       },
@@ -148,11 +148,6 @@
           "command": "vscode-dbm.selectFromTable",
           "when": "view == dbManager.connections && viewItem == table",
           "group": "query@1"
-        },
-        {
-          "command": "vscode-dbm.showTableDetails",
-          "when": "view == dbManager.connections && viewItem == table",
-          "group": "details@1"
         },
         {
           "command": "vscode-dbm.selectFromTable",

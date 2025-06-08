@@ -51,7 +51,17 @@ export async function activate(context: vscode.ExtensionContext) {
     // TreeDataProvider commands
     const selectFromTableCommand = vscode.commands.registerCommand(
       "vscode-dbm.selectFromTable",
-      async (tableName: string) => {
+      async (tableNameOrTreeItem: string | any) => {
+        // 引数がTreeItemオブジェクトの場合はテーブル名を抽出
+        const tableName = typeof tableNameOrTreeItem === "string" 
+          ? tableNameOrTreeItem 
+          : tableNameOrTreeItem?.tableName || tableNameOrTreeItem?.label;
+          
+        if (!tableName) {
+          vscode.window.showErrorMessage("テーブル名が取得できませんでした");
+          return;
+        }
+        
         // SQLエディタでSELECT文を生成
         const sql = `SELECT * FROM ${tableName} LIMIT 100;`;
         const document = await vscode.workspace.openTextDocument({
@@ -65,10 +75,41 @@ export async function activate(context: vscode.ExtensionContext) {
     // テーブル詳細を表示するコマンド
     const showTableDetailsCommand = vscode.commands.registerCommand(
       "vscode-dbm.showTableDetails",
-      async (tableName: string) => {
+      async (treeItem: any) => {
+        console.log("showTableDetails called with:", treeItem);
+        console.log("treeItem type:", typeof treeItem);
+        console.log("treeItem constructor:", treeItem?.constructor?.name);
+        
         if (webViewProvider) {
-          // WebViewでテーブル詳細を表示
-          webViewProvider.showTableDetails(tableName);
+          let tableName: string | undefined;
+          
+          // TreeItemからテーブル名を取得（複数の方法を試行）
+          if (treeItem?.tableName) {
+            tableName = treeItem.tableName;
+          } else if (treeItem?.viewName) {
+            tableName = treeItem.viewName;
+          } else if (treeItem?.label) {
+            // labelがstring型の場合はそのまま使用
+            if (typeof treeItem.label === 'string') {
+              tableName = treeItem.label;
+            }
+          }
+          
+          console.log("Extracted tableName:", tableName);
+          
+          if (tableName) {
+            // クイックアクションパネルでテーブル詳細を表示
+            webViewProvider.showTableDetails(tableName);
+          } else {
+            console.error("Failed to extract table name from:", {
+              tableName: treeItem?.tableName,
+              viewName: treeItem?.viewName,
+              label: treeItem?.label,
+              labelType: typeof treeItem?.label,
+              allKeys: treeItem ? Object.keys(treeItem) : "null"
+            });
+            vscode.window.showErrorMessage(`テーブル名が取得できませんでした。TreeItemから適切なプロパティが見つかりません。`);
+          }
         }
       },
     );

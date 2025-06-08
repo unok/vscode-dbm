@@ -545,7 +545,7 @@ export class DatabaseMetadataService {
             array_agg(kcu.column_name ORDER BY kcu.ordinal_position) as column_names,
             tc.table_name,
             ccu.table_name AS referenced_table,
-            array_agg(ccu.column_name ORDER BY ccu.ordinal_position) as referenced_columns,
+            array_agg(ccu.column_name) as referenced_columns,
             rc.delete_rule as on_delete,
             rc.update_rule as on_update,
             pg_get_constraintdef(pgc.oid) as definition

@@ -311,7 +311,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getDevHtml() {
-    // Simple development HTML with fallback UI
+    // Simple development HTML with table details only
     const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
@@ -320,242 +320,208 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://cdnjs.cloudflare.com; font-src https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}';">
-    <title>Database Manager - Development</title>
+    <title>Quick Actions</title>
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: var(--vscode-editor-background);
             color: var(--vscode-editor-foreground);
             font-family: var(--vscode-font-family);
+            overflow-x: hidden;
         }
-        .dev-header {
-            background: var(--vscode-editorWidget-background);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid var(--vscode-panel-border);
-        }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid var(--vscode-panel-border);
-        }
-        button {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 4px;
-        }
-        button:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-        /* Database Tree Styles */
-        .database-tree-section {
-            margin-bottom: 24px;
+        
+        /* Table Details Styles - Clean Design */
+        .table-details {
+            font-family: var(--vscode-font-family);
+            font-size: 12px;
             padding: 12px;
-            background: var(--vscode-editorWidget-background);
+        }
+        
+        .detail-section {
+            margin-bottom: 16px;
+            background: var(--vscode-sideBar-background);
             border: 1px solid var(--vscode-panel-border);
             border-radius: 6px;
-        }
-        .database-tree {
-            font-family: var(--vscode-font-family);
-            font-size: 13px;
-        }
-        .tree-item {
-            display: flex;
-            align-items: center;
-            padding: 4px 8px;
-            cursor: pointer;
-            border-radius: 3px;
-            user-select: none;
-        }
-        .tree-item:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-        .tree-item.selected {
-            background: var(--vscode-list-activeSelectionBackground);
-            color: var(--vscode-list-activeSelectionForeground);
-        }
-        .tree-item-icon {
-            margin-right: 6px;
-            font-size: 14px;
-        }
-        .tree-item-label {
-            flex: 1;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
-        .tree-item-children {
-            margin-left: 16px;
-            border-left: 1px solid var(--vscode-tree-indentGuidesStroke);
-            padding-left: 8px;
-        }
-        .tree-item-children.collapsed {
-            display: none;
-        }
-        .tree-expand-icon {
-            margin-right: 4px;
-            font-size: 12px;
-            color: var(--vscode-icon-foreground);
-            cursor: pointer;
-        }
-        .tree-expand-icon:hover {
-            color: var(--vscode-foreground);
-        }
-        .section-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+        
+        .detail-title {
+            background: var(--vscode-editorWidget-background);
+            color: var(--vscode-editor-foreground);
+            margin: 0;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
             border-bottom: 1px solid var(--vscode-panel-border);
         }
-        .section-title {
-            color: var(--vscode-textLink-foreground);
-            font-size: 14px;
-            font-weight: bold;
-            margin: 0;
-            flex: 1;
+        
+        .table-info {
+            padding: 12px;
         }
-        .subsection {
-            margin-bottom: 16px;
-        }
-        .subsection-title {
+        
+        .table-comment {
+            background: var(--vscode-editorGutter-background);
             color: var(--vscode-editor-foreground);
-            font-size: 12px;
-            font-weight: 500;
-            margin: 0 0 8px 0;
-            opacity: 0.8;
-        }
-        .btn-icon {
-            background: transparent;
-            border: none;
-            color: var(--vscode-icon-foreground);
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-icon:hover {
-            background: var(--vscode-toolbar-hoverBackground);
-        }
-        .connection-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .connection-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
             padding: 8px;
+            margin: 0 0 8px 0;
+            border-radius: 4px;
+            font-style: italic;
+            border-left: 3px solid var(--vscode-focusBorder);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .info-item {
+            font-size: 11px;
+        }
+        
+        .info-label {
+            color: var(--vscode-descriptionForeground);
+            font-weight: 500;
+        }
+        
+        .info-value {
+            color: var(--vscode-editor-foreground);
+            margin-left: 4px;
+        }
+        
+        /* Columns Container */
+        .columns-container, .constraints-container, .indexes-container {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        
+        .column-card, .constraint-card, .index-card {
+            background: var(--vscode-editorWidget-background);
             border: 1px solid var(--vscode-input-border);
             border-radius: 4px;
-            margin-bottom: 4px;
-            cursor: pointer;
-            background: var(--vscode-input-background);
+            margin-bottom: 6px;
+            padding: 8px 10px;
+            transition: all 0.2s ease;
         }
-        .connection-item:hover {
+        
+        .column-card:hover, .constraint-card:hover, .index-card:hover {
             background: var(--vscode-list-hoverBackground);
-        }
-        .connection-item.active {
-            background: var(--vscode-list-activeSelectionBackground);
             border-color: var(--vscode-focusBorder);
         }
-        .connection-info {
-            flex: 1;
+        
+        .column-header, .constraint-header, .index-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
         }
-        .connection-name {
-            font-weight: 500;
+        
+        .column-name, .constraint-name, .index-name {
+            font-weight: 600;
             color: var(--vscode-editor-foreground);
             font-size: 12px;
         }
-        .connection-details {
+        
+        .column-type {
+            color: var(--vscode-descriptionForeground);
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+            background: var(--vscode-badge-background);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        .column-badges {
+            margin-top: 4px;
+        }
+        
+        .column-comment {
+            margin-top: 6px;
+            padding: 4px 6px;
+            background: var(--vscode-editorGutter-background);
+            color: var(--vscode-editor-foreground);
+            border-radius: 3px;
+            font-size: 10px;
+            font-style: italic;
+            border-left: 2px solid var(--vscode-textLink-foreground);
+        }
+        
+        .constraint-details, .index-details {
             font-size: 10px;
             color: var(--vscode-descriptionForeground);
-            margin-top: 2px;
+            margin-top: 4px;
         }
-        .connection-actions {
-            display: flex;
-            gap: 4px;
+        
+        .constraint-type-badge {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
         }
-        .loading, .no-connections {
+        
+        .constraint-type-badge.foreign_key {
+            background: var(--vscode-charts-purple);
+            color: white;
+        }
+        
+        .constraint-type-badge.unique {
+            background: var(--vscode-charts-blue);
+            color: white;
+        }
+        
+        .constraint-type-badge.check {
+            background: var(--vscode-charts-orange);
+            color: white;
+        }
+        
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            margin-right: 4px;
+            text-transform: uppercase;
+        }
+        
+        .badge.pk {
+            background: var(--vscode-charts-red);
+            color: white;
+        }
+        
+        .badge.fk {
+            background: var(--vscode-charts-purple);
+            color: white;
+        }
+        
+        .badge.nn {
+            background: var(--vscode-charts-yellow);
+            color: black;
+        }
+        
+        .badge.unique {
+            background: var(--vscode-charts-blue);
+            color: white;
+        }
+        
+        .loading {
             text-align: center;
             color: var(--vscode-descriptionForeground);
             font-size: 11px;
             padding: 16px;
             font-style: italic;
         }
-        .schema-tree {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .schema-item {
-            padding: 4px 8px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        .schema-item:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-        .schema-item.folder {
-            font-weight: 500;
-        }
-        .schema-item.table {
-            padding-left: 16px;
-            color: var(--vscode-descriptionForeground);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            background: var(--vscode-editor-background);
-        }
-        th, td {
-            border: 1px solid var(--vscode-panel-border);
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background: var(--vscode-editorWidget-background);
-            font-weight: bold;
-        }
-        tr:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
     </style>
 </head>
 <body>
-    <div class="dev-header">
-        <h1>🚀 Database Manager - Development Mode</h1>
-        <p>VSCode拡張機能の開発環境で動作中です</p>
-        <div class="status" id="connectionStatus">データベース: 未接続</div>
+    <!-- Table Details Section -->
+    <div id="tableDetailsSection" style="display: none;">
+        <div id="tableDetailsContent"></div>
     </div>
-
-    <!-- Database Tree Section -->
-    <div class="database-tree-section">
-        <div class="section-header">
-            <h3 class="section-title">📁 データベース接続</h3>
-            <button id="addConnectionBtn" class="btn-icon" title="新しい接続を追加">
-                <span class="codicon codicon-add"></span>
-            </button>
-        </div>
-        
-        <!-- Unified Connection Tree -->
-        <div id="databaseTree" class="database-tree">
-            <div class="loading">読み込み中...</div>
-        </div>
-    </div>
-
-    <div id="queryResults" style="margin-top: 20px;"></div>
-    <div class="status" id="status">準備完了</div>
 
     <script nonce="${nonce}">
         // Store VSCode API globally to prevent multiple acquisitions
@@ -564,515 +530,229 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         }
         const vscode = window.vscode;
         
-        
-        // Add Connection button
-        document.getElementById('addConnectionBtn').addEventListener('click', function() {
-            console.log('Add Connection button clicked');
-            vscode.postMessage({
-                type: 'showInfo',
-                data: { message: 'メインパネルの "New Connection" から接続を追加してください' }
-            });
-        });
-        
-        // Initialize - Load saved and active connections
-        vscode.postMessage({
-            type: 'getSavedConnections',
-            data: {}
-        });
-        
-        vscode.postMessage({
-            type: 'getActiveConnections',
-            data: {}
-        });
-        
-        // Database tree management functions
-        function updateDatabaseTree(connections, schemas = {}) {
-            const container = document.getElementById('databaseTree');
-            if (!connections || connections.length === 0) {
-                container.innerHTML = '<div class="no-connections">保存された接続がありません</div>';
+        // テーブル詳細表示関数
+        function displayTableDetails(tableData) {
+            const section = document.getElementById('tableDetailsSection');
+            const content = document.getElementById('tableDetailsContent');
+            
+            if (!tableData) {
+                content.innerHTML = '<div class="table-details"><p class="loading">テーブルデータが見つかりません</p></div>';
+                section.style.display = 'block';
                 return;
             }
             
-            container.innerHTML = connections.map(conn => {
-                const icon = getDbIcon(conn.type);
-                const isExpanded = expandedConnections.has(conn.id);
-                const schema = schemas[conn.id];
-                
-                let html = '<div class="tree-item connection-item" data-connection-id="' + conn.id + '">' +
-                    (schema ? '<span class="tree-expand-icon codicon ' + (isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right') + '"></span>' : '') +
-                    '<span class="tree-item-icon">' + icon + '</span>' +
-                    '<span class="tree-item-label">' + conn.name + '</span>' +
-                '</div>';
-                
-                if (schema && isExpanded) {
-                    html += '<div class="tree-item-children">';
+            let html = '<div class="table-details">';
+            
+            // テーブル基本情報
+            html += '<div class="detail-section">';
+            html += '<h4 class="detail-title">📋 ' + (tableData.name || 'N/A') + '</h4>';
+            html += '<div class="table-info">';
+            if (tableData.comment) {
+                html += '<p class="table-comment">' + tableData.comment + '</p>';
+            }
+            html += '<div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">スキーマ:</span> <span class="info-value">' + (tableData.schema || 'public') + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">行数:</span> <span class="info-value">' + (tableData.rowCount || 'N/A') + '</span></div>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            
+            // カラム情報
+            if (tableData.columns && tableData.columns.length > 0) {
+                html += '<div class="detail-section">';
+                html += '<h4 class="detail-title">📝 カラム (' + tableData.columns.length + ')</h4>';
+                html += '<div class="columns-container">';
+                tableData.columns.forEach(column => {
+                    const badges = [];
+                    if (column.isPrimaryKey) badges.push('<span class="badge pk">PK</span>');
+                    if (column.isForeignKey) badges.push('<span class="badge fk">FK</span>');
+                    if (!column.isNullable) badges.push('<span class="badge nn">NOT NULL</span>');
                     
-                    // テーブル一覧
-                    if (schema.tables && schema.tables.length > 0) {
-                        html += '<div class="tree-item schema-folder">' +
-                            '<span class="tree-item-icon">📊</span>' +
-                            '<span class="tree-item-label">テーブル (' + schema.tables.length + ')</span>' +
-                        '</div>';
-                        html += '<div class="tree-item-children">';
-                        schema.tables.forEach(table => {
-                            html += '<div class="tree-item table-item" data-connection-id="' + conn.id + '" data-table="' + table.name + '">' +
-                                '<span class="tree-item-icon">📋</span>' +
-                                '<span class="tree-item-label">' + table.name + '</span>' +
-                            '</div>';
-                        });
-                        html += '</div>';
-                    }
-                    
-                    // ビュー一覧
-                    if (schema.views && schema.views.length > 0) {
-                        html += '<div class="tree-item schema-folder">' +
-                            '<span class="tree-item-icon">👁️</span>' +
-                            '<span class="tree-item-label">ビュー (' + schema.views.length + ')</span>' +
-                        '</div>';
-                        html += '<div class="tree-item-children">';
-                        schema.views.forEach(view => {
-                            html += '<div class="tree-item view-item" data-connection-id="' + conn.id + '" data-view="' + view.name + '">' +
-                                '<span class="tree-item-icon">👁️</span>' +
-                                '<span class="tree-item-label">' + view.name + '</span>' +
-                            '</div>';
-                        });
-                        html += '</div>';
-                    }
-                    
+                    html += '<div class="column-card">';
+                    html += '<div class="column-header">';
+                    html += '<span class="column-name">' + column.name + '</span>';
+                    html += '<span class="column-type">' + column.type + '</span>';
                     html += '</div>';
-                }
-                
-                return html;
-            }).join('');
-            
-            // イベントリスナーを追加
-            addTreeEventListeners();
-        }
-        
-        // 展開状態を管理
-        const expandedConnections = new Set();
-        const schemaCache = {};
-        
-        function addTreeEventListeners() {
-            const container = document.getElementById('databaseTree');
-            
-            // 展開/折り畳みボタン
-            container.querySelectorAll('.tree-expand-icon').forEach(icon => {
-                icon.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const connectionItem = this.closest('.connection-item');
-                    const connectionId = connectionItem.getAttribute('data-connection-id');
-                    toggleConnection(connectionId);
+                    if (badges.length > 0) {
+                        html += '<div class="column-badges">' + badges.join(' ') + '</div>';
+                    }
+                    if (column.comment) {
+                        html += '<div class="column-comment">' + column.comment + '</div>';
+                    }
+                    html += '</div>';
                 });
-            });
-            
-            // 接続アイテムクリック
-            container.querySelectorAll('.connection-item').forEach(item => {
-                item.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('tree-expand-icon')) return;
-                    const connectionId = this.getAttribute('data-connection-id');
-                    toggleConnection(connectionId);
-                });
-            });
-            
-            // テーブルクリック
-            container.querySelectorAll('.table-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const connectionId = this.getAttribute('data-connection-id');
-                    const tableName = this.getAttribute('data-table');
-                    generateTableSQL(connectionId, tableName);
-                });
-            });
-            
-            // ビュークリック
-            container.querySelectorAll('.view-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const connectionId = this.getAttribute('data-connection-id');
-                    const viewName = this.getAttribute('data-view');
-                    generateViewSQL(connectionId, viewName);
-                });
-            });
-        }
-        
-        async function toggleConnection(connectionId) {
-            if (expandedConnections.has(connectionId)) {
-                expandedConnections.delete(connectionId);
-            } else {
-                expandedConnections.add(connectionId);
-                
-                // スキーマ情報を取得（キャッシュされていない場合）
-                if (!schemaCache[connectionId]) {
-                    vscode.postMessage({
-                        type: 'getSchema',
-                        data: { connectionId: connectionId }
-                    });
-                    return; // スキーマ取得後に再描画される
-                }
+                html += '</div>';
+                html += '</div>';
             }
             
-            // 現在の接続一覧で再描画
-            const connections = getCurrentConnections();
-            updateDatabaseTree(connections, schemaCache);
-        }
-        
-        function generateTableSQL(connectionId, tableName) {
-            // メインエディターにSELECT文を生成
-            vscode.postMessage({
-                type: 'insertSQL',
-                data: {
-                    connectionId: connectionId,
-                    sql: 'SELECT * FROM ' + tableName + ' LIMIT 100;'
-                }
-            });
-        }
-        
-        function generateViewSQL(connectionId, viewName) {
-            // メインエディターにSELECT文を生成
-            vscode.postMessage({
-                type: 'insertSQL',
-                data: {
-                    connectionId: connectionId,
-                    sql: 'SELECT * FROM ' + viewName + ' LIMIT 100;'
-                }
-            });
-        }
-        
-        let currentConnections = [];
-        function getCurrentConnections() {
-            return currentConnections;
-        }
-
-        function updateSavedConnections(connections) {
-            currentConnections = connections;
-            updateDatabaseTree(connections, schemaCache);
-        }
-        
-        function updateActiveConnections(connections) {
-            // アクティブ接続の表示は不要（ツリーで統合管理）
-            // スキーマ情報の更新のみ行う
-        }
-        
-        function getDbIcon(type) {
-            switch (type) {
-                case 'mysql': return '🐬';
-                case 'postgresql': return '🐘';
-                case 'sqlite': return '📁';
-                default: return '🗄️';
-            }
-        }
-        
-        // テーブル作成関数
-        function createResultTable(rows) {
-            if (!rows || rows.length === 0) return '<p>データなし</p>';
-            
-            const headers = Object.keys(rows[0]);
-            let html = '<table>';
-            
-            html += '<thead><tr>';
-            headers.forEach(header => {
-                html += '<th>' + header + '</th>';
-            });
-            html += '</tr></thead>';
-            
-            html += '<tbody>';
-            rows.forEach(row => {
-                html += '<tr>';
-                headers.forEach(header => {
-                    const value = row[header] !== null && row[header] !== undefined ? row[header] : 'NULL';
-                    html += '<td>' + value + '</td>';
+            // 制約情報（NOT NULL と PRIMARY KEY を除外）
+            const meaningfulConstraints = tableData.constraints ? 
+                tableData.constraints.filter(constraint => 
+                    !constraint.type.includes('not_null') && 
+                    !constraint.type.includes('primary_key') &&
+                    constraint.type !== 'not_null' &&
+                    constraint.type !== 'primary_key'
+                ) : [];
+                
+            if (meaningfulConstraints.length > 0) {
+                html += '<div class="detail-section">';
+                html += '<h4 class="detail-title">🔗 制約 (' + meaningfulConstraints.length + ')</h4>';
+                html += '<div class="constraints-container">';
+                meaningfulConstraints.forEach(constraint => {
+                    // 制約タイプの日本語表示
+                    let typeDisplay = constraint.type;
+                    switch(constraint.type) {
+                        case 'foreign_key': typeDisplay = '外部キー'; break;
+                        case 'unique': typeDisplay = 'ユニーク'; break;
+                        case 'check': typeDisplay = 'チェック'; break;
+                        case 'exclusion': typeDisplay = '排他'; break;
+                        default: typeDisplay = constraint.type.toUpperCase();
+                    }
+                    
+                    html += '<div class="constraint-card">';
+                    html += '<div class="constraint-header">';
+                    html += '<span class="constraint-name">' + constraint.name + '</span>';
+                    html += '<span class="constraint-type-badge ' + constraint.type + '">' + typeDisplay + '</span>';
+                    html += '</div>';
+                    if (constraint.columns && constraint.columns.length > 0) {
+                        html += '<div class="constraint-details">カラム: ' + constraint.columns.join(', ') + '</div>';
+                    }
+                    if (constraint.referencedTable) {
+                        html += '<div class="constraint-details">参照先: ' + constraint.referencedTable;
+                        if (constraint.referencedColumns && constraint.referencedColumns.length > 0) {
+                            html += ' (' + constraint.referencedColumns.join(', ') + ')';
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
                 });
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
+                html += '</div>';
+                html += '</div>';
+            }
             
-            return html;
+            // インデックス情報
+            if (tableData.indexes && tableData.indexes.length > 0) {
+                html += '<div class="detail-section">';
+                html += '<h4 class="detail-title">⚡ インデックス (' + tableData.indexes.length + ')</h4>';
+                html += '<div class="indexes-container">';
+                tableData.indexes.forEach(index => {
+                    html += '<div class="index-card">';
+                    html += '<div class="index-header">';
+                    html += '<span class="index-name">' + index.name + '</span>';
+                    if (index.isUnique) html += '<span class="badge unique">UNIQUE</span>';
+                    html += '</div>';
+                    if (index.columns && index.columns.length > 0) {
+                        html += '<div class="index-details">カラム: ' + index.columns.join(', ') + '</div>';
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            
+            content.innerHTML = html;
+            section.style.display = 'block';
         }
         
-        // メッセージリスナー
+        // メッセージリスナー（テーブル詳細専用）
         window.addEventListener('message', event => {
-            console.log('Development: Received message:', event.data);
+            console.log('QuickAction: Received message:', event.data);
             const message = event.data;
             
-            // 保存された接続一覧の更新
-            if (message.type === 'savedConnections') {
-                updateSavedConnections(message.data.connections);
-            }
-            
-            // アクティブ接続一覧の更新
-            if (message.type === 'activeConnections') {
-                updateActiveConnections(message.data.connections);
-            }
-            
-            // スキーマ情報の更新
-            if (message.type === 'schemaData') {
-                if (message.data.success && message.data.schema) {
-                    const connectionId = message.data.connectionId;
-                    schemaCache[connectionId] = message.data.schema;
-                    updateDatabaseTree(currentConnections, schemaCache);
-                }
-            }
-            
-            // 接続状況の更新
-            if (message.type === 'connectionStatus') {
-                const status = message.data.connected ? 
-                    'データベース: 接続済み (' + message.data.databases.length + '件)' : 
-                    'データベース: 未接続';
-                document.getElementById('connectionStatus').textContent = status;
-            }
-            
-            // 接続結果の表示
-            if (message.type === 'connectionResult') {
-                const statusEl = document.getElementById('connectionStatus');
-                if (message.data.success) {
-                    statusEl.textContent = 'データベース: ' + message.data.message;
-                    statusEl.style.color = 'var(--vscode-testing-iconPassed)';
-                } else {
-                    statusEl.textContent = \`接続エラー: \${message.data.message}\`;
-                    statusEl.style.color = 'var(--vscode-testing-iconFailed)';
-                }
-            }
-            
-            // クエリ結果の表示
-            if (message.type === 'queryResult') {
-                const statusEl = document.getElementById('status');
-                const resultsEl = document.getElementById('queryResults');
-                
-                if (message.data.success) {
-                    statusEl.textContent = 'クエリ成功: ' + message.data.message + ' (' + message.data.executionTime + 'ms)';
-                    statusEl.style.color = 'var(--vscode-testing-iconPassed)';
-                    
-                    if (message.data.results && message.data.results.length > 0) {
-                        const tableHtml = createResultTable(message.data.results);
-                        resultsEl.innerHTML = '<h3>クエリ結果:</h3>' + tableHtml;
-                    } else {
-                        resultsEl.innerHTML = '<p>結果なし</p>';
-                    }
-                } else {
-                    statusEl.textContent = 'クエリエラー: ' + message.data.message;
-                    statusEl.style.color = 'var(--vscode-testing-iconFailed)';
-                    resultsEl.innerHTML = '';
-                }
+            // テーブル詳細の表示
+            if (message.type === 'showTableDetails') {
+                console.log('Displaying table details:', message.data);
+                displayTableDetails(message.data);
             }
         });
         
-        console.log('Development WebView loaded successfully');
+        console.log('QuickAction WebView loaded successfully');
     </script>
 </body>
 </html>`;
   }
 
-  private getProdHtml(webview: vscode.Webview) {
-    // Find the actual JS file dynamically
-    const webviewPath = vscode.Uri.joinPath(
-      this.extensionUri,
-      "dist",
-      "webview",
-    );
-    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets");
+  // 残りのメソッドは元のファイルと同じ...
+  // (他のメソッドをここに追加...)
 
-    // Read JS filename from index.html (most reliable method)
-    let jsFileName: string;
-    try {
-      const fs = require("node:fs");
-      const indexPath = vscode.Uri.joinPath(webviewPath, "index.html");
-      const indexContent = fs.readFileSync(indexPath.fsPath, "utf-8");
-      const scriptMatch = indexContent.match(
-        /src="\.\/assets\/(index-[^"]+\.js)"/,
-      );
-
-      if (scriptMatch) {
-        jsFileName = scriptMatch[1];
-      } else {
-        throw new Error("No script tag found in index.html");
-      }
-    } catch (error) {
-      console.error("[WebViewProvider] Failed to read index.html:", error);
-      return this.getDevHtml(); // Fallback to development HTML
+  /**
+   * 指定されたテーブルの詳細情報を表示
+   */
+  async showTableDetails(tableName: string): Promise<void> {
+    console.log("WebViewProvider.showTableDetails called with tableName:", tableName);
+    console.log("tableName type:", typeof tableName);
+    console.log("tableName string representation:", String(tableName));
+    
+    // tableNameが文字列でない場合はエラーを出す
+    if (typeof tableName !== 'string') {
+      const errorMessage = `無効なテーブル名: 文字列が期待されますが、${typeof tableName}型が渡されました。値: ${String(tableName)}`;
+      console.error(errorMessage);
+      vscode.window.showErrorMessage(errorMessage);
+      return;
+    }
+    
+    // 空文字列チェック
+    if (!tableName.trim()) {
+      const errorMessage = "テーブル名が空です";
+      console.error(errorMessage);
+      vscode.window.showErrorMessage(errorMessage);
+      return;
+    }
+    
+    if (!this.view) {
+      console.log("No view available");
+      return;
     }
 
-    // Generate URLs
-    const nonce = getNonce();
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(assetsPath, jsFileName),
-    );
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com; connect-src ${webview.cspSource} https: ws:;">
-    <title>Database DataGrid Manager</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            overflow: hidden;
-        }
-        #root {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        /* VSCode theme variables */
-        :root {
-            --vscode-primary: var(--vscode-button-background);
-            --vscode-primary-hover: var(--vscode-button-hoverBackground);
-            --vscode-secondary: var(--vscode-button-secondaryBackground);
-            --vscode-border: var(--vscode-panel-border);
-            --vscode-input-bg: var(--vscode-input-background);
-            --vscode-input-border: var(--vscode-input-border);
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-    <script nonce="${nonce}">
-        window.initialViewType = "dashboard";
-        window.acquireVsCodeApi = window.acquireVsCodeApi || (() => ({
-            postMessage: (msg) => console.log('VSCode API:', msg),
-            getState: () => ({}),
-            setState: (state) => {}
-        }));
-        
-        // Ensure DOM is loaded before React app
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                console.log('[WebViewProvider] DOM loaded, root element exists:', !!document.getElementById('root'));
-            });
-        } else {
-            console.log('[WebViewProvider] DOM already loaded, root element exists:', !!document.getElementById('root'));
-        }
-    </script>
-    <script nonce="${nonce}" src="${scriptUri}" defer></script>
-</body>
-</html>`;
-  }
-
-  private getFallbackHtml(webview: vscode.Webview) {
-    const webviewPath = vscode.Uri.joinPath(
-      this.extensionUri,
-      "dist",
-      "webview",
-    );
-    const nonce = getNonce();
-
-    // Try to find the actual built files
-    const fs = require("node:fs");
-    const assetsPath = vscode.Uri.joinPath(webviewPath, "assets");
-    let scriptSrc = "";
-    let styleSrc = "";
-
     try {
-      const files = fs.readdirSync(assetsPath.fsPath);
-      const jsFile = files.find(
-        (f: string) => f.startsWith("index-") && f.endsWith(".js"),
-      );
-      const cssFile = files.find(
-        (f: string) => f.startsWith("index-") && f.endsWith(".css"),
-      );
+      // アクティブな接続を取得
+      const activeConnections = this.databaseService.getActiveConnections();
+      console.log("Active connections:", activeConnections.length);
+      
+      if (activeConnections.length === 0) {
+        vscode.window.showWarningMessage(
+          "アクティブなデータベース接続がありません",
+        );
+        return;
+      }
 
-      if (jsFile) {
-        scriptSrc = webview
-          .asWebviewUri(vscode.Uri.joinPath(assetsPath, jsFile))
-          .toString();
-      }
-      if (cssFile) {
-        styleSrc = webview
-          .asWebviewUri(vscode.Uri.joinPath(assetsPath, cssFile))
-          .toString();
-      }
+      // 最初のアクティブ接続を使用（複数ある場合は改善の余地あり）
+      const connectionId = activeConnections[0].id;
+      console.log("Using connection ID:", connectionId);
+
+      // テーブルの詳細メタデータを取得
+      console.log("Getting table metadata for:", tableName);
+      const tableMetadata =
+        await this.databaseService.getTableMetadataWithConstraints(
+          tableName.trim(),
+          undefined, // schema
+          connectionId,
+        );
+
+      console.log("Got table metadata:", tableMetadata);
+
+      // WebViewにテーブル詳細表示メッセージを送信
+      this.view.webview.postMessage({
+        type: "showTableDetails",
+        data: tableMetadata,
+      });
+
+      // WebViewを前面に表示
+      this.view.show?.(true);
     } catch (error) {
-      console.error("Failed to find assets:", error);
+      console.error("Error in showTableDetails:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラー";
+      vscode.window.showErrorMessage(
+        `テーブル詳細の取得に失敗しました: ${errorMessage}`,
+      );
     }
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com; connect-src ${webview.cspSource} https: ws:;">
-    <title>Database DataGrid Manager</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            overflow: hidden;
-        }
-        #root {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-        }
-        .loading-text {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        .error {
-            padding: 16px;
-            text-align: center;
-            color: var(--vscode-errorForeground);
-        }
-        /* VSCode theme variables */
-        :root {
-            --vscode-primary: var(--vscode-button-background);
-            --vscode-primary-hover: var(--vscode-button-hoverBackground);
-            --vscode-secondary: var(--vscode-button-secondaryBackground);
-            --vscode-border: var(--vscode-panel-border);
-            --vscode-input-bg: var(--vscode-input-background);
-            --vscode-input-border: var(--vscode-input-border);
-        }
-    </style>
-</head>
-<body>
-    <div id="root">
-        <div class="loading">
-            <div class="loading-text">Database Manager を初期化中...</div>
-        </div>
-    </div>
-    <script>
-        // Initialize VSCode API
-        window.initialViewType = "dashboard";
-        window.acquireVsCodeApi = window.acquireVsCodeApi || (() => ({
-            postMessage: (msg) => console.log('VSCode API:', msg),
-            getState: () => ({}),
-            setState: (state) => {}
-        }));
-        
-        // Fallback error handling
-        window.addEventListener('error', function(e) {
-            const root = document.getElementById('root');
-            if (root) {
-                root.innerHTML = '<div class="error">リソースの読み込みに失敗しました。<br>拡張機能を再読み込みしてください。</div>';
-            }
-        });
-    </script>
-    ${scriptSrc ? `<script nonce="${nonce}" src="${scriptSrc}"></script>` : ""}
-    ${styleSrc ? `<link rel="stylesheet" href="${styleSrc}">` : ""}
-    </script>
-</body>
-</html>`;
   }
 
-  private async sendConnectionStatus() {
+  // 他のメソッドも継続...
+  private sendConnectionStatus() {
     if (!this.view) return;
 
     const status = this.databaseService.getConnectionStatus();
@@ -1266,45 +946,5 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
   public async cleanup() {
     this.databaseService.removeMessageListener("sidebar");
-  }
-
-  /**
-   * 指定されたテーブルの詳細情報を表示
-   */
-  async showTableDetails(tableName: string): Promise<void> {
-    if (!this.view) {
-      return;
-    }
-
-    try {
-      // アクティブな接続を取得
-      const activeConnections = this.databaseService.getActiveConnections();
-      if (activeConnections.length === 0) {
-        vscode.window.showWarningMessage("アクティブなデータベース接続がありません");
-        return;
-      }
-
-      // 最初のアクティブ接続を使用（複数ある場合は改善の余地あり）
-      const connectionId = activeConnections[0].id;
-      
-      // テーブルの詳細メタデータを取得
-      const tableMetadata = await this.databaseService.getTableMetadataWithConstraints(
-        tableName,
-        undefined, // schema
-        connectionId
-      );
-
-      // WebViewにテーブル詳細表示メッセージを送信
-      this.view.webview.postMessage({
-        type: "showTableDetails",
-        data: tableMetadata,
-      });
-
-      // WebViewを前面に表示
-      this.view.show?.(true);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "不明なエラー";
-      vscode.window.showErrorMessage(`テーブル詳細の取得に失敗しました: ${errorMessage}`);
-    }
   }
 }

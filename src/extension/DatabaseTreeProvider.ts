@@ -229,11 +229,11 @@ class TableTreeItem extends DatabaseTreeItem {
     this.tooltip = `テーブル: ${tableName}`;
     this.contextValue = "table";
 
-    // クリック時のコマンドを設定
+    // シングルクリック時のコマンドを設定（テーブル詳細表示）
     this.command = {
-      command: "vscode-dbm.selectFromTable",
-      title: "SELECT FROM テーブル",
-      arguments: [tableName],
+      command: "vscode-dbm.showTableDetails",
+      title: "テーブル詳細を表示",
+      arguments: [this],
     };
   }
 }
@@ -250,11 +250,11 @@ class ViewTreeItem extends DatabaseTreeItem {
     this.tooltip = `ビュー: ${viewName}`;
     this.contextValue = "view";
 
-    // クリック時のコマンドを設定
+    // シングルクリック時のコマンドを設定（ビュー詳細表示）
     this.command = {
-      command: "vscode-dbm.selectFromTable",
-      title: "SELECT FROM ビュー",
-      arguments: [viewName],
+      command: "vscode-dbm.showTableDetails",
+      title: "ビュー詳細を表示",
+      arguments: [this],
     };
   }
 }
