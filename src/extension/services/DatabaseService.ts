@@ -5,6 +5,8 @@ import {
   DatabaseProxyFactory,
 } from "../../shared/database/DatabaseProxy";
 import type { DatabaseConfig } from "../../shared/types";
+import type { QueryResult as SharedQueryResult } from "../../shared/types";
+import type { QueryResult as ProxyQueryResult } from "../../shared/database/DatabaseProxy";
 import type {
   BaseMessage,
   ConnectionStatusMessage,
@@ -12,6 +14,9 @@ import type {
   ExecuteQueryMessage,
   OpenConnectionMessage,
 } from "../../shared/types/messages";
+import type { DatabaseSchema, TableMetadata } from "../../shared/types/schema";
+import { DatabaseMetadataService } from "../../shared/services/DatabaseMetadataService";
+import { DatabaseConnection } from "../../shared/database/DatabaseConnection";
 
 /**
  * データベース接続とクエリ実行を管理する中央サービス
@@ -27,14 +32,60 @@ interface ActiveConnection {
   connectedAt: Date;
 }
 
+/**
+ * ActiveConnectionをDatabaseConnectionインターフェースに適合させるアダプター
+ */
+class DatabaseConnectionAdapter extends DatabaseConnection {
+  private activeConnection: ActiveConnection;
+
+  constructor(activeConnection: ActiveConnection) {
+    super(activeConnection.config);
+    this.activeConnection = activeConnection;
+    this.connected = activeConnection.isConnected;
+    this.lastConnected = activeConnection.connectedAt;
+  }
+
+  async connect(timeout?: number): Promise<void> {
+    // ActiveConnectionは既に接続済みなので何もしない
+    this.setConnected(this.activeConnection.isConnected);
+  }
+
+  async disconnect(): Promise<void> {
+    await this.activeConnection.proxy.disconnect();
+    this.setConnected(false);
+  }
+
+  async query(sql: string, params?: unknown[]): Promise<SharedQueryResult> {
+    const result: ProxyQueryResult = await this.activeConnection.proxy.query(sql, params);
+    
+    if (!result.success) {
+      throw new Error(result.error || "Query execution failed");
+    }
+    
+    return {
+      rows: result.rows || [],
+      rowCount: result.rowCount || 0,
+      executionTime: result.executionTime || 0,
+      error: result.error,
+    };
+  }
+
+  getType(): string {
+    return this.activeConnection.config.type;
+  }
+}
+
 export class DatabaseService {
   private static instance: DatabaseService | undefined;
   private activeConnections: Map<string, ActiveConnection> = new Map();
   private listeners: Map<string, (message: BaseMessage) => void> = new Map();
   private savedConnections: DatabaseConfig[] = [];
   private extensionContext?: vscode.ExtensionContext;
+  private metadataService: DatabaseMetadataService;
 
-  private constructor() {}
+  private constructor() {
+    this.metadataService = new DatabaseMetadataService();
+  }
 
   /**
    * シングルトンインスタンスを取得
@@ -742,6 +793,50 @@ export class DatabaseService {
         ) as DatabaseConfig[]) || [];
       this.savedConnections = connections;
     }
+  }
+
+  /**
+   * スキーマ情報を取得
+   */
+  async getSchema(connectionId?: string): Promise<DatabaseSchema> {
+    const targetConnectionId =
+      connectionId || Array.from(this.activeConnections.keys())[0];
+    const connection = this.activeConnections.get(targetConnectionId);
+
+    if (!connection || !connection.isConnected) {
+      throw new Error("データベースに接続されていません");
+    }
+
+    // DatabaseConnectionインターフェースを満たすアダプターを作成
+    const connectionAdapter = new DatabaseConnectionAdapter(connection);
+
+    return this.metadataService.getSchema(connectionAdapter);
+  }
+
+  /**
+   * テーブルメタデータを詳細制約情報付きで取得
+   */
+  async getTableMetadataWithConstraints(
+    tableName: string,
+    schema?: string,
+    connectionId?: string,
+  ): Promise<TableMetadata> {
+    const targetConnectionId =
+      connectionId || Array.from(this.activeConnections.keys())[0];
+    const connection = this.activeConnections.get(targetConnectionId);
+
+    if (!connection || !connection.isConnected) {
+      throw new Error("データベースに接続されていません");
+    }
+
+    // DatabaseConnectionインターフェースを満たすアダプターを作成
+    const connectionAdapter = new DatabaseConnectionAdapter(connection);
+
+    return this.metadataService.getTableMetadataWithConstraints(
+      connectionAdapter,
+      tableName,
+      schema,
+    );
   }
 
   /**

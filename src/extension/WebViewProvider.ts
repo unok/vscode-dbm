@@ -84,6 +84,12 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         case "disconnectConnection":
           await this.handleDisconnectConnection(message.data);
           break;
+        case "getSchema":
+          await this.handleGetSchema();
+          break;
+        case "getTableMetadataWithConstraints":
+          await this.handleGetTableMetadataWithConstraints(message.data);
+          break;
       }
     });
 
@@ -1191,6 +1197,56 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         error instanceof Error ? error.message : "Unknown error";
       console.error("Disconnect connection error:", error);
       vscode.window.showErrorMessage(`Failed to disconnect: ${errorMessage}`);
+    }
+  }
+
+  private async handleGetSchema() {
+    try {
+      const schema = await this.databaseService.getSchema();
+      if (this.view) {
+        this.view.webview.postMessage({
+          type: "schema",
+          data: schema,
+        });
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Get schema error:", error);
+      if (this.view) {
+        this.view.webview.postMessage({
+          type: "schemaError",
+          data: { message: errorMessage },
+        });
+      }
+    }
+  }
+
+  private async handleGetTableMetadataWithConstraints(data: {
+    tableName: string;
+    schema?: string;
+  }) {
+    try {
+      const tableMetadata = await this.databaseService.getTableMetadataWithConstraints(
+        data.tableName,
+        data.schema,
+      );
+      if (this.view) {
+        this.view.webview.postMessage({
+          type: "tableMetadataWithConstraints",
+          data: tableMetadata,
+        });
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Get table metadata error:", error);
+      if (this.view) {
+        this.view.webview.postMessage({
+          type: "tableMetadataError",
+          data: { message: errorMessage },
+        });
+      }
     }
   }
 
