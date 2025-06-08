@@ -79,6 +79,12 @@
         "title": "Run SQL Query in Panel",
         "category": "DB Manager",
         "icon": "$(output)"
+      },
+      {
+        "command": "vscode-dbm.showTableDetails",
+        "title": "Show Table Details",
+        "category": "DB Manager",
+        "icon": "$(info)"
       }
     ],
     "views": {
@@ -142,6 +148,11 @@
           "command": "vscode-dbm.selectFromTable",
           "when": "view == dbManager.connections && viewItem == table",
           "group": "query@1"
+        },
+        {
+          "command": "vscode-dbm.showTableDetails",
+          "when": "view == dbManager.connections && viewItem == table",
+          "group": "details@1"
         },
         {
           "command": "vscode-dbm.selectFromTable",

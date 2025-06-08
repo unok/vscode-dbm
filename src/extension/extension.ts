@@ -62,6 +62,17 @@ export async function activate(context: vscode.ExtensionContext) {
       },
     );
 
+    // テーブル詳細を表示するコマンド
+    const showTableDetailsCommand = vscode.commands.registerCommand(
+      "vscode-dbm.showTableDetails",
+      async (tableName: string) => {
+        if (webViewProvider) {
+          // WebViewでテーブル詳細を表示
+          webViewProvider.showTableDetails(tableName);
+        }
+      },
+    );
+
     const refreshConnectionsCommand = vscode.commands.registerCommand(
       "vscode-dbm.refreshConnections",
       () => {
@@ -223,6 +234,7 @@ export async function activate(context: vscode.ExtensionContext) {
       openConnectionCommand,
       newQueryCommand,
       selectFromTableCommand,
+      showTableDetailsCommand,
       refreshConnectionsCommand,
       addConnectionCommand,
       runQueryInPanelCommand,

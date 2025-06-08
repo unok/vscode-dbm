@@ -236,25 +236,55 @@ function getNodeIcon(
   }
 
   const iconMap: Record<SchemaNodeType, React.ReactNode> = {
-    database: <Icon name={IconNames.DATABASE} className="text-blue-400" size="sm" />,
-    schema: <Icon name={IconNames.FOLDER} className="text-purple-400" size="sm" />,
-    tables: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
+    database: (
+      <Icon name={IconNames.DATABASE} className="text-blue-400" size="sm" />
+    ),
+    schema: (
+      <Icon name={IconNames.FOLDER} className="text-purple-400" size="sm" />
+    ),
+    tables: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
     table: <Icon name={IconNames.TABLE} className="text-green-400" size="sm" />,
-    views: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
+    views: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
     view: <Icon name="eye" className="text-indigo-400" size="sm" />,
-    columns: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
-    column: <Icon name={IconNames.COLUMN} className="text-gray-400" size="sm" />,
-    indexes: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
+    columns: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
+    column: (
+      <Icon name={IconNames.COLUMN} className="text-gray-400" size="sm" />
+    ),
+    indexes: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
     index: <Icon name="key" className="text-orange-400" size="sm" />,
-    constraints: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
+    constraints: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
     constraint: <Icon name="lock" className="text-red-400" size="sm" />,
-    functions: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
-    function: <Icon name={IconNames.SYMBOL_FUNCTION} className="text-cyan-400" size="sm" />,
-    triggers: <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />,
+    functions: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
+    function: (
+      <Icon
+        name={IconNames.SYMBOL_FUNCTION}
+        className="text-cyan-400"
+        size="sm"
+      />
+    ),
+    triggers: (
+      <Icon name={IconNames.FOLDER} className="text-yellow-400" size="sm" />
+    ),
     trigger: <Icon name="zap" className="text-pink-400" size="sm" />,
   };
 
-  return iconMap[type] || <Icon name={IconNames.FILE} className="text-gray-400" size="sm" />;
+  return (
+    iconMap[type] || (
+      <Icon name={IconNames.FILE} className="text-gray-400" size="sm" />
+    )
+  );
 }
 
 function getNodeClass(type: SchemaNodeType, isSelected: boolean): string {
@@ -265,4 +295,3 @@ function getNodeClass(type: SchemaNodeType, isSelected: boolean): string {
 
   return `${baseClass} ${selectedClass} ${typeClass}`.trim();
 }
-

@@ -1227,10 +1227,11 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     schema?: string;
   }) {
     try {
-      const tableMetadata = await this.databaseService.getTableMetadataWithConstraints(
-        data.tableName,
-        data.schema,
-      );
+      const tableMetadata =
+        await this.databaseService.getTableMetadataWithConstraints(
+          data.tableName,
+          data.schema,
+        );
       if (this.view) {
         this.view.webview.postMessage({
           type: "tableMetadataWithConstraints",
@@ -1265,5 +1266,45 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
   public async cleanup() {
     this.databaseService.removeMessageListener("sidebar");
+  }
+
+  /**
+   * 指定されたテーブルの詳細情報を表示
+   */
+  async showTableDetails(tableName: string): Promise<void> {
+    if (!this.view) {
+      return;
+    }
+
+    try {
+      // アクティブな接続を取得
+      const activeConnections = this.databaseService.getActiveConnections();
+      if (activeConnections.length === 0) {
+        vscode.window.showWarningMessage("アクティブなデータベース接続がありません");
+        return;
+      }
+
+      // 最初のアクティブ接続を使用（複数ある場合は改善の余地あり）
+      const connectionId = activeConnections[0].id;
+      
+      // テーブルの詳細メタデータを取得
+      const tableMetadata = await this.databaseService.getTableMetadataWithConstraints(
+        tableName,
+        undefined, // schema
+        connectionId
+      );
+
+      // WebViewにテーブル詳細表示メッセージを送信
+      this.view.webview.postMessage({
+        type: "showTableDetails",
+        data: tableMetadata,
+      });
+
+      // WebViewを前面に表示
+      this.view.show?.(true);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "不明なエラー";
+      vscode.window.showErrorMessage(`テーブル詳細の取得に失敗しました: ${errorMessage}`);
+    }
   }
 }

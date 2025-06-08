@@ -1,19 +1,26 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DatabaseConfig } from "../../shared/types";
-import type { DatabaseSchema, TableMetadata, SchemaTreeNode } from "../../shared/types/schema";
+import type {
+  DatabaseSchema,
+  SchemaTreeNode,
+  TableMetadata,
+} from "../../shared/types/schema";
 import { useVSCodeAPI } from "../api/vscode";
 import { SchemaTree } from "./SchemaTree";
 import { TableDetailsPanel } from "./TableDetailsPanel";
 
 const DatabaseExplorer: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
-  const [savedConnections, setSavedConnections] = useState<DatabaseConfig[]>([]);
+  const [savedConnections, setSavedConnections] = useState<DatabaseConfig[]>(
+    [],
+  );
   const [schema, setSchema] = useState<DatabaseSchema | null>(null);
   const [schemaTree, setSchemaTree] = useState<SchemaTreeNode[]>([]);
-  const [selectedTable, setSelectedTable] = useState<TableMetadata | null>(null);
+  const [selectedTable, setSelectedTable] = useState<TableMetadata | null>(
+    null,
+  );
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const vscodeApi = useVSCodeAPI();
 
   const handleConnect = async (connection: DatabaseConfig) => {
@@ -41,8 +48,7 @@ const DatabaseExplorer: React.FC = () => {
     if (node.type === "table" && node.metadata) {
       const tableMetadata = node.metadata as TableMetadata;
       setSelectedTable(tableMetadata);
-      setShowDetailsPanel(true);
-      
+
       // より詳細な情報を取得
       vscodeApi.postMessage("getTableMetadataWithConstraints", {
         tableName: tableMetadata.name,
@@ -52,7 +58,7 @@ const DatabaseExplorer: React.FC = () => {
   };
 
   const handleNodeExpand = (nodeId: string, expanded: boolean) => {
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const newSet = new Set(prev);
       if (expanded) {
         newSet.add(nodeId);
@@ -64,62 +70,71 @@ const DatabaseExplorer: React.FC = () => {
   };
 
   // スキーマからツリーノードを生成
-  const buildSchemaTree = (schema: DatabaseSchema): SchemaTreeNode[] => {
-    const nodes: SchemaTreeNode[] = [];
+  const buildSchemaTree = useCallback(
+    (schema: DatabaseSchema): SchemaTreeNode[] => {
+      const nodes: SchemaTreeNode[] = [];
 
-    // テーブルフォルダ
-    if (schema.tables.length > 0) {
-      const tablesNode: SchemaTreeNode = {
-        id: "tables",
-        label: `テーブル (${schema.tables.length})`,
-        type: "tables",
-        icon: "table",
-        children: schema.tables.map(table => ({
-          id: `table-${table.name}`,
-          label: `${table.name} (${table.rowCount || 0} 行)`,
-          type: "table",
+      // テーブルフォルダ
+      if (schema.tables.length > 0) {
+        const tablesNode: SchemaTreeNode = {
+          id: "tables",
+          label: `テーブル (${schema.tables.length})`,
+          type: "tables",
           icon: "table",
-          metadata: table,
-          children: [{
-            id: `table-${table.name}-columns`,
-            label: `カラム (${table.columns.length})`,
-            type: "columns",
-            icon: "list",
-            children: table.columns.map(column => ({
-              id: `column-${table.name}-${column.name}`,
-              label: `${column.name}: ${column.type}${column.isPrimaryKey ? " (PK)" : ""}${column.isForeignKey ? " (FK)" : ""}`,
-              type: "column",
-              icon: column.isPrimaryKey ? "key" : column.isForeignKey ? "link" : "field",
-              metadata: column,
-            })),
-          }],
-        })),
-        isExpanded: true,
-      };
-      nodes.push(tablesNode);
-    }
+          children: schema.tables.map((table) => ({
+            id: `table-${table.name}`,
+            label: `${table.name} (${table.rowCount || 0} 行)`,
+            type: "table",
+            icon: "table",
+            metadata: table,
+            children: [
+              {
+                id: `table-${table.name}-columns`,
+                label: `カラム (${table.columns.length})`,
+                type: "columns",
+                icon: "list",
+                children: table.columns.map((column) => ({
+                  id: `column-${table.name}-${column.name}`,
+                  label: `${column.name}: ${column.type}${column.isPrimaryKey ? " (PK)" : ""}${column.isForeignKey ? " (FK)" : ""}`,
+                  type: "column",
+                  icon: column.isPrimaryKey
+                    ? "key"
+                    : column.isForeignKey
+                      ? "link"
+                      : "field",
+                  metadata: column,
+                })),
+              },
+            ],
+          })),
+          isExpanded: true,
+        };
+        nodes.push(tablesNode);
+      }
 
-    // ビューフォルダ
-    if (schema.views.length > 0) {
-      const viewsNode: SchemaTreeNode = {
-        id: "views",
-        label: `ビュー (${schema.views.length})`,
-        type: "views",
-        icon: "eye",
-        children: schema.views.map(view => ({
-          id: `view-${view.name}`,
-          label: view.name,
-          type: "view",
+      // ビューフォルダ
+      if (schema.views.length > 0) {
+        const viewsNode: SchemaTreeNode = {
+          id: "views",
+          label: `ビュー (${schema.views.length})`,
+          type: "views",
           icon: "eye",
-          metadata: view,
-        })),
-        isExpanded: false,
-      };
-      nodes.push(viewsNode);
-    }
+          children: schema.views.map((view) => ({
+            id: `view-${view.name}`,
+            label: view.name,
+            type: "view",
+            icon: "eye",
+            metadata: view,
+          })),
+          isExpanded: false,
+        };
+        nodes.push(viewsNode);
+      }
 
-    return nodes;
-  };
+      return nodes;
+    },
+    [],
+  );
 
   useEffect(() => {
     // 保存された接続を取得
@@ -144,19 +159,23 @@ const DatabaseExplorer: React.FC = () => {
             setSelectedTable(message.data);
           }
           break;
+        case "showTableDetails":
+          // 外部からのテーブル詳細表示要求
+          setSelectedTable(message.data);
+          break;
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [vscodeApi, selectedTable]);
+  }, [vscodeApi, selectedTable, buildSchemaTree]);
 
   // スキーマが更新されたらツリーを再構築
   useEffect(() => {
     if (schema) {
       setSchemaTree(buildSchemaTree(schema));
     }
-  }, [schema]);
+  }, [schema, buildSchemaTree]);
 
   return (
     <div className="h-full flex flex-col bg-vscode-editor-background">
@@ -267,10 +286,7 @@ const DatabaseExplorer: React.FC = () => {
 
           {/* テーブル詳細パネル */}
           <div className="w-1/2">
-            <TableDetailsPanel
-              table={selectedTable}
-              className="h-full"
-            />
+            <TableDetailsPanel table={selectedTable} className="h-full" />
           </div>
         </div>
       )}

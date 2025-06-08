@@ -1,10 +1,10 @@
 import type React from "react";
 import { useState } from "react";
-import type { 
-  TableMetadata, 
-  ColumnMetadata, 
-  IndexMetadata, 
-  ConstraintMetadata 
+import type {
+  ColumnMetadata,
+  ConstraintMetadata,
+  IndexMetadata,
+  TableMetadata,
 } from "../../shared/types/schema";
 import { Icon, IconNames } from "./Icon";
 
@@ -19,7 +19,9 @@ export const TableDetailsPanel: React.FC<TableDetailsPanelProps> = ({
   onClose,
   className = "",
 }) => {
-  const [activeTab, setActiveTab] = useState<"columns" | "indexes" | "constraints">("columns");
+  const [activeTab, setActiveTab] = useState<
+    "columns" | "indexes" | "constraints"
+  >("columns");
 
   if (!table) {
     return (
@@ -108,8 +110,12 @@ export const TableDetailsPanel: React.FC<TableDetailsPanelProps> = ({
       {/* Content */}
       <div className="table-details-content flex-1 overflow-auto">
         {activeTab === "columns" && <ColumnsTab columns={table.columns} />}
-        {activeTab === "indexes" && <IndexesTab indexes={table.indexes || []} />}
-        {activeTab === "constraints" && <ConstraintsTab constraints={table.constraints || []} />}
+        {activeTab === "indexes" && (
+          <IndexesTab indexes={table.indexes || []} />
+        )}
+        {activeTab === "constraints" && (
+          <ConstraintsTab constraints={table.constraints || []} />
+        )}
       </div>
     </div>
   );
@@ -123,7 +129,12 @@ interface TabButtonProps {
   children: React.ReactNode;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ active, onClick, count, children }) => (
+const TabButton: React.FC<TabButtonProps> = ({
+  active,
+  onClick,
+  count,
+  children,
+}) => (
   <button
     type="button"
     onClick={onClick}
@@ -155,7 +166,11 @@ const ColumnsTab: React.FC<ColumnsTabProps> = ({ columns }) => (
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <ColumnIcon />
+              <Icon
+                name={IconNames.COLUMN}
+                className="text-gray-400"
+                size="sm"
+              />
               <span className="font-medium text-vscode-editor-foreground">
                 {column.name}
               </span>
@@ -173,10 +188,12 @@ const ColumnsTab: React.FC<ColumnsTabProps> = ({ columns }) => (
                 {column.fullType || column.type}
               </span>
             </div>
-            
+
             {column.defaultValue && (
               <div>
-                <span className="text-vscode-descriptionForeground">デフォルト:</span>
+                <span className="text-vscode-descriptionForeground">
+                  デフォルト:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground font-mono text-xs">
                   {column.defaultValue}
                 </span>
@@ -185,7 +202,9 @@ const ColumnsTab: React.FC<ColumnsTabProps> = ({ columns }) => (
 
             {column.characterMaximumLength && (
               <div>
-                <span className="text-vscode-descriptionForeground">最大長:</span>
+                <span className="text-vscode-descriptionForeground">
+                  最大長:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground">
                   {column.characterMaximumLength}
                 </span>
@@ -204,7 +223,9 @@ const ColumnsTab: React.FC<ColumnsTabProps> = ({ columns }) => (
 
             {column.constraintName && (
               <div>
-                <span className="text-vscode-descriptionForeground">制約名:</span>
+                <span className="text-vscode-descriptionForeground">
+                  制約名:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground font-mono text-xs">
                   {column.constraintName}
                 </span>
@@ -213,16 +234,21 @@ const ColumnsTab: React.FC<ColumnsTabProps> = ({ columns }) => (
 
             {column.foreignKeyTarget && (
               <div className="col-span-2">
-                <span className="text-vscode-descriptionForeground">参照先:</span>
+                <span className="text-vscode-descriptionForeground">
+                  参照先:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground font-mono text-xs">
-                  {column.foreignKeyTarget.table}.{column.foreignKeyTarget.column}
+                  {column.foreignKeyTarget.table}.
+                  {column.foreignKeyTarget.column}
                 </span>
               </div>
             )}
 
             {column.comment && (
               <div className="col-span-2">
-                <span className="text-vscode-descriptionForeground">コメント:</span>
+                <span className="text-vscode-descriptionForeground">
+                  コメント:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground">
                   {column.comment}
                 </span>
@@ -255,7 +281,7 @@ const IndexesTab: React.FC<IndexesTabProps> = ({ indexes }) => (
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
-                <IndexIcon />
+                <Icon name="key" className="text-orange-400" size="sm" />
                 <span className="font-medium text-vscode-editor-foreground">
                   {index.name}
                 </span>
@@ -266,14 +292,18 @@ const IndexesTab: React.FC<IndexesTabProps> = ({ indexes }) => (
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-vscode-descriptionForeground">タイプ:</span>
+                <span className="text-vscode-descriptionForeground">
+                  タイプ:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground uppercase">
                   {index.type}
                 </span>
               </div>
-              
+
               <div className="col-span-2">
-                <span className="text-vscode-descriptionForeground">カラム:</span>
+                <span className="text-vscode-descriptionForeground">
+                  カラム:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground">
                   {index.columns.join(", ")}
                 </span>
@@ -281,7 +311,9 @@ const IndexesTab: React.FC<IndexesTabProps> = ({ indexes }) => (
 
               {index.size && (
                 <div>
-                  <span className="text-vscode-descriptionForeground">サイズ:</span>
+                  <span className="text-vscode-descriptionForeground">
+                    サイズ:
+                  </span>
                   <span className="ml-2 text-vscode-editor-foreground">
                     {(index.size / 1024).toFixed(1)} KB
                   </span>
@@ -303,12 +335,10 @@ interface ConstraintsTabProps {
 const ConstraintsTab: React.FC<ConstraintsTabProps> = ({ constraints }) => (
   <div className="p-4">
     {constraints.length === 0 ? (
-      <div className="text-center text-gray-500 py-8">
-        制約が見つかりません
-      </div>
+      <div className="text-center text-gray-500 py-8">制約が見つかりません</div>
     ) : (
       <div className="space-y-3">
-        {constraints.map((constraint, i) => (
+        {constraints.map((constraint, _i) => (
           <div
             key={constraint.name}
             className="constraint-item bg-vscode-editorWidget-background border border-vscode-panel-border rounded p-3"
@@ -327,27 +357,32 @@ const ConstraintsTab: React.FC<ConstraintsTabProps> = ({ constraints }) => (
 
             <div className="grid grid-cols-1 gap-2 text-sm">
               <div>
-                <span className="text-vscode-descriptionForeground">カラム:</span>
+                <span className="text-vscode-descriptionForeground">
+                  カラム:
+                </span>
                 <span className="ml-2 text-vscode-editor-foreground">
                   {constraint.columns.join(", ")}
                 </span>
               </div>
-              
+
               {constraint.referencedTable && (
                 <div>
-                  <span className="text-vscode-descriptionForeground">参照先:</span>
+                  <span className="text-vscode-descriptionForeground">
+                    参照先:
+                  </span>
                   <span className="ml-2 text-vscode-editor-foreground">
                     {constraint.referencedTable}
-                    {constraint.referencedColumns && 
-                      ` (${constraint.referencedColumns.join(", ")})`
-                    }
+                    {constraint.referencedColumns &&
+                      ` (${constraint.referencedColumns.join(", ")})`}
                   </span>
                 </div>
               )}
 
               {constraint.definition && (
                 <div>
-                  <span className="text-vscode-descriptionForeground">定義:</span>
+                  <span className="text-vscode-descriptionForeground">
+                    定義:
+                  </span>
                   <span className="ml-2 text-vscode-editor-foreground font-mono text-xs">
                     {constraint.definition}
                   </span>
@@ -377,14 +412,18 @@ const Badge: React.FC<BadgeProps> = ({ color, children }) => {
   };
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium border rounded ${colorClasses[color]}`}>
+    <span
+      className={`px-2 py-1 text-xs font-medium border rounded ${colorClasses[color]}`}
+    >
       {children}
     </span>
   );
 };
 
 // Helper Functions
-function getConstraintColor(type: string): "blue" | "green" | "purple" | "red" | "orange" {
+function getConstraintColor(
+  type: string,
+): "blue" | "green" | "purple" | "red" | "orange" {
   switch (type) {
     case "primary_key":
       return "blue";

@@ -1,12 +1,16 @@
 import * as vscode from "vscode";
+import { DatabaseConnection } from "../../shared/database/DatabaseConnection";
+import type { QueryResult as ProxyQueryResult } from "../../shared/database/DatabaseProxy";
 import {
   type DatabaseProxy,
   type DatabaseProxyConfig,
   DatabaseProxyFactory,
 } from "../../shared/database/DatabaseProxy";
-import type { DatabaseConfig } from "../../shared/types";
-import type { QueryResult as SharedQueryResult } from "../../shared/types";
-import type { QueryResult as ProxyQueryResult } from "../../shared/database/DatabaseProxy";
+import { DatabaseMetadataService } from "../../shared/services/DatabaseMetadataService";
+import type {
+  DatabaseConfig,
+  QueryResult as SharedQueryResult,
+} from "../../shared/types";
 import type {
   BaseMessage,
   ConnectionStatusMessage,
@@ -15,8 +19,6 @@ import type {
   OpenConnectionMessage,
 } from "../../shared/types/messages";
 import type { DatabaseSchema, TableMetadata } from "../../shared/types/schema";
-import { DatabaseMetadataService } from "../../shared/services/DatabaseMetadataService";
-import { DatabaseConnection } from "../../shared/database/DatabaseConnection";
 
 /**
  * データベース接続とクエリ実行を管理する中央サービス
@@ -45,7 +47,7 @@ class DatabaseConnectionAdapter extends DatabaseConnection {
     this.lastConnected = activeConnection.connectedAt;
   }
 
-  async connect(timeout?: number): Promise<void> {
+  async connect(_timeout?: number): Promise<void> {
     // ActiveConnectionは既に接続済みなので何もしない
     this.setConnected(this.activeConnection.isConnected);
   }
@@ -56,12 +58,15 @@ class DatabaseConnectionAdapter extends DatabaseConnection {
   }
 
   async query(sql: string, params?: unknown[]): Promise<SharedQueryResult> {
-    const result: ProxyQueryResult = await this.activeConnection.proxy.query(sql, params);
-    
+    const result: ProxyQueryResult = await this.activeConnection.proxy.query(
+      sql,
+      params,
+    );
+
     if (!result.success) {
       throw new Error(result.error || "Query execution failed");
     }
-    
+
     return {
       rows: result.rows || [],
       rowCount: result.rowCount || 0,
