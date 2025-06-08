@@ -90,6 +90,9 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         case "getTableMetadataWithConstraints":
           await this.handleGetTableMetadataWithConstraints(message.data);
           break;
+        case "webviewReady":
+          console.log("WebView ready notification received:", message.data);
+          break;
       }
     });
 
@@ -105,9 +108,17 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
       process.env.NODE_ENV === "development" ||
       process.env.VSCODE_DEBUG === "true";
 
+    console.log("getHtmlForWebview called");
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("VSCODE_DEBUG:", process.env.VSCODE_DEBUG);
+    console.log("isDevelopment:", isDevelopment);
+
     if (isDevelopment) {
+      console.log("Using getDevHtml()");
       return this.getDevHtml();
     }
+
+    console.log("Using production HTML");
 
     // プロダクション環境用の簡単なHTML
     const nonce = this.getNonce();
@@ -166,14 +177,13 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
     </style>
 </head>
 <body>
-    <h2>Database Manager</h2>
+    <h2>📋 クイックアクション</h2>
     <div class="status" id="status">WebView読み込み中...</div>
-    <div class="status" id="connectionStatus">データベース: 未接続</div>
-    <button id="testBtn">メッセージテスト</button>
-    <button id="connectBtn">デモ接続テスト</button>
-    <button id="queryBtn">デモクエリ実行</button>
-    <button id="dashboardBtn">ダッシュボードを開く</button>
-    <div id="queryResults" style="margin-top: 20px;"></div>
+    <button id="testTableBtn">テーブル詳細テスト</button>
+    <div id="tableDetailsSection" style="margin-top: 20px;">
+        <div id="tableDetailsContent"></div>
+    </div>
+    <div id="debugInfo" style="margin-top: 10px; font-size: 11px; color: var(--vscode-descriptionForeground);"></div>
     
     <script nonce="${nonce}">
         // Store VSCode API globally to prevent multiple acquisitions
@@ -184,38 +194,67 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         
         document.getElementById('status').textContent = 'WebView正常読み込み完了';
         
-        // ボタンにイベントリスナーを追加
-        document.getElementById('testBtn').addEventListener('click', function() {
-            console.log('Test button clicked');
-            vscode.postMessage({
-                type: 'showInfo',
-                data: { message: 'メッセージテスト成功!' }
-            });
-        });
+        // デバッグ情報を画面に表示
+        const debugInfo = document.getElementById('debugInfo');
+        if (debugInfo) {
+            debugInfo.innerHTML = 'WebView読み込み完了: ' + new Date().toLocaleTimeString() + '<br>プロダクション環境';
+            if (window.vscode) {
+                debugInfo.innerHTML += '<br>VSCode API利用可能';
+            } else {
+                debugInfo.innerHTML += '<br>VSCode API利用不可';
+            }
+        }
         
-        document.getElementById('connectBtn').addEventListener('click', function() {
-            console.log('Connect button clicked');
-            vscode.postMessage({
-                type: 'openConnection',
-                data: { type: 'sqlite' }
-            });
-        });
+        // テーブル詳細表示関数（プロダクション環境用）
+        function displayTableDetails(tableData) {
+            console.log('displayTableDetails called with:', tableData);
+            const content = document.getElementById('tableDetailsContent');
+            
+            if (!tableData) {
+                content.innerHTML = '<p>テーブルデータが見つかりません</p>';
+                return;
+            }
+            
+            let html = '<div style="border: 1px solid var(--vscode-panel-border); padding: 15px; border-radius: 4px;">';
+            html += '<h3>' + (tableData.name || 'N/A') + '</h3>';
+            
+            if (tableData.columns && tableData.columns.length > 0) {
+                html += '<h4>カラム (' + tableData.columns.length + ')</h4>';
+                html += '<div style="max-height: 300px; overflow-y: auto;">';
+                tableData.columns.forEach(column => {
+                    html += '<div style="margin: 5px 0; padding: 8px; background: var(--vscode-editorWidget-background); border-radius: 3px;">';
+                    html += '<strong>' + column.name + '</strong> (' + column.type + ')';
+                    if (column.isPrimaryKey) html += ' [PK]';
+                    if (!column.isNullable) html += ' [NOT NULL]';
+                    if (column.comment) html += '<br><em>' + column.comment + '</em>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            content.innerHTML = html;
+        }
         
-        document.getElementById('queryBtn').addEventListener('click', function() {
-            console.log('Query button clicked');
-            vscode.postMessage({
-                type: 'executeQuery',
-                data: { query: 'SELECT * FROM users' }
+        // テストボタンのイベントリスナー
+        const testTableBtn = document.getElementById('testTableBtn');
+        if (testTableBtn) {
+            testTableBtn.addEventListener('click', function() {
+                console.log('Test table button clicked');
+                if (debugInfo) {
+                    debugInfo.innerHTML += '<br>テストボタンクリック: ' + new Date().toLocaleTimeString();
+                }
+                
+                displayTableDetails({
+                    name: 'プロダクション_テストテーブル',
+                    columns: [
+                        { name: 'id', type: 'int', isPrimaryKey: true, isNullable: false },
+                        { name: 'name', type: 'varchar', isNullable: false, comment: 'プロダクション環境テスト' }
+                    ],
+                    rowCount: 42
+                });
             });
-        });
-        
-        document.getElementById('dashboardBtn').addEventListener('click', function() {
-            console.log('Dashboard button clicked');
-            vscode.postMessage({
-                type: 'showInfo', 
-                data: { message: 'ダッシュボード機能は開発中です' }
-            });
-        });
+        }
         
         
         // テーブル作成関数
@@ -251,12 +290,33 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             console.log('Received:', event.data);
             const message = event.data;
             
+            // デバッグ情報を更新
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>メッセージ受信: ' + message.type + ' - ' + new Date().toLocaleTimeString();
+            }
+            
+            // テーブル詳細の表示
+            if (message.type === 'showTableDetails') {
+                console.log('Displaying table details:', message.data);
+                try {
+                    displayTableDetails(message.data);
+                    if (debugInfo) {
+                        debugInfo.innerHTML += '<br>テーブル詳細表示成功';
+                    }
+                } catch (error) {
+                    console.error('Error displaying table details:', error);
+                    if (debugInfo) {
+                        debugInfo.innerHTML += '<br>エラー: ' + error.message;
+                    }
+                }
+            }
+            
             // 接続状況の更新
-            if (message.type === 'connectionStatus') {
+            else if (message.type === 'connectionStatus') {
                 const status = message.data.connected ? 
                     'データベース: 接続済み (' + message.data.activeConnection + ')' : 
                     'データベース: 未接続';
-                document.getElementById('connectionStatus').textContent = status;
+                document.getElementById('status').textContent = status;
             }
             
             // 接続結果の表示
@@ -313,8 +373,10 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
   private getDevHtml() {
     // Simple development HTML with table details only
     const nonce = this.getNonce();
+    
+    console.log("Generated nonce:", nonce);
 
-    return `<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -392,8 +454,6 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         
         /* Columns Container */
         .columns-container, .constraints-container, .indexes-container {
-            max-height: 250px;
-            overflow-y: auto;
             padding: 8px;
         }
         
@@ -413,9 +473,29 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         
         .column-header, .constraint-header, .index-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 4px;
             margin-bottom: 4px;
+        }
+        
+        .column-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .column-section.name-section {
+            font-weight: 600;
+            color: var(--vscode-editor-foreground);
+        }
+        
+        .column-section.type-section {
+            margin-left: 0;
+        }
+        
+        .column-section.other-section {
+            margin-left: 0;
         }
         
         .column-name, .constraint-name, .index-name {
@@ -425,33 +505,38 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         }
         
         .column-type {
-            color: var(--vscode-descriptionForeground);
-            font-size: 10px;
+            color: var(--vscode-textLink-foreground);
+            font-size: 12px;
             font-family: 'Courier New', monospace;
-            background: var(--vscode-badge-background);
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-        
-        .column-badges {
-            margin-top: 4px;
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-focusBorder);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
         }
         
         .column-comment {
-            margin-top: 6px;
-            padding: 4px 6px;
+            margin-left: 8px;
+            padding: 2px 6px;
             background: var(--vscode-editorGutter-background);
             color: var(--vscode-editor-foreground);
             border-radius: 3px;
             font-size: 10px;
             font-style: italic;
             border-left: 2px solid var(--vscode-textLink-foreground);
+            flex-shrink: 0;
         }
         
         .constraint-details, .index-details {
-            font-size: 10px;
-            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+            color: var(--vscode-editor-foreground);
             margin-top: 4px;
+            line-height: 1.4;
+        }
+        
+        .constraint-details strong {
+            color: var(--vscode-textLink-foreground);
+            font-weight: 600;
         }
         
         .constraint-type-badge {
@@ -484,7 +569,7 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             border-radius: 3px;
             font-size: 9px;
             font-weight: bold;
-            margin-right: 4px;
+            margin-left: 8px;
             text-transform: uppercase;
         }
         
@@ -519,8 +604,15 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
     <!-- Table Details Section -->
-    <div id="tableDetailsSection" style="display: none;">
-        <div id="tableDetailsContent"></div>
+    <div id="tableDetailsSection" style="display: block;">
+        <div id="tableDetailsContent">
+            <div style="padding: 20px; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background);">
+                <h3>📋 クイックアクション</h3>
+                <p>テーブルをクリックすると詳細情報が表示されます</p>
+                <button id="testBtn" style="margin: 10px 0; padding: 5px 10px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer;">テスト表示</button>
+                <div id="debugInfo" style="margin-top: 10px; font-size: 11px; color: var(--vscode-descriptionForeground);"></div>
+            </div>
+        </div>
     </div>
 
     <script nonce="${nonce}">
@@ -532,10 +624,15 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
         
         // テーブル詳細表示関数
         function displayTableDetails(tableData) {
+            console.log('displayTableDetails called with:', tableData);
             const section = document.getElementById('tableDetailsSection');
             const content = document.getElementById('tableDetailsContent');
             
+            console.log('section element:', section);
+            console.log('content element:', content);
+            
             if (!tableData) {
+                console.log('No table data provided');
                 content.innerHTML = '<div class="table-details"><p class="loading">テーブルデータが見つかりません</p></div>';
                 section.style.display = 'block';
                 return;
@@ -562,37 +659,70 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                 html += '<div class="detail-section">';
                 html += '<h4 class="detail-title">📝 カラム (' + tableData.columns.length + ')</h4>';
                 html += '<div class="columns-container">';
+                html += '<table class="columns-table">';
                 tableData.columns.forEach(column => {
                     const badges = [];
                     if (column.isPrimaryKey) badges.push('<span class="badge pk">PK</span>');
                     if (column.isForeignKey) badges.push('<span class="badge fk">FK</span>');
                     if (!column.isNullable) badges.push('<span class="badge nn">NOT NULL</span>');
                     
-                    html += '<div class="column-card">';
-                    html += '<div class="column-header">';
-                    html += '<span class="column-name">' + column.name + '</span>';
-                    html += '<span class="column-type">' + column.type + '</span>';
-                    html += '</div>';
+                    html += '<tr>';
+                    
+                    // 1. カラム名
+                    html += '<td class="col-name">' + column.name + '</td>';
+                    
+                    // 2. 型（短縮表示）
+                    let displayType = column.type;
+                    if (displayType) {
+                        displayType = displayType
+                            .replace(/timestamp without time zone/gi, 'timestamp')
+                            .replace(/timestamp with time zone/gi, 'timestampz')
+                            .replace(/character varying/gi, 'varchar')
+                            .replace(/double precision/gi, 'double');
+                    }
+                    html += '<td class="col-type"><span class="column-type">' + displayType + '</span></td>';
+                    
+                    // 3. その他（バッジ、コメント）
+                    html += '<td class="col-other">';
                     if (badges.length > 0) {
-                        html += '<div class="column-badges">' + badges.join(' ') + '</div>';
+                        html += badges.join(' ');
                     }
                     if (column.comment) {
-                        html += '<div class="column-comment">' + column.comment + '</div>';
+                        if (badges.length > 0) html += ' ';
+                        html += '<span class="column-comment">' + column.comment + '</span>';
                     }
-                    html += '</div>';
+                    html += '</td>';
+                    
+                    html += '</tr>';
                 });
+                html += '</table>';
                 html += '</div>';
                 html += '</div>';
             }
             
-            // 制約情報（NOT NULL と PRIMARY KEY を除外）
+            // 制約情報（NOT NULL、PRIMARY KEY、単一カラムのUNIQUE、not_null名前を含む制約 を除外）
             const meaningfulConstraints = tableData.constraints ? 
-                tableData.constraints.filter(constraint => 
-                    !constraint.type.includes('not_null') && 
-                    !constraint.type.includes('primary_key') &&
-                    constraint.type !== 'not_null' &&
-                    constraint.type !== 'primary_key'
-                ) : [];
+                tableData.constraints.filter(constraint => {
+                    // NOT NULL と PRIMARY KEY は除外
+                    if (constraint.type.includes('not_null') || 
+                        constraint.type.includes('primary_key') ||
+                        constraint.type === 'not_null' ||
+                        constraint.type === 'primary_key') {
+                        return false;
+                    }
+                    
+                    // 制約名に not_null が含まれる場合は除外
+                    if (constraint.name && constraint.name.includes('not_null')) {
+                        return false;
+                    }
+                    
+                    // UNIQUE制約は全て除外（カラムに既に表示されているため）
+                    if (constraint.type === 'unique' || constraint.type.includes('unique')) {
+                        return false;
+                    }
+                    
+                    return true;
+                }) : [];
                 
             if (meaningfulConstraints.length > 0) {
                 html += '<div class="detail-section">';
@@ -611,19 +741,36 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                     
                     html += '<div class="constraint-card">';
                     html += '<div class="constraint-header">';
-                    html += '<span class="constraint-name">' + constraint.name + '</span>';
+                    
+                    // 分かりやすい制約名を生成
+                    let displayName = '';
+                    if (constraint.type === 'foreign_key' && constraint.referencedTable) {
+                        displayName = '🔗 ' + (constraint.columns ? constraint.columns.join(', ') : '') + ' → ' + constraint.referencedTable;
+                    } else if (constraint.type === 'unique') {
+                        displayName = '✨ ユニーク: ' + (constraint.columns ? constraint.columns.join(', ') : '');
+                    } else if (constraint.type === 'check') {
+                        displayName = '✅ チェック: ' + (constraint.columns ? constraint.columns.join(', ') : '');
+                    } else {
+                        displayName = typeDisplay + ': ' + (constraint.columns ? constraint.columns.join(', ') : constraint.name);
+                    }
+                    
+                    html += '<span class="constraint-name">' + displayName + '</span>';
                     html += '<span class="constraint-type-badge ' + constraint.type + '">' + typeDisplay + '</span>';
                     html += '</div>';
-                    if (constraint.columns && constraint.columns.length > 0) {
-                        html += '<div class="constraint-details">カラム: ' + constraint.columns.join(', ') + '</div>';
-                    }
-                    if (constraint.referencedTable) {
-                        html += '<div class="constraint-details">参照先: ' + constraint.referencedTable;
+                    
+                    // 詳細説明
+                    html += '<div class="constraint-details">';
+                    if (constraint.type === 'foreign_key' && constraint.referencedTable) {
+                        html += '外部キー制約: このカラムの値は ' + constraint.referencedTable + ' テーブルに存在しなければなりません';
                         if (constraint.referencedColumns && constraint.referencedColumns.length > 0) {
-                            html += ' (' + constraint.referencedColumns.join(', ') + ')';
+                            html += ' (' + constraint.referencedColumns.join(', ') + ' カラムを参照)';
                         }
-                        html += '</div>';
+                    } else if (constraint.type === 'unique') {
+                        html += 'ユニーク制約: このカラムの値はテーブル内で一意でなければなりません';
+                    } else if (constraint.type === 'check') {
+                        html += 'チェック制約: このカラムの値は特定の条件を満たす必要があります';
                     }
+                    html += '</div>';
                     html += '</div>';
                 });
                 html += '</div>';
@@ -636,14 +783,76 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
                 html += '<h4 class="detail-title">⚡ インデックス (' + tableData.indexes.length + ')</h4>';
                 html += '<div class="indexes-container">';
                 tableData.indexes.forEach(index => {
+                    // デバッグ用のログ出力
+                    console.log('Index data:', JSON.stringify(index, null, 2));
+                    
                     html += '<div class="index-card">';
                     html += '<div class="index-header">';
-                    html += '<span class="index-name">' + index.name + '</span>';
-                    if (index.isUnique) html += '<span class="badge unique">UNIQUE</span>';
-                    html += '</div>';
-                    if (index.columns && index.columns.length > 0) {
-                        html += '<div class="index-details">カラム: ' + index.columns.join(', ') + '</div>';
+                    
+                    // インデックス名とカラム情報を一行で表示
+                    let indexDisplay = index.name || 'インデックス名不明';
+                    
+                    // カラム情報の取得を改善（DatabaseMetadataServiceの形式に対応）
+                    let columnInfo = '';
+                    
+                    // 実際のデータ構造をログ出力
+                    console.log('Index columns property:', index.columns);
+                    console.log('Index columns type:', typeof index.columns);
+                    console.log('Index columns Array.isArray:', Array.isArray(index.columns));
+                    
+                    if (index.columns && Array.isArray(index.columns) && index.columns.length > 0) {
+                        // カラムが配列の場合（DatabaseMetadataServiceの標準形式）
+                        const validColumns = index.columns.filter(col => 
+                            col !== undefined && col !== null && col !== '' && col !== 'undefined'
+                        );
+                        columnInfo = validColumns.join(', ');
+                        console.log('Using columns array:', validColumns);
+                    } else if (typeof index.columns === 'string' && index.columns) {
+                        // カラムが文字列の場合
+                        columnInfo = index.columns;
+                        console.log('Using columns string:', index.columns);
+                    } else if (index.column && typeof index.column === 'string') {
+                        // 単一カラムの場合
+                        columnInfo = index.column;
+                        console.log('Using column property:', index.column);
+                    } else if (index.columnName && typeof index.columnName === 'string') {
+                        // columnName プロパティの場合
+                        columnInfo = index.columnName;
+                        console.log('Using columnName property:', index.columnName);
+                    } else {
+                        // オブジェクトの全プロパティをチェック
+                        const keys = Object.keys(index);
+                        console.log('All index keys:', keys);
+                        for (const key of keys) {
+                            const value = index[key];
+                            console.log('Checking key "' + key + '":', value, typeof value);
+                            if (key.toLowerCase().includes('column') && value && 
+                                (typeof value === 'string' || Array.isArray(value))) {
+                                if (Array.isArray(value)) {
+                                    columnInfo = value.filter(function(v) { return v; }).join(', ');
+                                } else {
+                                    columnInfo = value;
+                                }
+                                console.log('Found column info in "' + key + '":', columnInfo);
+                                break;
+                            }
+                        }
                     }
+                    
+                    // 一行表示: インデックス名 (対象カラム) [UNIQUE]
+                    html += '<span class="index-name">' + indexDisplay;
+                    if (columnInfo) {
+                        html += ' <span style="color: var(--vscode-descriptionForeground);">(' + columnInfo + ')</span>';
+                    } else {
+                        html += ' <span style="color: var(--vscode-errorForeground);">(カラム不明)</span>';
+                    }
+                    html += '</span>';
+                    
+                    if (index.isUnique) {
+                        html += ' <span class="badge unique">UNIQUE</span>';
+                    }
+                    
+                    html += '</div>';
                     html += '</div>';
                 });
                 html += '</div>';
@@ -661,17 +870,115 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
             console.log('QuickAction: Received message:', event.data);
             const message = event.data;
             
+            // デバッグ情報を更新
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>メッセージ受信: ' + message.type + ' - ' + new Date().toLocaleTimeString();
+            }
+            
             // テーブル詳細の表示
             if (message.type === 'showTableDetails') {
                 console.log('Displaying table details:', message.data);
-                displayTableDetails(message.data);
+                try {
+                    displayTableDetails(message.data);
+                    console.log('Table details displayed successfully');
+                    if (debugInfo) {
+                        debugInfo.innerHTML += '<br>テーブル詳細表示成功';
+                    }
+                } catch (error) {
+                    console.error('Error displaying table details:', error);
+                    if (debugInfo) {
+                        debugInfo.innerHTML += '<br>エラー: ' + error.message;
+                    }
+                }
+            } else {
+                console.log('Unknown message type:', message.type);
             }
         });
         
         console.log('QuickAction WebView loaded successfully');
+        
+        // エラーハンドリング
+        window.addEventListener('error', function(e) {
+            console.error('WebView Error:', e.error);
+            console.error('Error message:', e.message);
+            console.error('Error filename:', e.filename);
+            console.error('Error line:', e.lineno);
+            console.error('Error column:', e.colno);
+            
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br><span style="color: red;">エラー: ' + e.message + ' (行:' + e.lineno + ')</span>';
+            }
+        });
+        
+        // デバッグ情報を画面に表示
+        const debugInfo = document.getElementById('debugInfo');
+        if (debugInfo) {
+            debugInfo.innerHTML = 'WebView読み込み完了: ' + new Date().toLocaleTimeString();
+        }
+        
+        // WebView読み込み完了を拡張機能に通知
+        if (window.vscode) {
+            window.vscode.postMessage({
+                type: 'webviewReady',
+                data: { message: 'QuickAction WebView is ready' }
+            });
+            
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>VSCode API利用可能';
+            }
+        } else {
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>VSCode API利用不可';
+            }
+        }
+        
+        // テストボタンのイベントリスナー
+        const testBtn = document.getElementById('testBtn');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => {
+                console.log('Test button clicked - displaying test table');
+                const debugInfo = document.getElementById('debugInfo');
+                if (debugInfo) {
+                    debugInfo.innerHTML += '<br>テストボタンクリック: ' + new Date().toLocaleTimeString();
+                }
+                
+                displayTableDetails({
+                    name: 'テストテーブル',
+                    schema: 'public',
+                    columns: [
+                        { name: 'id', type: 'int', isPrimaryKey: true, isNullable: false },
+                        { name: 'name', type: 'varchar', isNullable: false, comment: 'テスト名前' },
+                        { name: 'created_at', type: 'timestamp', isNullable: true }
+                    ],
+                    constraints: [
+                        { name: 'fk_test', type: 'foreign_key', columns: ['name'], referencedTable: 'other_table' }
+                    ],
+                    indexes: [
+                        { name: 'idx_name', columns: ['name'], isUnique: false }
+                    ],
+                    rowCount: 100
+                });
+            });
+        }
+        
+        // 自動テスト（10秒後）
+        setTimeout(() => {
+            console.log('QuickAction: Auto-testing message reception...');
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo) {
+                debugInfo.innerHTML += '<br>自動テスト実行: ' + new Date().toLocaleTimeString();
+            }
+        }, 10000);
     </script>
 </body>
 </html>`;
+    
+    console.log("Generated HTML length:", html.length);
+    console.log("HTML preview (first 500 chars):", html.substring(0, 500));
+    
+    return html;
   }
 
   // 残りのメソッドは元のファイルと同じ...
@@ -736,14 +1043,34 @@ export class DatabaseWebViewProvider implements vscode.WebviewViewProvider {
 
       console.log("Got table metadata:", tableMetadata);
 
-      // WebViewにテーブル詳細表示メッセージを送信
-      this.view.webview.postMessage({
-        type: "showTableDetails",
-        data: tableMetadata,
-      });
-
       // WebViewを前面に表示
+      console.log("Showing WebView panel");
+      console.log("WebView visible:", this.view.visible);
       this.view.show?.(true);
+      
+      // WebViewが表示されたかを確認
+      setTimeout(() => {
+        console.log("After show - WebView visible:", this.view?.visible);
+      }, 50);
+      
+      // WebViewが表示されるまで少し待機
+      setTimeout(() => {
+        if (!this.view) {
+          console.error("WebView is null when trying to send message");
+          return;
+        }
+        
+        // WebViewにテーブル詳細表示メッセージを送信
+        console.log("Sending showTableDetails message to WebView");
+        const message = {
+          type: "showTableDetails",
+          data: tableMetadata,
+        };
+        console.log("Message content:", message);
+        
+        this.view.webview.postMessage(message);
+        console.log("Message sent successfully");
+      }, 200);
     } catch (error) {
       console.error("Error in showTableDetails:", error);
       const errorMessage =
